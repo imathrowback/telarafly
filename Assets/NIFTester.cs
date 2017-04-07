@@ -14,7 +14,7 @@ public class NIFTester : MonoBehaviour {
 
         Material transmat = Resources.Load("transmat", typeof(Material)) as Material;
         //Debug.Log(transmat.color);
-        string file = @"C:\workspace\rift_extractor\world_terrain_12800_3584_split.nif";
+        string file = @"D:\rift_stuff\nif\A_C_keep_stillmoor_south_entry_01.nif";
         NIFLoader loader = new NIFLoader();
         loader.loadManifestAndDB();
         GameObject obj = loader.loadNIFFromFile(file);

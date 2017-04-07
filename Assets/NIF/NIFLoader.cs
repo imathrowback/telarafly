@@ -35,7 +35,7 @@ public class NIFLoader
         db = AssetProcessor.buildDatabase(manifest, assetsDirectory);
     }
 
-  
+
 
     public GameObject loadNIFFromFile(String fname)
     {
@@ -58,10 +58,10 @@ public class NIFLoader
 
     public GameObject loadNIF(String fname)
     {
-       
+
         try
         {
-          return loadNIF(getNIF(fname), fname);
+            return loadNIF(getNIF(fname), fname);
         }
         catch (Exception ex)
         {
@@ -107,19 +107,19 @@ public class NIFLoader
         GameObject root = new GameObject();
         root.name = Path.GetFileNameWithoutExtension(fname);
         root.transform.localPosition = Vector3.zero;
+        
 
         List<NIFObject> rootObjects = getChildren(nf, -1);
+       
         foreach (NIFObject obj in rootObjects)
         {
             if (obj is NiNode)
             {
+             
                 NiNode niNode = (NiNode)obj;
                 GameObject node = processNodeAndLinkToParent(nf, (NiNode)obj, root);
-
-
             }
         }
-       
         return root;
     }
 
@@ -127,34 +127,31 @@ public class NIFLoader
     {
         List<NIFObject> list = new List<NIFObject>();
         foreach (NIFObject obj in nf.getObjects())
-        {
             if (obj.parentIndex == parentIndex)
-            {
                 list.Add(obj);
-            }
-        }
         return list;
     }
 
     GameObject processNodeAndLinkToParent(NIFFile nf, NiNode niNode, GameObject parent)
     {
+     
+
         GameObject goM = new GameObject();
         goM.name = niNode.typeName + ":" + niNode.name;
 
-        //Debug.Log("process node:" + goM.name);
-        foreach (NiMesh mesh in nf.getMeshes())
-        {
-            if (mesh.parentIndex == niNode.index)
+            foreach (NiMesh mesh in nf.getMeshes())
             {
-                GameObject meshGo = processMesh(nf, mesh);
-                if (niNode is NiTerrainNode)
+                if (mesh.parentIndex == niNode.index)
                 {
-                    //meshGo.GetComponent<MeshRenderer>().material = new Material(Shader.Find("BasicTerrainShader"));
-                    //Debug.Log("found a terrain node");
+                    GameObject meshGo = processMesh(nf, mesh);
+                    if (niNode is NiTerrainNode)
+                    {
+                        //meshGo.GetComponent<MeshRenderer>().material = new Material(Shader.Find("BasicTerrainShader"));
+                        //Debug.Log("found a terrain node");
+                    }
+                    meshGo.transform.parent = goM.transform;
                 }
-                meshGo.transform.parent = goM.transform;
             }
-        }
 
         List<NIFObject> children = getChildren(nf, niNode.index);
         foreach (NIFObject obj in children)
@@ -172,6 +169,33 @@ public class NIFLoader
         if (!(niNode is NiTerrainNode))
         {
             goM.transform.localPosition = new Vector3(niNode.translation.x, niNode.translation.y, niNode.translation.z);
+            Matrix4f m4 = niNode.matrix;
+            Matrix4x4 mat = new Matrix4x4();
+            mat.m00 = m4.m11;
+            mat.m01 = m4.m12;
+            mat.m02 = m4.m13;
+            mat.m03 = m4.m14;
+
+            mat.m10 = m4.m21;
+            mat.m11 = m4.m22;
+            mat.m12 = m4.m23;
+            mat.m13 = m4.m24;
+
+            mat.m20 = m4.m31;
+            mat.m21 = m4.m32;
+            mat.m22 = m4.m33;
+            mat.m23 = m4.m34;
+
+            mat.m30 = m4.m41;
+            mat.m31 = m4.m42;
+            mat.m32 = m4.m43;
+            mat.m33 = m4.m44;
+
+            Quaternion q = GetRotation(mat);
+            goM.transform.localRotation = q;
+            
+            //Debug.Log("[" + niNode.name + "]: trans:\n" + mat.GetRow(0) + "\n" + mat.GetRow(1) + "\n" + mat.GetRow(2) + "\n" + mat.GetRow(3));
+            //goM.transform.localEulerAngles = 
         }
         else
         {
@@ -182,6 +206,11 @@ public class NIFLoader
         return goM;
 
     }
+    public static Quaternion GetRotation(Matrix4x4 matrix)
+    {
+        return Quaternion.LookRotation(matrix.GetColumn(2), matrix.GetColumn(1));
+    }
+
 
     GameObject processMesh(NIFFile nf, NiMesh mesh)
     {
@@ -190,7 +219,7 @@ public class NIFLoader
         go.name = mesh.name;
         if (mesh.name.Length == 0)
             go.name = "mesh";
-        go.transform.localPosition = Vector3.zero;
+        go.transform.localPosition = new Vector3(mesh.translation.x, mesh.translation.y, mesh.translation.z);
         Mesh newMesh = new Mesh();
         MeshFilter mf = go.AddComponent<MeshFilter>();
         MeshRenderer mr = go.AddComponent<MeshRenderer>();
@@ -493,7 +522,7 @@ public class NIFLoader
 
     private Texture loadTexture(AssetDatabase db, String name)
     {
-        
+
         Texture tex = getCachedTObject(name);
         if (tex != null)
             return tex;
@@ -510,7 +539,7 @@ public class NIFLoader
             {
                 if (db == null)
                 {
-                    Debug.Log("db was null");
+                    //Debug.Log("db was null");
                     return new Texture2D(2, 2);
                 }
                 data = db.extractUsingFilename(name);

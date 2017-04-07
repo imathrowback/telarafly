@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.Remoting;
 using System.Text;
 using System.IO;
+using UnityEngine;
 
 namespace Assets.NIF
 {

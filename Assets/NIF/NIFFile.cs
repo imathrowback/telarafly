@@ -106,15 +106,16 @@ namespace Assets.NIF
                                 newObj = (NIFObject)Activator.CreateInstance(Type.GetType(cName));
 
 
-                            newObj.parse(this, obj, ds);
-
-                            long bleft = ds.BaseStream.Length - ds.BaseStream.Position;
-                            if (bleft > 0)
+                            try
                             {
-                                //Debug.Log("[" + typeName + "] left over:" + bleft);
-                              //  Debug.Log("[" + i + "][" + typeName + ": pos" + ds.BaseStream.Position);
+                               
+                                newObj.parse(this, obj, ds);
+                                objects[i] = newObj;
                             }
-                            objects[i] = newObj;
+                            catch (Exception ex)
+                            {
+                                Debug.Log(ex);
+                            }
                         }
                     }
                 } catch (Exception ex)
@@ -141,6 +142,7 @@ namespace Assets.NIF
                                 Debug.LogWarning("WARNING: Node is parented by more than one other node.");
                             }
                             objects[childID].parentIndex = obj.index;
+                            //Debug.Log("parent[" + node.name + "], set child " + objects[childID].name);
                             obj.addChild(objects[childID]);
                         }
                     }
@@ -271,7 +273,7 @@ namespace Assets.NIF
         public String loadString(BinaryReader ds) 
         {
 
-            int index = ds.readInt();
+            int index = (int)ds.readUInt();
 		    if (index >= 0)
 			    return stringTable[index];
 		    return "";

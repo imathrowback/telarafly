@@ -87,7 +87,7 @@ public class TestDecomp : MonoBehaviour
             }
             else
             {
-                error = "Decrypt database, please wait, this could take a few minutes but only needs to be done once.";
+                error = "Decode database, please wait, this could take a few minutes but only needs to be done once per patch.";
 
                 string file = @"decomp\tdbdecomp.exe";
                 pr = new System.Diagnostics.Process();
@@ -99,7 +99,7 @@ public class TestDecomp : MonoBehaviour
                 loaded = true;
             }
             UnityEngine.Debug.Log("Load complete");
-            error = "Load complete";
+            error = "Select world to load";
             color = Color.green;
         }
         catch (Exception ex)
@@ -169,7 +169,8 @@ public class TestDecomp : MonoBehaviour
             int i = 0;
             foreach (WorldSpawn spawn in worlds)
             {
-                if (spawn.worldName.Equals("world") && spawn.spawnName.Equals("tm_exodus_exit"))
+                //if (spawn.worldName.Equals("world") && spawn.spawnName.Equals("tm_exodus_exit"))
+                if (spawn.spawnName.Equals("tm_Meridian_EpochPlaza"))
                     startIndex = i;
                 Dropdown.OptionData option = new Dropdown.OptionData(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos);
                 dropdown.options.Add(option);
@@ -189,7 +190,7 @@ public class TestDecomp : MonoBehaviour
     }
 
     
-    bool abortThread = false;
+    public static bool abortThread = false;
     public void loadMap()
     {
         if (loaded)
@@ -221,7 +222,8 @@ public class TestDecomp : MonoBehaviour
             Assets.GameWorld.Clear();
 
             WorldSpawn spawn = worlds[dropdown.value];
-
+            int startX = 0;
+            int startY = 0;
             int maxX = 0;
             int maxY = 0;
             for (int x = 0; x < 50176; x += 256)
@@ -239,53 +241,64 @@ public class TestDecomp : MonoBehaviour
                 }
              }
 
-
-
-            //foreach (ObjectPosition o in positions)
-            //    Assets.GameWorld.Add(o);
-            Action<ObjectPosition> addFunc = (o) => Assets.GameWorld.Add(o);
             Assets.GameWorld.initialSpawn = spawn;
 
-              int total = (maxX / 256) * (maxY / 256);
+
+            /*
+             * A_C_keep_stillmoor_south_entry_01.nif
+            */
+            /*
+            maxX = startX = 1792;
+            maxY = startY = 3328;
+            Assets.GameWorld.initialSpawn = new WorldSpawn("world", "walls", new Vector3(1855, 1188, 3393), Mathf.Deg2Rad * 511);
+            */
+            int total = ((maxX+256) / 256) * ((maxY+256) / 256);
+         
             int i = 0;
-            for (int x = 0; x < maxX; x += 256)
+
+            Action<ObjectPosition> addFunc = (o) => Assets.GameWorld.Add(o);
+
+            Queue<CDRJob> cdrJobs = new Queue<CDRJob>();
+            error = "Enqueing jobs";
+            for (int x = startX; x <= maxX; x += 256)
             {
-                for (int y = 0; y <maxY; y += 256)
+                for (int y = startY; y <= maxY; y += 256)
                 {
-                    string s = spawn.worldName + "_" + x + "_" + y + ".cdr";
-
-                    i++;
-                    error = "Processing positions [" + x + "][" + y + "]  -  " + (int)(((float)i / (float)total) * 100.0) + " %";
-                    try
-                    {
-                        if (abortThread)
-                            return;
-                        processCDR(s, addFunc);
-                        // also add the terrain nif!
-                        String type = "_split";
-                        String terrainNif = String.Format("{0}_terrain_{1}_{2}{3}.nif", spawn.worldName, x, y, type);
-                        if (adb.filenameExists(terrainNif))
-                        {
-                            Vector3 pos = new Vector3(x, 0.0f, y);
-                            addFunc.Invoke(new ObjectPosition(terrainNif, pos, Quaternion.identity, pos, 1.0f));
-                        }
-
-
-
-                    }
-                    catch (ThreadAbortException ex)
-                    {
-                        UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message);
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message);
-                        Debug.Log(ex);
-                    }
+                    //doCDR(spawn, x, y, addFunc);
+                    CDRJob job = new CDRJob(adb, db, spawn, x, y, addFunc);
+                    job.doneFunc = (v) => { i++;
+                        error = "Loading " + spawn.worldName + "  -  " + (int)(((float)i / (float)total) * 100.0) + " %";
+                    };
+                    cdrJobs.Enqueue(job);
                 }
             }
-            GC.Collect();
+
+            error = "Doing CDRs";
+            //Debug.Log("do cdrs");
+            int currentThreads = 0;
+            List<CDRJob> runningJobs = new List<CDRJob>();
+            while (cdrJobs.Count > 0)
+            {
+                if (currentThreads < 10)
+                {
+                    Interlocked.Increment(ref currentThreads);
+                    CDRJob job = cdrJobs.Dequeue();
+                    //Debug.Log("job [" + job.x + "," + job.y + "], starting");
+                    job.Start(System.Threading.ThreadPriority.Normal);
+                    runningJobs.Add(job);
+                }
+                foreach (CDRJob j in runningJobs.ToArray())
+                {
+                    if (j.Update())
+                    {
+                        Interlocked.Decrement(ref currentThreads);
+                        //Debug.Log("job [" + j.x + "," + j.y + "], finished");
+                        runningJobs.Remove(j);
+                    }
+                }
+                Thread.Sleep(10);
+            }
+
             Debug.Log("scene change");
             doMapChange = true;
         }
@@ -295,12 +308,85 @@ public class TestDecomp : MonoBehaviour
         }
     }
 
+    class CDRJob : ThreadedJob
+    {
+        WorldSpawn spawn;
+        public int x;
+        public int y;
+        Action<ObjectPosition> addFunc;
+        AssetDatabase adb;
+        DB db;
+        public Action<int> doneFunc;
+
+        public CDRJob(AssetDatabase adb, DB db, WorldSpawn spawn, int x, int y, Action<ObjectPosition> addFunc)
+        {
+            this.adb = adb;
+            this.db = db;
+            this.spawn = spawn;
+            this.x = x;
+            this.y = y;
+            this.addFunc = addFunc;
+        }
+
+        protected override void ThreadFunction()
+        {
+            try
+            {
+               // Debug.Log("Begin threaded CDR[" + x + "," + y + "]");
+                doCDR(adb, db, spawn, x, y, addFunc);
+               // Debug.Log("Done threaded CDR[" + x + "," + y + "], ready for update to be called");
+            }
+            catch (Exception ex)
+            {
+                //Debug.Log("Exception trying to do job[" + x + "," + y + "]");
+                //Debug.Log(ex);
+                //IsDone = true;
+            }
+        }
+        protected override void OnFinished()
+        {
+            if (doneFunc != null)
+                doneFunc.Invoke(0);
+        }
+    }
+
+    public static void doCDR(AssetDatabase adb, DB db, WorldSpawn spawn, int x, int y, Action<ObjectPosition> addFunc)
+    {
+        string s = spawn.worldName + "_" + x + "_" + y + ".cdr";
+
+        
+        try
+        {
+            if (abortThread)
+                return;
+            processCDR(s, addFunc, adb, db);
+            // also add the terrain nif!
+            String type = "_split";
+            String terrainNif = String.Format("{0}_terrain_{1}_{2}{3}.nif", spawn.worldName, x, y, type);
+            if (adb.filenameExists(terrainNif))
+            {
+                Vector3 pos = new Vector3(x, 0.0f, y);
+                addFunc.Invoke(new ObjectPosition(terrainNif, pos, Quaternion.identity, pos, 1.0f));
+            }
+
+        }
+        catch (ThreadAbortException ex)
+        {
+            UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message);
+            return;
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message);
+        }
+    }
+
     public void OnDestroy()
     {
         if (loadThread != null & loadThread.IsAlive)
             loadThread.Abort();
     }
-    void processCDR(String str, Action<ObjectPosition> addFunc)
+    static void processCDR(String str, Action<ObjectPosition> addFunc, AssetDatabase adb, DB db)
     {
         if (!adb.filenameExists(str))
             return;
@@ -311,25 +397,18 @@ public class TestDecomp : MonoBehaviour
             UnityEngine.Debug.Log("Unknown code " + data[0] + ", expected:" + 0x6b);
             return;
         }
-        processCDR(new MemoryStream(data), str, addFunc);
+        processCDR(new MemoryStream(data), str, addFunc, db);
 
     }
-    System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
 
-    void  processCDR(Stream ms, string cdrName, Action<ObjectPosition> addFunc)
+    static void  processCDR(Stream ms, string cdrName, Action<ObjectPosition> addFunc, DB db)
     {
-        //Debug.Log("process cdr:" + cdrName);
-        
-        //watch.Reset();
-        //watch.Start();
         try
         {
-           // Debug.Log("process stream " + cdrName);
             CObject obj = Parser.processStreamObject(ms);
 
             if (obj.type != 107)
                 throw new Exception("CDR file was not class 107");
-           // Debug.Log("process stream[" + cdrName + "]: done in " + watch.ElapsedMilliseconds + " ms");
 
             String oname = "";
 
@@ -408,7 +487,7 @@ public class TestDecomp : MonoBehaviour
                                         }
                                         if (nif_hkx_ref != long.MaxValue)
                                         {
-                                            CObject dbObj = getDBObj(623, nif_hkx_ref);
+                                            CObject dbObj = getDBObj(db, 623, nif_hkx_ref);
                                             if (dbObj != null)
                                             {
                                                 CObject dbAry = dbObj.get(0);
@@ -417,7 +496,7 @@ public class TestDecomp : MonoBehaviour
                                                 if (_7319 != null)
                                                 {
                                                     long nifKey = Convert.ToInt64(_7319.get(0).convert());
-                                                    CObject _7305Obj = getDBObj(7305, nifKey);
+                                                    CObject _7305Obj = getDBObj(db, 7305, nifKey);
                                                     String nif = "" + _7305Obj.members[0].convert();
 
                                                     string nifFile = Path.GetFileName(nif);
@@ -452,18 +531,13 @@ public class TestDecomp : MonoBehaviour
        return;
     }
 
-    private CObject getDBObj(long id, long key)
+    static private CObject getDBObj(DB db, long id, long key)
     {
-        //var watch = System.Diagnostics.Stopwatch.StartNew();
-
         if (!db.hasEntry(id, key))
             return null;
         byte[] dbData = db.getData(id, key);
-        //Debug.Log("get data[" + id + "], key[" + key + "] in" + watch.ElapsedMilliseconds + " ms");
         CObject obj = Parser.processStreamObject(new MemoryStream(dbData));
 
-       // watch.Stop();
-        //Debug.Log("getDBObj[" + id + "], key[" + key + "] in" + watch.ElapsedMilliseconds + " ms");
         return obj;
     }
     private static Quaternion readQuat(CObject cObject)

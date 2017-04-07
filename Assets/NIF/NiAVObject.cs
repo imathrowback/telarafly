@@ -17,7 +17,10 @@ namespace Assets.NIF
         protected void loadAVObject(NIFFile file,  BinaryReader ds)
         {
             loadObjectNET(file, ds);
+
+      
             int flags = ds.readUnsignedShort();
+
             // if hack readUShort
             translation = new Point3f(ds.readFloat(), ds.readFloat(), ds.readFloat());
             matrix = new Matrix4f(ds.readFloat(), ds.readFloat(), ds.readFloat(), 0,

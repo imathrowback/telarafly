@@ -13,7 +13,10 @@ namespace Assets
 
         internal static void Add(ObjectPosition objectPosition)
         {
-            objects.Add(objectPosition);
+            lock (objects)
+            {
+                objects.Add(objectPosition);
+            }
         }
         internal static List<ObjectPosition> getObjects()
         {

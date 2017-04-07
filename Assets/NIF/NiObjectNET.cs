@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.NIF
 {
@@ -12,7 +13,7 @@ namespace Assets.NIF
         {
             name = file.loadString(ds);
             extraDataIDs = loadLinkIDs(ds);
-            loadLinkIDs(ds);
+            loadLinkID(ds);
         }
     }
 }

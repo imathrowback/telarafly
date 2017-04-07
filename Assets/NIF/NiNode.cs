@@ -21,6 +21,7 @@ namespace Assets.NIF
 
             loadAVObject(file, ds);
             childLinks = loadLinkIDs(ds);
+            
             loadLinkIDs(ds);
 
         }
