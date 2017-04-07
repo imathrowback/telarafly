@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiTexturingProperty : NiProperty
+    public class NiTexturingProperty : NiProperty
     {
         public int texPropFlags;
         public List<NifTexMap> texList;

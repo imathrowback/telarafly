@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiIntegerExtraData : NIFObject
+    public class NiIntegerExtraData : NIFObject
     {
         public int intExtraData;
 

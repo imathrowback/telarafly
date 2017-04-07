@@ -5,12 +5,15 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class StreamAndElement
+    public class StreamAndElement
     {
          public NifMeshStream streamRef;
          public NifStreamElement elem;
          public NiDataStream dataStream;
+        public StreamAndElement()
+        {
 
+        }
         public StreamAndElement( NifMeshStream streamRef,  NifStreamElement elem2,  NiDataStream dataStream)
         {
             this.streamRef = streamRef;

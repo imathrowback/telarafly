@@ -5,8 +5,12 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class StreamRegion
+    public class StreamRegion
     {
+        public StreamRegion()
+        {
+
+        }
         public StreamRegion(int a, int b)
         {
             this.a = a;

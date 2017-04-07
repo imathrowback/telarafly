@@ -7,7 +7,8 @@ using System.IO;
 
 namespace Assets.NIF
 {
-    class NIFObject
+
+    public class NIFObject
     {
         public String typeName;
         public int nifSize;
@@ -59,5 +60,10 @@ namespace Assets.NIF
             return ids;
         }
 
+         List<NIFObject> children = new List<NIFObject>();
+        internal void addChild(NIFObject nIFObject)
+        {
+            children.Add(nIFObject);
+        }
     }
 }

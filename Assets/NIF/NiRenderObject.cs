@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiRenderObject : NiAVObject
+    public class NiRenderObject : NiAVObject
     {
         public int numMaterials;
         public List<int> materialExtraData;

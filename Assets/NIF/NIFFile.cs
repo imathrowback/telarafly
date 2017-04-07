@@ -7,21 +7,23 @@ using UnityEngine;
 
 namespace Assets.NIF
 {
-    class NIFFile
+    public class NIFFile
     {
-        uint fileVer;
-        bool littleEndian;
-        uint userVersion;
-        int numObjects;
-        String header;
-        List<NIFObject> objects;
-        List<String> stringTable;
-        List<int> groupSizes;
-        List<NiMesh> nifMeshes = new List<NiMesh>();
-        List<NiSourceTexture> nifTextures = new List<NiSourceTexture>();
+        public uint fileVer;
+        public bool littleEndian;
+        public uint userVersion;
+        public int numObjects;
+        public String header;
+        public List<NIFObject> objects;
+        public List<String> stringTable;
+        public List<int> groupSizes;
+        public List<NiMesh> nifMeshes = new List<NiMesh>();
+        public List<NiSourceTexture> nifTextures = new List<NiSourceTexture>();
 
         long NIF_INVALID_LINK_ID = 0xFFFFFFFF;
-
+        public NIFFile()
+        {
+        }
         public NIFFile(Stream stream) 
         {
             parseFile(stream);
@@ -51,16 +53,22 @@ namespace Assets.NIF
                 objects = new List<NIFObject>(numObjects);
                 for (int i = 0; i < numObjects; i++)
                     objects.Add(new NIFObject());
+                //Debug.Log("start loadTypeNames pos:" + dis.BaseStream.Position);
                 loadTypeNames(dis);
+                //Debug.Log("start loadObjectSizes pos:" + dis.BaseStream.Position);
                 loadObjectSizes(dis);
+                //Debug.Log("start loadStringTable pos:" + dis.BaseStream.Position);
                 loadStringTable(dis);
+                //Debug.Log("start loadObjectGroups pos:" + dis.BaseStream.Position);
                 loadObjectGroups(dis);
+                //Debug.Log("start loadObjects pos:" + dis.BaseStream.Position);
                 loadObjects(dis);
             }
         }
 
         private void loadObjects( BinaryReader dis) 
         {
+          
             for (int i = 0; i<numObjects; i++)
             {
                 NIFObject obj = objects[i];
@@ -72,7 +80,12 @@ namespace Assets.NIF
                 try
                 {
                     data = dis.ReadBytes(size);
-                    using (BinaryReader ds = new BinaryReader(new MemoryStream(data)))
+
+
+
+                    //File.WriteAllBytes("dats\\" + i + "nif-" + "" + ".dat", data);
+
+                    using (BinaryReader ds = new BinaryReader(new MemoryStream(data, false)))
                     {
                         if (typeName.StartsWith("NiDataStream"))
                         {
@@ -82,13 +95,31 @@ namespace Assets.NIF
                         }
                         else
                         {
-                            NIFObject newObj = (NIFObject)Activator.CreateInstance(null, "Assets.NIF." + typeName).Unwrap();
+                            String cName = "Assets.NIF." + typeName;
+                            NIFObject newObj;
+
+                            if (typeCacheC.ContainsKey(typeName))
+                            {
+                                newObj = (NIFObject)typeCacheC[typeName].Invoke();
+                            }
+                            else
+                                newObj = (NIFObject)Activator.CreateInstance(Type.GetType(cName));
+
+
                             newObj.parse(this, obj, ds);
+
+                            long bleft = ds.BaseStream.Length - ds.BaseStream.Position;
+                            if (bleft > 0)
+                            {
+                                //Debug.Log("[" + typeName + "] left over:" + bleft);
+                              //  Debug.Log("[" + i + "][" + typeName + ": pos" + ds.BaseStream.Position);
+                            }
                             objects[i] = newObj;
                         }
                     }
                 } catch (Exception ex)
                 {
+                    //Debug.Log(typeName + ":" + ex);
                     //Debug.Log("Unhandled nif type:" + typeName + " due to exception:" + ex.Message);
                     //Debug.Log("data size:" + obj.nifSize);
                     continue;
@@ -110,12 +141,32 @@ namespace Assets.NIF
                                 Debug.LogWarning("WARNING: Node is parented by more than one other node.");
                             }
                             objects[childID].parentIndex = obj.index;
+                            obj.addChild(objects[childID]);
                         }
                     }
                 }
             }
         }
 
+        static Dictionary<String, Type> typeCache = new Dictionary<string, Type>();
+        static Dictionary<String, Func<object>> typeCacheC = initTypeCache();
+
+        static Dictionary<String, Func<object>> initTypeCache()
+        {
+            Dictionary<String, Func<object>> typeCacheCC = new Dictionary<String, Func<object>>();
+            typeCacheCC["NiTerrainNode"] = () => new NiTerrainNode();
+            typeCacheCC["NiMesh"] = () => new NiMesh();
+            typeCacheCC["NiTexture"] = () => new NiTexture();
+            typeCacheCC["NiBinaryExtraData"] = () => new NiBinaryExtraData();
+            typeCacheCC["NiFloatExtraData"] = () => new NiFloatExtraData();
+            typeCacheCC["NiIntegerExtraData"] = () => new NiIntegerExtraData();
+            typeCacheCC["NiColorExtraData"] = () => new NiColorExtraData();
+            typeCacheCC["NiNode"] = () => new NiNode();
+            typeCacheCC["NiSourceTexture"] = () => new NiSourceTexture();
+            typeCacheCC["NiStringExtraData"] = () => new NiStringExtraData();
+            typeCacheCC["NiTexturingProperty"] = () => new NiTexturingProperty();
+            return typeCacheCC;
+        }
 
         private void loadObjectGroups(BinaryReader dis) 
         {
@@ -138,10 +189,11 @@ namespace Assets.NIF
             for (int i = 0; i<numStrings; i++)
 		    {
 			    int strLen = dis.readInt();
+                string s = "";
 			    if (strLen > 0)
-				    stringTable.Add(readString(dis, strLen));
-			    else
-				    stringTable.Add("");
+				    s = (readString(dis, strLen));
+   		        stringTable.Add(s);
+                //Debug.Log("\t" + s);
 		    }
 
         }

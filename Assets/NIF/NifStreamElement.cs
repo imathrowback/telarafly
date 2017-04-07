@@ -5,11 +5,14 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NifStreamElement
+    public class NifStreamElement
     {
         public int dataType;
         public int offset;
+        public NifStreamElement()
+        {
 
+        }
         public NifStreamElement( int count,  int size,  int dataType,  int offset)
         {
             this.count = count;

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiTexture : NiObjectNET
+    public class NiTexture : NiObjectNET
     {
     }
 }

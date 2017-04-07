@@ -7,10 +7,10 @@ using System.IO.Compression;
 
 namespace Assets.NIF
 {
-    class NiBinaryExtraData : NIFObject
+    public class NiBinaryExtraData : NIFObject
     {
 
-        int binaryDataSize;
+        public int binaryDataSize;
         public byte[] extraData;
         public byte[] decompressed;
 

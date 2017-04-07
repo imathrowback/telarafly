@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using System.Threading;
+using Assets;
 
-public class telera_spawner : MonoBehaviour {
+public class telera_spawner : MonoBehaviour
+{
     GameObject meshRoot;
     Properties p;
     Queue<string> nodeBuildQueue = new Queue<string>();
@@ -12,7 +14,7 @@ public class telera_spawner : MonoBehaviour {
     GameObject mcamera;
     camera_movement camMove;
     System.IO.StreamReader fileStream;
-    float sx, sy, sz;
+    
     int MAX_RUNNING_THREADS = 4;
     int MAX_OBJ_PER_FRAME = 150;
     int MAX_NODE_PER_FRAME = 15025;
@@ -20,9 +22,8 @@ public class telera_spawner : MonoBehaviour {
 
     public void addJob(telara_obj parent, string filename)
     {
-        NifLoadJob job = new NifLoadJob(nifloader);
+        NifLoadJob job = new NifLoadJob(nifloader, filename);
         job.parent = parent;
-        job.filename = filename;
         addJob(job);
     }
     public void addJob(NifLoadJob job)
@@ -57,41 +58,36 @@ public class telera_spawner : MonoBehaviour {
         MAX_OBJ_PER_FRAME = int.Parse(p.get("MAX_OBJ_PER_FRAME", "100"));
         MAX_RUNNING_THREADS = int.Parse(p.get("MAX_RUNNING_THREADS", "4"));
         MAX_NODE_PER_FRAME = int.Parse(p.get("MAX_NODE_PER_FRAME", "15000"));
-        float x = float.Parse(p.get("CAMERA_X"));
-        float y = float.Parse(p.get("CAMERA_Y"));
-        float z = float.Parse(p.get("CAMERA_Z"));
-        sx = x;
-        sy = y;
-        sz = z;
-        this.transform.localPosition = new Vector3(x, y, z);
+       
+        this.transform.localPosition = GameWorld.initialSpawn.pos;
+        Vector3 angles = this.transform.localEulerAngles;
+        angles.x = 0;
+        angles.z = 0;
+        angles.y = Mathf.Rad2Deg * -GameWorld.initialSpawn.angle;
+        this.transform.localEulerAngles = angles;
 
         Debug.Log("begin loading database");
         this.nifloader = new NIFLoader();
         this.nifloader.loadManifestAndDB();
         // load the ref db
-        string file = p.get("WORLD");
-        fileStream = new System.IO.StreamReader(file);
 
-       //Thread  m_Thread = new System.Threading.Thread(Run);
-        //m_Thread.Priority = System.Threading.ThreadPriority.Lowest;
-        //m_Thread.Start();
+        /*
+                string file = p.get("WORLD");
+                fileStream = new System.IO.StreamReader(file);
 
-        
-        string[] lines = File.ReadAllLines(file);
-        int i = 0;
-        foreach (string line in lines)
+                string[] lines = File.ReadAllLines(file);
+                int i = 0;
+                foreach (string line in lines)
+                {
+                    nodeBuildQueue.Enqueue(line);
+                }
+                */
+        Debug.Log("loading " + GameWorld.getObjects().Count + " objects");
+        foreach (ObjectPosition op in GameWorld.getObjects())
         {
-            nodeBuildQueue.Enqueue(line);
+            process(op);
         }
-    }
 
-    private void Run()
-    {
-        string line;
-        while ((line = fileStream.ReadLine()) != null)
-        {
-            nodeBuildQueue.Enqueue(line);
-        }
     }
 
     private void processNodeLine(string line)
@@ -107,49 +103,41 @@ public class telera_spawner : MonoBehaviour {
 
         if (name.Trim().Length == 0)
         {
-           // Debug.Log("got empty name: " + line);
             return;
         }
 
-        //if (!name.ToLower().Contains("a_mc_arcane_capital_wall_02"))
-         //   return;
-
         Vector3 pos = getV3(poss);
+        Vector3 poss2 = getV3(pos2);
         Vector4 q = getV4(rots);
+        process(new ObjectPosition(name, pos, new Quaternion(q.x, q.y, q.z, q.w), poss2, scale));
+    }
 
-        //if (pos.x >= 256 && pos.x <= 1280 && pos.z > 2300 && pos.z < 3100)
-        //if (i == 0)
-       // if (name.Contains("_terrain_"))
+    private void process(ObjectPosition op)
+    {
+        GameObject go;
+        string name = op.nifFile;
+        if (name.Contains("_terrain_") || name.Contains("ocean_chunk"))
         {
-            GameObject go;
-            if (name.Contains("_terrain_") || name.Contains("ocean_chunk"))
-            {
-                // use a vertical box as our collider for now
-                go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                float c = float.Parse(p.get("TERRAIN_VIS", "15"));
-                go.GetComponent<BoxCollider>().size = new Vector3(256*c, 5000, 256*c);
-                go.GetComponent<BoxCollider>().center = new Vector3(128, 0, 128);
-            }
-            else
-            {
-                go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                go.GetComponent<SphereCollider>().radius = 5;
-            }
-            telara_obj tobj = go.AddComponent<telara_obj>();
-            go.transform.SetParent(meshRoot.transform);
-            GameObject.Destroy(go.GetComponent<MeshRenderer>());
-            //go.AddComponent<MeshFilter>();
-
-            //boundsO.name = "collider";
-            //boundsO.transform.SetParent(go.transform);
-            //boundsO.transform.position = Vector3.zero;
-            //boundsO.transform.localScale = Vector3.one * c;
-            tobj.setFile(name);
-            go.name = name;
-            go.transform.localScale = new Vector3(scale, scale, scale);
-            go.transform.localPosition = pos;
-            go.transform.localRotation = new Quaternion(q.x, q.y, q.z, q.w);
+            // use a vertical box as our collider for now
+            go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            float c = float.Parse(p.get("TERRAIN_VIS", "15"));
+            go.GetComponent<BoxCollider>().size = new Vector3(256 * c, 5000, 256 * c);
+            go.GetComponent<BoxCollider>().center = new Vector3(128, 0, 128);
         }
+        else
+        {
+            go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            go.GetComponent<SphereCollider>().radius = 5;
+        }
+        telara_obj tobj = go.AddComponent<telara_obj>();
+        go.transform.SetParent(meshRoot.transform);
+        GameObject.Destroy(go.GetComponent<MeshRenderer>());
+
+        tobj.setFile(name);
+        go.name = name;
+        go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
+        go.transform.localPosition = op.min;
+        go.transform.localRotation = op.qut;
     }
 
     Vector3 getV3(string str)
@@ -169,7 +157,8 @@ public class telera_spawner : MonoBehaviour {
     bool nodeBuildQueueDone = false;
 
     // Update is called once per frame
-    void Update () {
+    void Update()
+    {
         if (camMove.isRotating)
             return;
 
@@ -184,10 +173,15 @@ public class telera_spawner : MonoBehaviour {
         }
 
         i = 0;
+
+
         foreach (NifLoadJob job in ObjJobLoadQueue.ToArray())
         {
             if (i > MAX_OBJ_PER_FRAME)
+            {
+                Debug.Log("spawned " + i + " this frame, thats enough for now");
                 break;
+            }
 
             telara_obj obj = job.parent;
             if (obj.gameObject.transform.childCount == 0)
@@ -210,8 +204,8 @@ public class telera_spawner : MonoBehaviour {
                 telara_obj to = job.parent;
                 Transform loadingObj = to.gameObject.transform.FindChild("Loading");
                 if (loadingObj != null)
-                GameObject.Destroy(loadingObj.gameObject);
-                
+                    GameObject.Destroy(loadingObj.gameObject);
+
 
                 to.doLoad = false;
                 to.loaded = true;

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiAVObject : NiObjectNET
+   public class NiAVObject : NiObjectNET
     {
         public Matrix4f matrix;
         public float scale;

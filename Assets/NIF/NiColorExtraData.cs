@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiColorExtraData : NIFObject
+    public class NiColorExtraData : NIFObject
     {
         public float r;
         public float g;

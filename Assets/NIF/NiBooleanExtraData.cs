@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiBooleanExtraData : NIFObject
+    public class NiBooleanExtraData : NIFObject
     {
         public bool booleanData;
 

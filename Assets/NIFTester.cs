@@ -14,9 +14,9 @@ public class NIFTester : MonoBehaviour {
 
         Material transmat = Resources.Load("transmat", typeof(Material)) as Material;
         //Debug.Log(transmat.color);
-        string file = @"D:\rift_stuff\nif\n_p_freemarch_boulder_03.nif";
+        string file = @"C:\workspace\rift_extractor\world_terrain_12800_3584_split.nif";
         NIFLoader loader = new NIFLoader();
-        //loader.loadManifestAndDB();
+        loader.loadManifestAndDB();
         GameObject obj = loader.loadNIFFromFile(file);
         obj.transform.parent = this.gameObject.transform;
     }

@@ -6,21 +6,21 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NifTexMap
+    public class NifTexMap
     {
         public float bumpLumaScale;
         public float bumpLumaOffset;
         public Point4f bumpMap;
         public float offsetMapOfs;
         public int sourceTexLinkID;
-        private int flags;
-        private int maxAniso;
-        private bool hasTransform;
-        private Point3f translation;
-        private float scale;
-        private float rotate;
-        private int method;
-        private Point2f center;
+        public int flags;
+        public int maxAniso;
+        public bool hasTransform;
+        public Point3f translation;
+        public float scale;
+        public float rotate;
+        public int method;
+        public Point2f center;
         public int uniqueID;
 
         public void parse( NIFFile file,  NIFObject baseo,  BinaryReader ds)

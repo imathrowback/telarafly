@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiSourceTexture : NiTexture
+    public class NiSourceTexture : NiTexture
     {
         public String texFilename;
         private bool externalTex;

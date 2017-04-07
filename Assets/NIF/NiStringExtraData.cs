@@ -6,12 +6,12 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiStringExtraData : NIFObject
+    public class NiStringExtraData : NIFObject
     {
         public String stringExtraData;
 
         
-    public override void parse( NIFFile file,  NIFObject baseo,  BinaryReader ds)
+        public override void parse( NIFFile file,  NIFObject baseo,  BinaryReader ds)
         {
             base.parse(file, baseo, ds);
 

@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Assets.NIF
 {
-    class NiMesh : NiRenderObject
+    public class NiMesh : NiRenderObject
     {
         public int meshPrimType;
         public int numSubMeshes;

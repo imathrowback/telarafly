@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiMaterialProperty : NiProperty
+    public class NiMaterialProperty : NiProperty
     {
         public Point4f matAmbient;
         public Point4f matDiffuse;

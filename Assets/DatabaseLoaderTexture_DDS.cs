@@ -178,9 +178,14 @@ namespace DDSLoader
 
                 if (_DXT3)
                 {
-                    //Debug.Log("try to unsquish :");
-                    dxtBytes = DecompressImageA(dxtBytes, dwWidth, dwHeight, 1 << 1);
+                    int v = 1 << 1;
+                    dxtBytes = DecompressImageA(dxtBytes, dwWidth, dwHeight, v);
                     textureFormat = TextureFormat.RGBA32;
+                    Texture2D texture2 = new Texture2D(dwWidth, dwHeight, textureFormat, dwMipMapCount > 1);
+                    texture2.LoadRawTextureData(dxtBytes);
+                    texture2.Apply(true, false);
+                    return texture2;
+
                 }
 
 

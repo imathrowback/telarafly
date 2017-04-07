@@ -6,6 +6,7 @@ using Assets.NIF;
 using System;
 using Assets.RiftAssets;
 using Ionic.Zlib;
+using System.Xml.Serialization;
 
 public class NIFLoader
 {
@@ -34,36 +35,33 @@ public class NIFLoader
         db = AssetProcessor.buildDatabase(manifest, assetsDirectory);
     }
 
-    Dictionary<String, GameObject> originals = new Dictionary<string, GameObject>();
+  
 
-    public GameObject getCachedObject(string fn)
-    {
-        if (originals.ContainsKey(fn))
-        {
-            GameObject go = originals[fn];
-            GameObject newG = GameObject.Instantiate(go);
-            return newG;
-        }
-        return null;
-    }
     public GameObject loadNIFFromFile(String fname)
     {
-        return loadNIF(new FileStream(fname, FileMode.Open), fname);
+        using (FileStream nifStream = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            NIFFile nf = new NIFFile(nifStream);
+            return loadNIF(nf, fname);
+        }
+
     }
+
+    public NIFFile getNIF(String fname)
+    {
+        byte[] nifData = db.extractUsingFilename(fname);
+        using (MemoryStream nifStream = new MemoryStream(nifData))
+        {
+            return new NIFFile(nifStream);
+        }
+    }
+
     public GameObject loadNIF(String fname)
     {
-        GameObject orig = getCachedObject(fname);
-        if (orig != null)
-            return orig;
-
-
+       
         try
         {
-            //  Debug.Log("loading:" + fname);
-            byte[] nifData = db.extractUsingFilename(fname);
-            MemoryStream nifStream = new MemoryStream(nifData);
-
-            return loadNIF(nifStream, fname);
+          return loadNIF(getNIF(fname), fname);
         }
         catch (Exception ex)
         {
@@ -72,10 +70,40 @@ public class NIFLoader
         }
     }
 
-    public GameObject loadNIF(Stream nifStream, string fname)
+    public GameObject loadNIF(NIFFile nf, string fname)
     {
-        NIFFile nf = new NIFFile(nifStream);
 
+        /*
+        using (FileStream fs = new FileStream("fname.xml", FileMode.Create))
+        {
+            Type[] extraTypes = new Type[]
+            {
+                typeof(NiTerrainNode),
+                typeof(NiNode),
+                typeof(NiAVObject),
+                typeof(NiBinaryExtraData),
+                typeof(NiDataStream),
+                typeof(NiBooleanExtraData),
+                typeof(NiFloatExtraData),
+                typeof(NiColorExtraData),
+                typeof(NiTexturingProperty),
+                typeof(NifMeshStream),
+                typeof(NifStreamElement),
+                typeof(NiIntegerExtraData),
+                typeof(NiMaterialProperty),
+                typeof(NiMesh),
+                typeof(NiObjectNET),
+                typeof(NiProperty),
+                typeof(NiRenderObject),
+                typeof(NiSourceTexture),
+                typeof(NiStringExtraData),
+                typeof(StreamAndElement),
+                typeof(StreamRegion),
+            };
+            XmlSerializer x = new XmlSerializer(typeof(NIFFile), extraTypes);
+            x.Serialize(fs, nf);
+        }
+        */
         GameObject root = new GameObject();
         root.name = Path.GetFileNameWithoutExtension(fname);
         root.transform.localPosition = Vector3.zero;
@@ -91,7 +119,7 @@ public class NIFLoader
 
             }
         }
-        originals[fname] = root;
+       
         return root;
     }
 
@@ -121,7 +149,8 @@ public class NIFLoader
                 GameObject meshGo = processMesh(nf, mesh);
                 if (niNode is NiTerrainNode)
                 {
-                    meshGo.GetComponent<MeshRenderer>().material = new Material(Shader.Find("BasicTerrainShader"));
+                    //meshGo.GetComponent<MeshRenderer>().material = new Material(Shader.Find("BasicTerrainShader"));
+                    //Debug.Log("found a terrain node");
                 }
                 meshGo.transform.parent = goM.transform;
             }
@@ -291,17 +320,40 @@ public class NIFLoader
             newMesh.SetVertices(verts);
             if (inNormals.Count > 0)
                 newMesh.SetNormals(inNormals);
+
+            bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
+
+            if (IS_TERRAIN && uvs.Count == 0)
+            {
+                for (int i = 0; i < verts.Count; i++)
+                {
+                    Vector3 vert = verts[i];
+                    float x = vert.x;
+                    float z = vert.z;
+
+                    float u = (x / 256.0f);
+                    float v = (z / 256.0f);
+                    uvs.Add(new Vector2(u, v));
+
+                }
+            }
             if (uvs.Count > 0)
                 newMesh.SetUVs(0, uvs);
             for (int i = 0; i < triangles.Count; i++)
                 newMesh.SetTriangles(triangles[i], i);
 
             // do materials/textures
-
-            Material transmat = new Material(Resources.Load("transmat", typeof(Material)) as Material);
-            
-
             Material mat = new Material(Shader.Find("Standard"));
+            if (IS_TERRAIN)
+                mat = new Material(Resources.Load("terrainmat", typeof(Material)) as Material);
+
+            if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water"))
+            {
+                mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
+            }
+
+
+
             mr.material = mat;
 
             foreach (int eid in mesh.extraDataIDs)
@@ -315,6 +367,8 @@ public class NIFLoader
                         case "doAlphaTest":
                             if (fExtra.booleanData)
                             {
+                                Material transmat = new Material(Resources.Load("transmat", typeof(Material)) as Material);
+
                                 mat = transmat;
                                 mr.material = mat;
                                 /*
@@ -344,8 +398,6 @@ public class NIFLoader
                     NiFloatExtraData fExtra = (NiFloatExtraData)obj;
                     switch (fExtra.extraDataString)
                     {
-
-
                         case "scaleY":
                             mat.mainTextureScale = new Vector2(mat.mainTextureScale.x, fExtra.floatData);
                             break;
@@ -369,6 +421,12 @@ public class NIFLoader
                 if (obj is NiTexturingProperty)
                 {
                     NiTexturingProperty propObj = (NiTexturingProperty)obj;
+                    foreach (NifTexMap tex in propObj.texList)
+                    {
+                        if (tex != null)
+                            Debug.Log("\t" + tex.sourceTexLinkID);
+                    }
+
                     int i = 0;
                     foreach (NifTexMap tex in propObj.shaderMapList)
                     {
@@ -380,28 +438,36 @@ public class NIFLoader
                             {
                                 NiSourceTexture sourceTex = (NiSourceTexture)nf.getObject(sourceTexID);
                                 texName = sourceTex.texFilename;
-
-                                switch (textureNameIds[i])
+                                if (IS_TERRAIN)
                                 {
-                                    case "diffuseTexture":
-                                    case "diffuseTextureXZ":
-                                        mat.SetTexture("_MainTex", loadTexture(db, texName));
-                                        break;
-                                    case "decalNormalTexture":
-                                        mat.SetTexture("_DetailNormalMap", loadTexture(db, texName));
-                                        break;
-                                    case "glowTexture":
-                                        mat.SetTexture("_EmissionMap", loadTexture(db, texName));
-                                        break;
-                                    case "glossTexture":
-                                        mat.SetTexture("_MetallicGlossMap", loadTexture(db, texName));
-                                        break;
-                                    case "decalTexture":
-                                        mat.SetTexture("_DetailAlbedoMap", loadTexture(db, texName));
-                                        break;
-                                    default:
-                                        // Debug.LogWarning("No shader material property for " + textureNameIds[i]);
-                                        break;
+                                    string param = "_terrain" + i;
+                                    //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
+                                    mat.SetTexture(param, loadTexture(db, texName));
+                                }
+                                else
+                                {
+                                    switch (textureNameIds[i])
+                                    {
+                                        case "diffuseTexture":
+                                        case "diffuseTextureXZ":
+                                            mat.SetTexture("_MainTex", loadTexture(db, texName));
+                                            break;
+                                        case "decalNormalTexture":
+                                            mat.SetTexture("_DetailNormalMap", loadTexture(db, texName));
+                                            break;
+                                        case "glowTexture":
+                                            mat.SetTexture("_EmissionMap", loadTexture(db, texName));
+                                            break;
+                                        case "glossTexture":
+                                            mat.SetTexture("_MetallicGlossMap", loadTexture(db, texName));
+                                            break;
+                                        case "decalTexture":
+                                            mat.SetTexture("_DetailAlbedoMap", loadTexture(db, texName));
+                                            break;
+                                        default:
+                                            //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
+                                            break;
+                                    }
                                 }
                             }
                         }
@@ -418,7 +484,7 @@ public class NIFLoader
 
     public Texture getCachedTObject(string fn)
     {
-        if (originals.ContainsKey(fn))
+        if (toriginals.ContainsKey(fn))
         {
             return toriginals[fn];
         }
@@ -427,12 +493,13 @@ public class NIFLoader
 
     private Texture loadTexture(AssetDatabase db, String name)
     {
+        
         Texture tex = getCachedTObject(name);
         if (tex != null)
             return tex;
         try
         {
-           // Debug.Log("load:" + name);
+            //Debug.Log("load:" + name);
             String testPath = @"d:\rift_stuff\dds\" + name;
             byte[] data;
             if (File.Exists(testPath) && false)
@@ -442,16 +509,22 @@ public class NIFLoader
             else
             {
                 if (db == null)
+                {
+                    Debug.Log("db was null");
                     return new Texture2D(2, 2);
+                }
                 data = db.extractUsingFilename(name);
+                //File.WriteAllBytes(testPath, data);
             }
             tex = DDSLoader.DatabaseLoaderTexture_DDS.LoadDDS(data);
+
         }
         catch (Exception ex)
         {
             Debug.LogWarning("Unable to load texture:" + name + ":" + ex);
             tex = new Texture2D(2, 2);
         }
+        tex.name = name;
         toriginals[name] = tex;
         return tex;
     }
@@ -482,10 +555,11 @@ public class NIFLoader
     private String[] getTextureIds(NIFFile nf, NiMesh mesh)
     {
         String[] textureType;
-        var texturingProperty = mesh.getTexturingProperty(nf);
+        NiTexturingProperty texturingProperty = mesh.getTexturingProperty(nf);
         if (texturingProperty != null)
         {
-             textureType = new String[texturingProperty.shaderMapList.Count];
+            //Debug.Log("found texturing property for mesh " + mesh.name);
+            textureType = new String[texturingProperty.shaderMapList.Count];
             foreach (int extraID in mesh.extraDataIDs)
             {
                 NIFObject ni = nf.getObject(extraID);
@@ -506,7 +580,7 @@ public class NIFLoader
             }
         }
         else
-             textureType = new String[255];
+            textureType = new String[255];
         return textureType;
     }
 

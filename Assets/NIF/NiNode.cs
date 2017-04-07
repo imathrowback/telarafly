@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiNode : NiAVObject
+    public class NiNode : NiAVObject
     {
         public List<int> childLinks;
         public NiNode()

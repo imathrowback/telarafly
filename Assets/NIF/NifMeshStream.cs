@@ -6,11 +6,11 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NifMeshStream
+    public class NifMeshStream
     {
 
         public int streamLinkID;
-        bool instanced;
+        public bool instanced;
         public List<int> submeshRegionMap;
         public List<Pair<String, int>> elementDescs;
 

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiObjectNET : NIFObject
+    public class NiObjectNET : NIFObject
     {
         protected virtual void loadObjectNET(NIFFile file, BinaryReader ds) 
         {

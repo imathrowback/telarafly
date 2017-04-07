@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.NIF
 {
-    class NiDataStream : NIFObject
+    public class NiDataStream : NIFObject
     {
         public int streamSize;
         public int streamClone;

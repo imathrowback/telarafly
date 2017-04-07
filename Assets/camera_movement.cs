@@ -111,7 +111,7 @@ public class camera_movement : MonoBehaviour
         Collider[] hitColliders = Physics.OverlapSphere(position, float.Parse(p.get("OBJECT_VISIBLE", "500")));
 
         System.Array.Sort(hitColliders, (a, b) => 
-        Vector3.Distance(position, b.gameObject.transform.position).CompareTo(Vector3.Distance(position, a.gameObject.transform.position))
+        Vector3.Distance(position, a.gameObject.transform.position).CompareTo(Vector3.Distance(position, b.gameObject.transform.position))
         );
 
 
