@@ -9,12 +9,14 @@ using System.Reflection;
 
 public class ModelView : MonoBehaviour
 {
+    public float animSpeed = 0.02f;
     public string niffilename = "hero_vigil_messenger.nif";
     //    string kfmfilename = "hero_vigil_messenger.kfm";
     public string kfbfilename = "hero_vigil_messenger_dual.kfb";
     public int animToUse = 0;
     NIFFile nifanimation;
     NIFLoader loader;
+    int lastAnimToUse = -1;
     // Use this for initialization
     Dictionary<String, GameObject> boneMap = new Dictionary<string, GameObject>();
     void Start()
@@ -34,6 +36,11 @@ public class ModelView : MonoBehaviour
         //TODO: read KFM file
         //KFMFile kfm = new KFMFile(new MemoryStream(loader.db.extractUsingFilename(kfmfilename)));
 
+        loadKFB();
+    }
+
+    private void loadKFB()
+    {
         NIFFile kfb = new NIFFile(new MemoryStream(loader.db.extractUsingFilename(kfbfilename)));
 
         /** Choose the right animation to load from the KFB file. Ideally we should use the KFM to know what index to use */
@@ -48,6 +55,7 @@ public class ModelView : MonoBehaviour
             if (animIdx == animToUse)
             {
                 nifanimation = new NIFFile(new MemoryStream(binData.decompressed));
+                lastAnimToUse = animToUse;
                 break;
             }
 
@@ -56,6 +64,8 @@ public class ModelView : MonoBehaviour
 
     private void doFrame(float t)
     {
+        if (lastAnimToUse != animToUse)
+            loadKFB();
         /** For each sequence, evaluate it with the current time and apply the result to the related bone */
         foreach (NiSequenceData data in nifanimation.nifSequences)
         {
@@ -137,7 +147,7 @@ public class ModelView : MonoBehaviour
     float tt = 0;
     void FixedUpdate()
     {
-        tt += 0.02f;
+        tt += animSpeed;
         if (tt > 1)
             tt = 0;
         doFrame(tt);
