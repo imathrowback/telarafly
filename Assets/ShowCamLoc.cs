@@ -5,15 +5,18 @@ using UnityEngine.UI;
 
 public class ShowCamLoc : MonoBehaviour {
     GameObject mcamera;
-    camera_movement camMov;
+    //camera_movement camMov;
     telera_spawner spawner;
     Text text;
     RectTransform rt;
     RectTransform background;
+    private GameObject meshRoot;
+
     // Use this for initialization
     void Start () {
         mcamera = GameObject.Find("Main Camera");
-        camMov = mcamera.GetComponent<camera_movement>();
+        meshRoot = GameObject.Find("NIFRotationRoot");
+        //camMov = mcamera.GetComponent<camera_movement>();
         spawner = mcamera.GetComponent<telera_spawner>();
         rt = GetComponent<RectTransform>();
         text = GetComponent<Text>();
@@ -34,8 +37,8 @@ public class ShowCamLoc : MonoBehaviour {
 
 
 
-
-        x +="\nCamera world position: " + mcamera.transform.localPosition.ToString() ;
+        
+        x +="\nCamera position: " + meshRoot.transform.InverseTransformPoint(mcamera.transform.position).ToString() ;
         if (spawner.getNodeBuildSize() > 0)
         {
             //pos.y += 30;
@@ -46,8 +49,8 @@ public class ShowCamLoc : MonoBehaviour {
         {
             //pos.y += 30;
             string paused = "";
-            if (camMov.isRotating)
-                paused = " (paused) ";
+            //if (camMov.isRotating)
+            //    paused = " (paused) ";
             
             x += "\nMeshes loading: " + spawner.ObjJobLoadQueueSize() + "" + paused ;
         }

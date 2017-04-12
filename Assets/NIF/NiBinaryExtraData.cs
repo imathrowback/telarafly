@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Ionic.Zlib;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.IO.Compression;
+using UnityEngine;
 
 namespace Assets.NIF
 {
@@ -41,19 +42,12 @@ namespace Assets.NIF
         /** Try to the decompress the data if possible, otherwise fail silently */
         private void tryDecompress()
         {
-            using (MemoryStream str = new MemoryStream())
+            try
             {
-                using (DeflateStream ds = new DeflateStream(new MemoryStream(extraData), CompressionMode.Decompress))
-                {
-                    //Copy the decompression stream into the output file.
-                    byte[] buffer = new byte[4096];
-                    int numRead;
-                    while ((numRead = ds.Read(buffer, 0, buffer.Length)) != 0)
-                    {
-                        str.Write(buffer, 0, numRead);
-                    }
-                }
-                decompressed = str.GetBuffer();
+                decompressed = Ionic.Zlib.ZlibStream.UncompressBuffer(extraData);
+            }catch (Exception ex)
+            {
+                //Debug.Log("data not compressed for obj:" + name + ":" + ex.Message);
             }
         }
     }

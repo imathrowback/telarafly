@@ -9,6 +9,7 @@ namespace Assets.NIF
 {
     public class NIFFile
     {
+        public Boolean skinMesh = false;
         public uint fileVer;
         public bool littleEndian;
         public uint userVersion;
@@ -19,8 +20,14 @@ namespace Assets.NIF
         public List<int> groupSizes;
         public List<NiMesh> nifMeshes = new List<NiMesh>();
         public List<NiSourceTexture> nifTextures = new List<NiSourceTexture>();
-
+        public List<NiSequenceData> nifSequences = new List<NiSequenceData>();
         long NIF_INVALID_LINK_ID = 0xFFFFFFFF;
+
+        internal void addSequence(NiSequenceData niSequenceData)
+        {
+            nifSequences.Add(niSequenceData);
+        }
+
         public NIFFile()
         {
         }
@@ -50,26 +57,34 @@ namespace Assets.NIF
             using (BinaryReader dis = new BinaryReader(stream))
             {
                 readHeader(dis);
-                objects = new List<NIFObject>(numObjects);
-                for (int i = 0; i < numObjects; i++)
-                    objects.Add(new NIFObject());
-                //Debug.Log("start loadTypeNames pos:" + dis.BaseStream.Position);
-                loadTypeNames(dis);
-                //Debug.Log("start loadObjectSizes pos:" + dis.BaseStream.Position);
-                loadObjectSizes(dis);
-                //Debug.Log("start loadStringTable pos:" + dis.BaseStream.Position);
-                loadStringTable(dis);
-                //Debug.Log("start loadObjectGroups pos:" + dis.BaseStream.Position);
-                loadObjectGroups(dis);
-                //Debug.Log("start loadObjects pos:" + dis.BaseStream.Position);
-                loadObjects(dis);
+                if (header.Contains("KFM"))
+                {
+                    String rigPath = readString(dis, dis.readInt());
+                    Debug.Log(rigPath);
+                }
+                else
+                {
+                    objects = new List<NIFObject>(numObjects);
+                    for (int i = 0; i < numObjects; i++)
+                        objects.Add(new NIFObject());
+                    //Debug.Log("start loadTypeNames pos:" + dis.BaseStream.Position);
+                    loadTypeNames(dis);
+                    //Debug.Log("start loadObjectSizes pos:" + dis.BaseStream.Position);
+                    loadObjectSizes(dis);
+                    //Debug.Log("start loadStringTable pos:" + dis.BaseStream.Position);
+                    loadStringTable(dis);
+                    //Debug.Log("start loadObjectGroups pos:" + dis.BaseStream.Position);
+                    loadObjectGroups(dis);
+                    //Debug.Log("start loadObjects pos:" + dis.BaseStream.Position);
+                    loadObjects(dis);
+                }
             }
         }
 
-        private void loadObjects( BinaryReader dis) 
+        private void loadObjects(BinaryReader dis)
         {
-          
-            for (int i = 0; i<numObjects; i++)
+
+            for (int i = 0; i < numObjects; i++)
             {
                 NIFObject obj = objects[i];
                 obj.index = i;
@@ -79,12 +94,8 @@ namespace Assets.NIF
 
                 try
                 {
+                    long pos = dis.BaseStream.Position;
                     data = dis.ReadBytes(size);
-
-
-
-                    //File.WriteAllBytes("dats\\" + i + "nif-" + "" + ".dat", data);
-
                     using (BinaryReader ds = new BinaryReader(new MemoryStream(data, false)))
                     {
                         if (typeName.StartsWith("NiDataStream"))
@@ -98,6 +109,8 @@ namespace Assets.NIF
                             String cName = "Assets.NIF." + typeName;
                             NIFObject newObj;
 
+                            //if (typeName.Contains("Eval"))
+                            //Debug.Log("[" + i + "]: type[" + typeName + "] @ " + pos);
                             if (typeCacheC.ContainsKey(typeName))
                             {
                                 newObj = (NIFObject)typeCacheC[typeName].Invoke();
@@ -105,12 +118,12 @@ namespace Assets.NIF
                             else
                                 newObj = (NIFObject)Activator.CreateInstance(Type.GetType(cName));
 
+                            objects[i] = newObj;
 
                             try
                             {
-                               
+
                                 newObj.parse(this, obj, ds);
-                                objects[i] = newObj;
                             }
                             catch (Exception ex)
                             {
@@ -118,6 +131,7 @@ namespace Assets.NIF
                             }
                         }
                     }
+                    //Debug.Log("[" + i + "]: " + objects[i].GetType());
                 } catch (Exception ex)
                 {
                     //Debug.Log(typeName + ":" + ex);
@@ -126,7 +140,11 @@ namespace Assets.NIF
                     continue;
                 }
             }
-                        
+
+            setParents();
+        }
+        void setParents()
+        {              
             // set parents!
             foreach (NIFObject obj  in objects)
             {
@@ -135,8 +153,9 @@ namespace Assets.NIF
                     NiNode node = (NiNode)obj;
                     foreach (int childID in node.childLinks)
                     {
-                        if (childID != NIF_INVALID_LINK_ID)
+                        if (childID != NIF_INVALID_LINK_ID && childID != -1)
                         {
+                            //Debug.Log(childID + ":" + objects.Count);
                             if (objects[childID].parentIndex != -1)
                             {
                                 Debug.LogWarning("WARNING: Node is parented by more than one other node.");
@@ -239,9 +258,13 @@ namespace Assets.NIF
         private void readHeader(BinaryReader dis)
         {
             header = readHeaderString(dis);
+            if (header.Contains("KFM"))
+            {
+                littleEndian = dis.readUByte() > 0;
+                return;
+            }
             fileVer = dis.readUInt();
             littleEndian = dis.readUByte() > 0;
-            // TODO: handle endianess
             userVersion = dis.readUInt();
             numObjects = dis.readInt();
 
@@ -294,6 +317,18 @@ namespace Assets.NIF
         public List<NiMesh> getMeshes()
         {
             return nifMeshes;
+        }
+       
+
+        public List<NIFObject> getChildren(NIFObject obj)
+        {
+            List<NIFObject> children = new List<NIFObject>();
+            foreach (NIFObject ni in objects)
+            {
+                if (ni.parentIndex == obj.index)
+                    children.Add(ni);
+            }
+            return children;
         }
 
         internal NIFObject getObject(int id)

@@ -34,5 +34,15 @@ namespace Assets.NIF
             this.m43 = m43;
             this.m44 = m44;
         }
+
+        
+        override public string ToString()
+        {
+            string a = "{" + m11 + "," + m12 + "," + m13 + "," + m14 + "}";
+            string b = "{" + m21 + "," + m22 + "," + m23 + "," + m24 + "}";
+            string c = "{" + m31 + "," + m32 + "," + m33 + "," + m34 + "}";
+            string d = "{" + m41 + "," + m42 + "," + m43 + "," + m44 + "}";
+            return a + "\n" + b + "\n" + c + "\n" + d;
+        }
     }
 }

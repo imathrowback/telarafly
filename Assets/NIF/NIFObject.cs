@@ -32,6 +32,8 @@ namespace Assets.NIF
             return ds.readInt();
         }
 
+
+
         protected void loadExtraData(NIFFile file, BinaryReader ds)
         {
             loadObject(file, ds);

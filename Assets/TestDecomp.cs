@@ -26,6 +26,7 @@ public class TestDecomp : MonoBehaviour
     System.Threading.Thread loadThread;
     GameObject dropdownbox;
     GameObject loadbutton;
+    GameObject thirdPersonToggle;
     Text tex;
     Image img;
     string error;
@@ -45,8 +46,9 @@ public class TestDecomp : MonoBehaviour
         dropdown = GetComponentInChildren<Dropdown>();
         dropdownbox = dropdown.gameObject;
         loadbutton = GetComponentInChildren<Button>().gameObject;
-
+        thirdPersonToggle = GetComponentInChildren<Toggle>().gameObject;
         dropdownbox.SetActive(false);
+        thirdPersonToggle.SetActive(false);
         loadbutton.SetActive(false);
         color = Color.grey;
         loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(readDB));
@@ -181,6 +183,7 @@ public class TestDecomp : MonoBehaviour
             loaded = false;
             dropdownbox.SetActive(true);
             loadbutton.SetActive(true);
+            thirdPersonToggle.SetActive(true);
         }
         if (tex != null && img != null)
         {
@@ -208,7 +211,8 @@ public class TestDecomp : MonoBehaviour
 
             dropdownbox.SetActive(false);
             loadbutton.SetActive(false);
-
+            thirdPersonToggle.SetActive(false);
+            //ThirdPersonUIToggle.set
             loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
             loadThread.Start();
         }
@@ -242,6 +246,9 @@ public class TestDecomp : MonoBehaviour
              }
 
             Assets.GameWorld.initialSpawn = spawn;
+            foreach (WorldSpawn s in worlds)
+                if (s.worldName.Equals(spawn.worldName))
+                    Assets.GameWorld.AddSpawns(s);
 
 
             /*

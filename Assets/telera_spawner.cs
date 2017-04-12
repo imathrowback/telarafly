@@ -4,6 +4,8 @@ using UnityEngine;
 using System.IO;
 using System.Threading;
 using Assets;
+using UnityStandardAssets.Characters.ThirdPerson;
+using UnityEngine.UI;
 
 public class telera_spawner : MonoBehaviour
 {
@@ -11,15 +13,19 @@ public class telera_spawner : MonoBehaviour
     Properties p;
     Queue<string> nodeBuildQueue = new Queue<string>();
     List<NifLoadJob> ObjJobLoadQueue = new List<NifLoadJob>();
+    GameObject charC;
+    ThirdPersonUserControl tpuc;
+    Rigidbody tpucRB;
     GameObject mcamera;
-    camera_movement camMove;
+    //camera_movement camMove;
     System.IO.StreamReader fileStream;
-    
+
     int MAX_RUNNING_THREADS = 4;
     int MAX_OBJ_PER_FRAME = 150;
     int MAX_NODE_PER_FRAME = 15025;
     NIFLoader nifloader;
 
+    bool firstLoad = true;
     public void addJob(telara_obj parent, string filename)
     {
         NifLoadJob job = new NifLoadJob(nifloader, filename);
@@ -45,43 +51,45 @@ public class telera_spawner : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        charC = GameObject.Find("ThirdPersonController");
+        if (charC != null)
+        {
+            tpuc = charC.GetComponent<ThirdPersonUserControl>();
+            tpucRB = charC.GetComponent<Rigidbody>();
+            charC.SetActive(false);
+        }
+        dropdown = GameObject.Find("SpawnDropdown").GetComponent<Dropdown>();
         mcamera = GameObject.Find("Main Camera");
-        meshRoot = GameObject.Find("ROOT");
-        camMove = mcamera.GetComponent<camera_movement>();
-        // clear all the children of the root before we re-add them
-        //foreach (Transform child in meshRoot.transform)
-        // {
-        //     GameObject.Destroy(child.gameObject);
-        //}
+        meshRoot = GameObject.Find("NIFRotationRoot");
 
         p = new Properties("nif2obj.properties");
         MAX_OBJ_PER_FRAME = int.Parse(p.get("MAX_OBJ_PER_FRAME", "100"));
         MAX_RUNNING_THREADS = int.Parse(p.get("MAX_RUNNING_THREADS", "4"));
         MAX_NODE_PER_FRAME = int.Parse(p.get("MAX_NODE_PER_FRAME", "15000"));
-       
-        this.transform.localPosition = GameWorld.initialSpawn.pos;
-        Vector3 angles = this.transform.localEulerAngles;
-        angles.x = 0;
-        angles.z = 0;
-        angles.y = Mathf.Rad2Deg * -GameWorld.initialSpawn.angle;
-        this.transform.localEulerAngles = angles;
+
+        setCameraLoc(GameWorld.initialSpawn);
+
+        dropdown.gameObject.SetActive(false);
+        dropdown.options.Clear();
+        int startIndex = 0;
+        int i = 0;
+        foreach (WorldSpawn spawn in GameWorld.getSpawns())
+        {
+            if (spawn.spawnName.Equals(GameWorld.initialSpawn.spawnName))
+                startIndex = i;
+            Dropdown.OptionData option = new Dropdown.OptionData(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos);
+            dropdown.options.Add(option);
+            i++;
+        }
+        dropdown.value = startIndex;
+        dropdown.gameObject.SetActive(true);
+        dropdown.RefreshShownValue();
 
         Debug.Log("begin loading database");
         this.nifloader = new NIFLoader();
         this.nifloader.loadManifestAndDB();
-        // load the ref db
 
-        /*
-                string file = p.get("WORLD");
-                fileStream = new System.IO.StreamReader(file);
 
-                string[] lines = File.ReadAllLines(file);
-                int i = 0;
-                foreach (string line in lines)
-                {
-                    nodeBuildQueue.Enqueue(line);
-                }
-                */
         Debug.Log("loading " + GameWorld.getObjects().Count + " objects");
         foreach (ObjectPosition op in GameWorld.getObjects())
         {
@@ -90,6 +98,45 @@ public class telera_spawner : MonoBehaviour
 
     }
 
+    public void setCameraLoc(WorldSpawn spawn, bool useChar = false)
+    {
+        if (charC != null && useChar)
+        {
+            GameObject.Destroy(GetComponent<cam.camera_movement>());
+
+            mcamera.transform.parent = charC.transform;
+            charC.SetActive(true);
+
+            Transform charCTransform = charC.transform;
+            Transform charCTParent = charCTransform.parent;
+            charCTransform.parent = meshRoot.transform;
+            charCTransform.transform.localPosition = spawn.pos;
+            charCTransform.parent = charCTParent;
+            charC.transform.localEulerAngles = new Vector3(0, Mathf.Rad2Deg * spawn.angle, 0);
+
+            mcamera.transform.localEulerAngles = new Vector3(19, 0, 0);
+            mcamera.transform.localPosition = new Vector3(0, 2.6f, -4);
+            GameObject.Destroy(mcamera.gameObject.GetComponent<cam.camera_movement>());
+        }
+        else
+        if (spawn != null)
+        {
+            Transform camTransform = mcamera.transform;
+            Transform camTParent = camTransform.parent;
+
+            camTransform.parent = meshRoot.transform;
+            camTransform.transform.localPosition = spawn.pos;
+            camTransform.parent = camTParent;
+
+            mcamera.transform.localEulerAngles = new Vector3(0, Mathf.Rad2Deg * -spawn.angle, 0);
+        }
+    }
+
+    public void dropdownChange()
+    {
+        GameWorld.initialSpawn = GameWorld.getSpawns()[dropdown.value];
+        setCameraLoc(GameWorld.initialSpawn);
+    }
     private void processNodeLine(string line)
     {
         string[] parts = line.Split(':');
@@ -123,11 +170,13 @@ public class telera_spawner : MonoBehaviour
             float c = float.Parse(p.get("TERRAIN_VIS", "15"));
             go.GetComponent<BoxCollider>().size = new Vector3(256 * c, 5000, 256 * c);
             go.GetComponent<BoxCollider>().center = new Vector3(128, 0, 128);
+            go.layer = 30;
         }
         else
         {
             go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.GetComponent<SphereCollider>().radius = 5;
+            go.layer = 30;
         }
         telara_obj tobj = go.AddComponent<telara_obj>();
         go.transform.SetParent(meshRoot.transform);
@@ -155,21 +204,53 @@ public class telera_spawner : MonoBehaviour
 
     int runningThreads = 0;
     bool nodeBuildQueueDone = false;
+    private Dropdown dropdown;
+
+    public Collider[] checkHits(Vector3 position)
+    {
+        //Debug.Log("camera moved, update colliders");
+        Collider[] hitColliders = Physics.OverlapSphere(position, float.Parse(p.get("OBJECT_VISIBLE", "500")), 1 << 30);
+
+        System.Array.Sort(hitColliders, (b, a) => Vector3.Distance(position, a.gameObject.transform.position).CompareTo(Vector3.Distance(position, b.gameObject.transform.position)));
+
+
+        int i = 0;
+        while (i < hitColliders.Length)
+        {
+            Collider c = hitColliders[i++];
+            c.SendMessage("objectVisible", SendMessageOptions.DontRequireReceiver);
+        }
+        return hitColliders;
+    }
+
 
     // Update is called once per frame
     void Update()
     {
-        if (camMove.isRotating)
+        checkHits(this.mcamera.transform.position);
+        if (tpuc != null && tpuc.isRotating)
             return;
-
+        /*
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            GameObject go = new GameObject();
+            go.transform.parent = meshRoot.transform;
+            go.transform.localPosition = this.mcamera.transform.localPosition;
+            go.transform.localRotation = this.mcamera.transform.localRotation;
+            go.AddComponent<ModelView>();
+        }
+        */
+        if (Input.GetKeyDown(KeyCode.P) && GameWorld.useColliders && charC != null)
+        {
+            setCameraLoc(GameWorld.initialSpawn, true);
+        }
         int i = 0;
         while (nodeBuildQueue.Count > 0 && i++ < MAX_NODE_PER_FRAME)
             processNodeLine(nodeBuildQueue.Dequeue());
         if (i > 1)
         {
             if (nodeBuildQueue.Count == 0)
-                camera_movement.checkHits(mcamera.transform.position);
-            //            return;
+                checkHits(charC.transform.position);
         }
 
         i = 0;

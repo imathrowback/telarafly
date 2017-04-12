@@ -95,6 +95,11 @@ public class NifLoadJob : ThreadedJob
 
             if (go != null)
             {
+                if (Assets.GameWorld.useColliders)
+                {
+                    GameObject.Destroy(parent.GetComponent<BoxCollider>());
+                    GameObject.Destroy(parent.GetComponent<SphereCollider>());
+                }
                 go.transform.SetParent(parent.transform);
                 go.transform.localScale = Vector3.one;
                 go.transform.localPosition = Vector3.zero;
@@ -104,6 +109,7 @@ public class NifLoadJob : ThreadedJob
         catch (Exception ex)
         {
             Debug.LogWarning("Unable to load nif:" + niffile + " " + filename);
+            Debug.Log(ex);
         }
         finally
         {
