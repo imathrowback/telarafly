@@ -28,7 +28,7 @@ public class ModelView : MonoBehaviour
         // nif = hero_vigil_messenger.nif
 
 
-        GameObject nifmodel = loader.loadNIF(niffilename);
+        GameObject nifmodel = loader.loadNIF(niffilename, true);
         nifmodel.transform.parent = root.transform;
 
         //TODO: read KFM file

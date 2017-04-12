@@ -19,7 +19,7 @@ public class NIFLoader
     String assetsManifest = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets64.manifest";
     String assetsManifest32 = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets.manifest";
     String assetsDirectory = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets\\";
-
+    
 
     // Use this for initialization
     public NIFLoader()
@@ -38,12 +38,12 @@ public class NIFLoader
 
 
 
-    public GameObject loadNIFFromFile(String fname)
+    public GameObject loadNIFFromFile(String fname, bool skinMesh = false)
     {
         using (FileStream nifStream = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             NIFFile nf = new NIFFile(nifStream);
-            return loadNIF(nf, fname);
+            return loadNIF(nf, fname, skinMesh);
         }
 
     }
@@ -57,12 +57,12 @@ public class NIFLoader
         }
     }
 
-    public GameObject loadNIF(String fname)
+    public GameObject loadNIF(String fname, bool skinMesh = false)
     {
 
         try
         {
-            return loadNIF(getNIF(fname), fname);
+            return loadNIF(getNIF(fname), fname, skinMesh);
         }
         catch (Exception ex)
         {
@@ -71,7 +71,7 @@ public class NIFLoader
         }
     }
 
-    public GameObject loadNIF(NIFFile nf, string fname)
+    public GameObject loadNIF(NIFFile nf, string fname,  bool skinMesh = false)
     {
 
         /*
@@ -118,18 +118,17 @@ public class NIFLoader
             {
              
                 NiNode niNode = (NiNode)obj;
-                GameObject node = processNodeAndLinkToParent(nf, (NiNode)obj, root);
+                GameObject node = processNodeAndLinkToParent(nf, (NiNode)obj, root, skinMesh);
             }
         }
 
-        processBones(nf, root);
+        if (skinMesh)
+            processBones(nf, root);
         return root;
     }
 
     private void processBones(NIFFile nf, GameObject root)
     {
-        if (!nf.skinMesh)
-            return;
         List<NiSkinningMeshModifier> skinMods = getSkinMods(nf);
         foreach (NiSkinningMeshModifier skinMod in skinMods)
         {
@@ -200,7 +199,7 @@ public class NIFLoader
         return list;
     }
 
-    GameObject processNodeAndLinkToParent(NIFFile nf, NiNode niNode, GameObject parent)
+    GameObject processNodeAndLinkToParent(NIFFile nf, NiNode niNode, GameObject parent, bool skinMesh)
     {
      
 
@@ -215,7 +214,7 @@ public class NIFLoader
             {
                 if (mesh.parentIndex == niNode.index)
                 {
-                    GameObject meshGo = processMesh(nf, mesh);
+                    GameObject meshGo = processMesh(nf, mesh, skinMesh);
                     if (niNode is NiTerrainNode)
                     {
                         //meshGo.GetComponent<MeshRenderer>().material = new Material(Shader.Find("BasicTerrainShader"));
@@ -230,7 +229,7 @@ public class NIFLoader
         {
             if (obj is NiNode)
             {
-                GameObject go = processNodeAndLinkToParent(nf, (NiNode)obj, goM);
+                GameObject go = processNodeAndLinkToParent(nf, (NiNode)obj, goM, skinMesh);
             }
         }
 
@@ -292,7 +291,7 @@ public class NIFLoader
 
     
 
-    GameObject processMesh(NIFFile nf, NiMesh mesh)
+    GameObject processMesh(NIFFile nf, NiMesh mesh, bool skinMesh)
     {
         bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
 
@@ -306,7 +305,7 @@ public class NIFLoader
         MeshFilter mf = go.AddComponent<MeshFilter>();
 
         Renderer r;
-        if (!nf.skinMesh)
+        if (!skinMesh)
         {
             r = go.AddComponent<MeshRenderer>();
         }

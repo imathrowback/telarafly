@@ -9,7 +9,6 @@ namespace Assets.NIF
 {
     public class NIFFile
     {
-        public Boolean skinMesh = false;
         public uint fileVer;
         public bool littleEndian;
         public uint userVersion;
@@ -31,7 +30,7 @@ namespace Assets.NIF
         public NIFFile()
         {
         }
-        public NIFFile(Stream stream) 
+        public NIFFile(Stream stream, bool skinMesh = false) 
         {
             parseFile(stream);
         }
@@ -51,8 +50,9 @@ namespace Assets.NIF
             return stringTable;
         }
 
-        private void parseFile(Stream stream)
+        private void parseFile(Stream stream, bool skinMesh = false)
         {
+            
             // Read header
             using (BinaryReader dis = new BinaryReader(stream))
             {
