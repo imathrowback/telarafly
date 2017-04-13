@@ -9,6 +9,7 @@ using System.Xml.Serialization;
 using Assets.DB;
 using System.Threading;
 using UnityEngine.UI;
+using System.Text;
 using CGS;
 using UnityEngine.SceneManagement;
 using Assets.DatParser;
@@ -26,6 +27,7 @@ public class TestDecomp : MonoBehaviour
     System.Threading.Thread loadThread;
     GameObject dropdownbox;
     GameObject loadbutton;
+    GameObject loadModelViewerbutton;
     GameObject thirdPersonToggle;
     Text tex;
     Image img;
@@ -45,11 +47,13 @@ public class TestDecomp : MonoBehaviour
         img = GetComponentInChildren<Image>();
         dropdown = GetComponentInChildren<Dropdown>();
         dropdownbox = dropdown.gameObject;
-        loadbutton = GetComponentInChildren<Button>().gameObject;
+        loadbutton = GameObject.Find("LoadWorldButton");
+        loadModelViewerbutton = GameObject.Find("LoadModelButton");
         thirdPersonToggle = GetComponentInChildren<Toggle>().gameObject;
         dropdownbox.SetActive(false);
         thirdPersonToggle.SetActive(false);
         loadbutton.SetActive(false);
+        loadModelViewerbutton.SetActive(false);
         color = Color.grey;
         loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(readDB));
         loadThread.Start();
@@ -81,7 +85,7 @@ public class TestDecomp : MonoBehaviour
 
             error = "read database";
             Debug.Log("read database");
-            db = readDB(expectedChecksum);
+            db = DBInst.readDB(expectedChecksum, (s) => error = s);
             Debug.Log("Db:" + db);
             if (db != null)
             {
@@ -97,7 +101,7 @@ public class TestDecomp : MonoBehaviour
                 pr.StartInfo.Arguments = "\"" + assetsManifest32 + "\" \"" + assetsDirectory + "\"";
                 pr.Start();
                 pr.WaitForExit();
-                db = readDB(expectedChecksum);
+                db = DBInst.readDB(expectedChecksum, (s)=>error = s);
                 loaded = true;
             }
             UnityEngine.Debug.Log("Load complete");
@@ -117,7 +121,10 @@ public class TestDecomp : MonoBehaviour
 
     bool doMapChange = false;
     List<WorldSpawn> worlds = new List<WorldSpawn>();
-
+    public void doModelViewer()
+    {
+        SceneManager.LoadScene("model_viewer");
+    }
     // Update is called once per frame
     void Update()
     {
@@ -129,7 +136,7 @@ public class TestDecomp : MonoBehaviour
         if (loaded)
         {
             Debug.Log("get keys");
-            IEnumerable<entry> keys = db.getEntriesForKey(4479);
+            IEnumerable<entry> keys = db.getEntriesForID(4479);
             worlds.Clear();
 
             Debug.Log("process keys");
@@ -183,7 +190,8 @@ public class TestDecomp : MonoBehaviour
             loaded = false;
             dropdownbox.SetActive(true);
             loadbutton.SetActive(true);
-            thirdPersonToggle.SetActive(true);
+            loadModelViewerbutton.SetActive(true);
+                thirdPersonToggle.SetActive(true);
         }
         if (tex != null && img != null)
         {
@@ -211,6 +219,7 @@ public class TestDecomp : MonoBehaviour
 
             dropdownbox.SetActive(false);
             loadbutton.SetActive(false);
+            loadModelViewerbutton.SetActive(false);
             thirdPersonToggle.SetActive(false);
             //ThirdPersonUIToggle.set
             loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
@@ -584,63 +593,7 @@ public class TestDecomp : MonoBehaviour
         return null;
     }
 
-    DB readDB(string expectedChecksum)
-    {
-        GC.Collect();
-        DB db = new DB();
-        try
-        {
-            using (FileStream fs = new FileStream("dat.xmlz", FileMode.Open))
-            {
-                using (ProgressStream ps = new ProgressStream(fs))
-                {
-                    long total = fs.Length;
-                    ps.BytesRead += (s, a) => error = "Loading Database: " + (int)(((float)a.StreamPosition / (float)total) * 100.0) + " %";
-
-                    using (DeflateStream ds = new DeflateStream(ps, CompressionMode.Decompress))
-                    {
-                        long pos = fs.Position;
-                        Debug.Log("begin read");
-
-                        using (BinaryReader reader = new BinaryReader(ds))
-                        {
-                            db.dbchecksum = reader.ReadString();
-                            if (!expectedChecksum.Equals(db.dbchecksum))
-                            {
-                                db = null;
-                                UnityEngine.Debug.Log("Checksum in file doesn't match file from assets");
-                                return null;
-                            }
-                            else
-                                UnityEngine.Debug.Log("Found existing database, let us use it!");
-
-                            int count = reader.ReadInt32();
-                            for (int i = 0; i < count; i++)
-                            {
-                                entry e = new entry();
-                                e.id = reader.ReadInt64();
-                                e.key = reader.ReadInt64();
-                                e.name = reader.ReadString();
-                                e.decompressedData = new byte[reader.ReadInt32()];
-                                reader.Read(e.decompressedData, 0, e.decompressedData.Length);
-
-                                db.Add(e);
-                            }
-                        }
-
-                        Debug.Log("done read");
-
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            UnityEngine.Debug.Log("Unable to read existing database so we will recreate it:" + ex);
-            return null;
-        }
-        return db;
-    }
+   
 
     sealed class PreMergeToMergedDeserializationBinder : SerializationBinder
     {
@@ -659,4 +612,5 @@ public class TestDecomp : MonoBehaviour
             return typeToDeserialize;
         }
     }
+
 }

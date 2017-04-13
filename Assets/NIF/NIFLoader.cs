@@ -312,7 +312,9 @@ public class NIFLoader
         else 
         {
             r = go.AddComponent<SkinnedMeshRenderer>();
-            ((SkinnedMeshRenderer)r).quality = SkinQuality.Bone2;
+            // needed to force Unity to use 2 bones. RIFT exposes 3 bones, and if we let Unity choose, it'll try to use 4
+            // which will make models look funy
+            ((SkinnedMeshRenderer)r).quality = SkinQuality.Bone2;  
             ((SkinnedMeshRenderer)r).sharedMesh = newMesh;
         }
         
@@ -354,200 +356,195 @@ public class NIFLoader
 
 
             List<Vector3> verts = new List<Vector3>();
-            int vOffset = verts.Count;
+            
             List<Vector2> uvs = new List<Vector2>();
             List<List<int>> triangles = new List<List<int>>();
             List<Vector3> inNormals = new List<Vector3>();
-            List<int> bonePalette = new List<int>();
             List<BoneWeight> boneWeights = new List<BoneWeight>();
-            for (int i = 0; i < mesh.numSubMeshes; i++)
+
+
+            for (int i = 0; i < mesh.numSubMeshes; i++)        
             {
-                //Debug.Log("Process submesh:" + i);
+                List<int> bonePalette = new List<int>();
 
-
+                //Debug.Log("submesh[" + i + "]");
+                int vOffset = verts.Count;
                 /** vertices */
                 StreamRegion posRegion = posStream.streamRegions[posStreamRef.submeshRegionMap[i]];
-
-                int start = posRegion.a * posStream.elemStride + posElem.offset;
+                int posOfs = posRegion.a * posStream.elemStride;
+                int posEnd = posOfs + posRegion.b * posStream.elemStride;
                 byte[] posStreamData = posStream.streamData;
-                using (BinaryReader dis = new BinaryReader(new MemoryStream(posStreamData)))
+                using (BinaryReader dis = new BinaryReader(new MemoryStream(posStreamData, posOfs, posEnd - posOfs)))
                 {
-                    for (int v = 0; v < posRegion.b; v++)
+                   // Debug.Log("\tverts:" + posRegion.b);
+                    for (int v = 0; v < (posEnd - posOfs) / posStream.elemStride; v++)
                     {
                         float x = dis.readFloat();
                         float y = dis.readFloat();
                         float z = dis.readFloat();
                         verts.Add(new Vector3(x, y, z));
                     }
+                     //Debug.Log("pos: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
                 }
 
 
                 /** faces */
                 StreamRegion idxRegion = indexStream.streamRegions[indexStreamRef.submeshRegionMap[i]];
                 int idxOfs = idxRegion.a * indexStream.elemStride;
+                DataType idxType = typeForNifDataType(indexStreamObj.elem.dataType);
                 int idxEnd = idxOfs + idxRegion.b * indexStream.elemStride;
                 byte[] idxStreamData = indexStream.streamData;
-                //Debug.Log("index stride:" + indexStream.elemStride);
-                //Debug.Log("index stride:" + indexStream.);
-                List<int> tris = new List<int>((idxEnd - idxOfs) / 2);
+
+                List<int> tris = new List<int>();
                 using (BinaryReader dis = new BinaryReader(new MemoryStream(idxStreamData, idxOfs, idxEnd - idxOfs)))
                 {
-                    for (int idx = 0; idx < (idxEnd - idxOfs) / 2 / 3; idx++)
+                    for (int idx = 0; idx < (idxEnd - idxOfs) / indexStream.elemStride; idx++)
                     {
                         int v1x = (dis.readUnsignedShort()) + vOffset;
-                        int v1y = (dis.readUnsignedShort()) + vOffset;
-                        int v1z = (dis.readUnsignedShort()) + vOffset;
-
                         tris.Add(v1x);
-                        tris.Add(v1y);
-                        tris.Add(v1z);
                     }
+                    //Debug.Log("idx left over:" + (dis.BaseStream.Length - dis.BaseStream.Position));
                 }
                 triangles.Add(tris);
-
-                /** uvs */
-                if (uvStreamObj != null)
                 {
-                    NiDataStream uvStream = uvStreamObj.dataStream;
-                    StreamRegion uvRegion = uvStreamObj.dataStream.streamRegions[uvStreamObj.streamRef.submeshRegionMap[i]];
-                    DataType uvType = typeForNifDataType(uvStreamObj.elem.dataType);
-                    int uvOfs = uvRegion.a * uvStream.elemStride;
-                    int uvEnd = uvOfs + uvRegion.b * uvStream.elemStride;
-                    byte[] uvStreamData = uvStream.streamData;
-                    //Debug.Log("uv datatype:" + uvType + ":" + uvStream.elemStride);
-                    using (BinaryReader dis = new BinaryReader(new MemoryStream(uvStreamData, uvOfs, uvEnd - uvOfs)))
+                    /** uvs */
+                    if (uvStreamObj != null)
                     {
-                        for (int uv = 0; uv < (uvEnd - uvOfs) / uvStream.elemStride; uv++)
+                        NiDataStream uvStream = uvStreamObj.dataStream;
+                        StreamRegion uvRegion = uvStreamObj.dataStream.streamRegions[uvStreamObj.streamRef.submeshRegionMap[i]];
+                        DataType uvType = typeForNifDataType(uvStreamObj.elem.dataType);
+                        int uvOfs = uvRegion.a * uvStream.elemStride;
+                        int uvEnd = uvOfs + uvRegion.b * uvStream.elemStride;
+                        byte[] uvStreamData = uvStream.streamData;
+                        //Debug.Log("uv datatype:" + uvType + ":" + uvStream.elemStride);
+                        using (BinaryReader dis = new BinaryReader(new MemoryStream(uvStreamData, uvOfs, uvEnd - uvOfs)))
                         {
-                            float u = dis.readFloat();
-                            float v = dis.readFloat();
-                            uvs.Add(new Vector2(u, v));
-                        }
-                    }
-                }
-
-                /** normals */
-                if (nStreamObj != null)
-                {
-                    StreamRegion nRegion = nStreamObj.dataStream.streamRegions[nStreamObj.streamRef.submeshRegionMap[i]];
-                    DataType nType = typeForNifDataType(nStreamObj.elem.dataType);
-                    int nOfs = nRegion.a * nStream.elemStride;
-                    int nEnd = nOfs + nRegion.b * nStream.elemStride;
-                    byte[] nStreamData = nStream.streamData;
-                    using (BinaryReader dis = new BinaryReader(new MemoryStream(nStreamData, nOfs, nEnd - nOfs)))
-                    {
-                        for (int n = 0; n < (nEnd - nOfs) / nStream.elemStride; n++)
-                        {
-                            float x = dis.readFloat();
-                            float y = dis.readFloat();
-                            float z = dis.readFloat();
-                            inNormals.Add(new Vector3(x, y, z));
-                        }
-                    }
-                }
-
-                /** bone palette */
-                {
-                    StreamAndElement bonePalStreamObj = mesh.getStreamAndElement(nf, "BONE_PALETTE", -1);
-                    if (bonePalStreamObj != null)
-                    {
-                        NifMeshStream bonePalStreamRef = bonePalStreamObj.streamRef;
-                    NiDataStream bonePalStream = bonePalStreamObj.dataStream;
-                    NifStreamElement bonePalElem = bonePalStreamObj.elem;
-
-                        StreamRegion bonePalRegion = bonePalStreamObj.dataStream.streamRegions[bonePalStreamObj.streamRef.submeshRegionMap[i]];
-                        DataType bonePalType = typeForNifDataType(bonePalStreamObj.elem.dataType);
-                        int bonePalOfs = bonePalRegion.a * bonePalStream.elemStride;
-                        int bonePalEnd = bonePalOfs + bonePalRegion.b * bonePalStream.elemStride;
-                        byte[] bonePalStreamData = bonePalStream.streamData;
-                        using (BinaryReader dis = new BinaryReader(new MemoryStream(bonePalStreamData, bonePalOfs, bonePalEnd - bonePalOfs)))
-                        {
-                            for (int n = 0; n < (bonePalEnd - bonePalOfs) / bonePalStream.elemStride; n++)
+                            for (int uv = 0; uv < (uvEnd - uvOfs) / uvStream.elemStride; uv++)
                             {
-                                bonePalette.Add(dis.readUnsignedShort());
+                                float u = dis.readFloat();
+                                float v = dis.readFloat();
+                                uvs.Add(new Vector2(u, v));
                             }
-                          //  Debug.Log("bonepal: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
-                        }
-                       // Debug.Log("bone palette:" + string.Join(",", Array.ConvertAll(bonePalette.ToArray(), item => item.ToString())));
-                    }
-                  
-                }
-                {
-                    /** blend indicies */
-                    StreamAndElement StreamObj = mesh.getStreamAndElement(nf, "BLENDINDICES", -1);
-                    if (StreamObj != null)
-                    {
-                        NifMeshStream StreamRef = StreamObj.streamRef;
-                    NiDataStream Stream = StreamObj.dataStream;
-
-                        StreamRegion Region = StreamObj.dataStream.streamRegions[StreamObj.streamRef.submeshRegionMap[i]];
-                        DataType type = typeForNifDataType(StreamObj.elem.dataType);
-                        int Ofs = Region.a * Stream.elemStride;
-                        int End = Ofs + Region.b *Stream.elemStride;
-                        byte[] StreamData = Stream.streamData;
-                        //Debug.Log("blendi stride:" + Stream.elemStride + ": type:" + type);
-
-                        // each vertex has a blend index
-                        using (BinaryReader dis = new BinaryReader(new MemoryStream(StreamData, Ofs, End - Ofs)))
-                        {
-                            for (int n = 0; n < (End - Ofs) / Stream.elemStride; n++)
-                            {
-                                byte idx1 = dis.ReadByte();
-                                byte idx2 = dis.ReadByte();
-                                byte idx3 = dis.ReadByte();
-                                byte idx4 = dis.ReadByte();
-                                BoneWeight weight = new BoneWeight();
-                                weight.boneIndex0 = bonePalette[idx1];
-                                weight.boneIndex1 = bonePalette[idx2];
-                                weight.boneIndex2 = bonePalette[idx3];
-                                weight.boneIndex3 = bonePalette[idx4];
-                                boneWeights.Add(weight);
-                            }
-                           // Debug.Log("blend: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
-
                         }
                     }
-                }
-                {
-                    /** blend weights */
-                    StreamAndElement StreamObj = mesh.getStreamAndElement(nf, "BLENDWEIGHT", -1);
-                    if (StreamObj != null)
+
+                    /** normals */
+                    if (nStreamObj != null)
                     {
-                        NifMeshStream StreamRef = StreamObj.streamRef;
-                    NiDataStream Stream = StreamObj.dataStream;
-
-                        StreamRegion Region = StreamObj.dataStream.streamRegions[StreamObj.streamRef.submeshRegionMap[i]];
-                        DataType type = typeForNifDataType(StreamObj.elem.dataType);
-                        int Ofs = Region.a * Stream.elemStride;
-                        int End = Ofs + Region.b * Stream.elemStride;
-                        byte[] StreamData = Stream.streamData;
-
-                        using (BinaryReader dis = new BinaryReader(new MemoryStream(StreamData, Ofs, End - Ofs)))
+                        StreamRegion nRegion = nStreamObj.dataStream.streamRegions[nStreamObj.streamRef.submeshRegionMap[i]];
+                        DataType nType = typeForNifDataType(nStreamObj.elem.dataType);
+                        int nOfs = nRegion.a * nStream.elemStride;
+                        int nEnd = nOfs + nRegion.b * nStream.elemStride;
+                        byte[] nStreamData = nStream.streamData;
+                        using (BinaryReader dis = new BinaryReader(new MemoryStream(nStreamData, nOfs, nEnd - nOfs)))
                         {
-                            int total = (End - Ofs) / Stream.elemStride;
-                            // each vertex has weights
-                            for (int n = 0; n < total; n++)
+                            for (int n = 0; n < (nEnd - nOfs) / nStream.elemStride; n++)
                             {
-                                BoneWeight w = boneWeights[n];
-                                w.weight0 = dis.readFloat();
-                                w.weight1 = dis.readFloat();
-                                w.weight2 = dis.readFloat();
-                                w.weight3 = 0;
-                                boneWeights[n] = w;
+                                float x = dis.readFloat();
+                                float y = dis.readFloat();
+                                float z = dis.readFloat();
+                                inNormals.Add(new Vector3(x, y, z));
                             }
-                            //Debug.Log("blendw: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
+                        }
+                    }
+
+                    /** bone palette */
+                    {
+                        StreamAndElement bonePalStreamObj = mesh.getStreamAndElement(nf, "BONE_PALETTE", -1);
+                        if (bonePalStreamObj != null)
+                        {
+                            NifMeshStream bonePalStreamRef = bonePalStreamObj.streamRef;
+                            NiDataStream bonePalStream = bonePalStreamObj.dataStream;
+                            NifStreamElement bonePalElem = bonePalStreamObj.elem;
+
+                            StreamRegion bonePalRegion = bonePalStreamObj.dataStream.streamRegions[bonePalStreamObj.streamRef.submeshRegionMap[i]];
+                            DataType bonePalType = typeForNifDataType(bonePalStreamObj.elem.dataType);
+                            int bonePalOfs = bonePalRegion.a * bonePalStream.elemStride;
+                            int bonePalEnd = bonePalOfs + bonePalRegion.b * bonePalStream.elemStride;
+                            byte[] bonePalStreamData = bonePalStream.streamData;
+                            using (BinaryReader dis = new BinaryReader(new MemoryStream(bonePalStreamData, bonePalOfs, bonePalEnd - bonePalOfs)))
+                            {
+                                for (int n = 0; n < (bonePalEnd - bonePalOfs) / bonePalStream.elemStride; n++)
+                                {
+                                    bonePalette.Add(dis.readUnsignedShort());
+                                }
+                            }
+                        }
+                    }
+                    {
+                        /** blend indicies */
+                        StreamAndElement StreamObj = mesh.getStreamAndElement(nf, "BLENDINDICES", -1);
+                        if (StreamObj != null)
+                        {
+                            NifMeshStream StreamRef = StreamObj.streamRef;
+                            NiDataStream Stream = StreamObj.dataStream;
+
+                            StreamRegion Region = StreamObj.dataStream.streamRegions[StreamObj.streamRef.submeshRegionMap[i]];
+                            DataType type = typeForNifDataType(StreamObj.elem.dataType);
+                            int Ofs = Region.a * Stream.elemStride;
+                            int End = Ofs + Region.b * Stream.elemStride;
+                            byte[] StreamData = Stream.streamData;
+                            Debug.Log("blendi stride:" + Stream.elemStride + ": type:" + type);
+
+                            // each vertex has a blend index
+                            using (BinaryReader dis = new BinaryReader(new MemoryStream(StreamData, Ofs, End - Ofs)))
+                            {
+                                for (int n = 0; n < (End - Ofs) / Stream.elemStride; n++)
+                                {
+                                    byte idx1 = dis.ReadByte();
+                                    byte idx2 = dis.ReadByte();
+                                    byte idx3 = dis.ReadByte();
+                                    byte idx4 = dis.ReadByte();
+                                    BoneWeight weight = new BoneWeight();
+                                    weight.boneIndex0 = bonePalette[idx1];
+                                    weight.boneIndex1 = bonePalette[idx2];
+                                    weight.boneIndex2 = bonePalette[idx3];
+                                    weight.boneIndex3 = bonePalette[idx4];
+
+                                    boneWeights.Add(weight);
+                                }
+                                 Debug.Log("blend: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
+
+                            }
+                        }
+                    }
+                    {
+                        /** blend weights */
+                        StreamAndElement StreamObj = mesh.getStreamAndElement(nf, "BLENDWEIGHT", -1);
+                        if (StreamObj != null)
+                        {
+                            NifMeshStream StreamRef = StreamObj.streamRef;
+                            NiDataStream Stream = StreamObj.dataStream;
+
+                            StreamRegion Region = StreamObj.dataStream.streamRegions[StreamObj.streamRef.submeshRegionMap[i]];
+                            DataType type = typeForNifDataType(StreamObj.elem.dataType);
+                            int Ofs = Region.a * Stream.elemStride;
+                            int End = Ofs + Region.b * Stream.elemStride;
+                            byte[] StreamData = Stream.streamData;
+
+                            using (BinaryReader dis = new BinaryReader(new MemoryStream(StreamData, Ofs, End - Ofs)))
+                            {
+                                int total = (End - Ofs) / Stream.elemStride;
+                                // each vertex has weights
+                                for (int n = 0; n < total; n++)
+                                {
+                                    BoneWeight w = boneWeights[n+vOffset];
+                                    w.weight0 = dis.readFloat();
+                                    w.weight1 = dis.readFloat();
+                                    w.weight2 = dis.readFloat();
+                                    w.weight3 = 0;
+                                    boneWeights[n+ vOffset] = w;
+                                }
+                                Debug.Log("blendw: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
+                            }
                         }
                     }
                 }
             }
-
-            newMesh.SetVertices(verts);
-           // Debug.Log("v[" + verts.Count + ", bones[" + boneWeights.Count);
-            if (inNormals.Count > 0)
-                newMesh.SetNormals(inNormals);
-
            
-
+            newMesh.SetVertices(verts);
+            if (inNormals.Count > 0)
+               newMesh.SetNormals(inNormals);
             if (IS_TERRAIN && uvs.Count == 0)
             {
                 for (int i = 0; i < verts.Count; i++)
@@ -564,11 +561,22 @@ public class NIFLoader
             }
             if (uvs.Count > 0)
                 newMesh.SetUVs(0, uvs);
+
+            if (boneWeights.Count > 0 && !IS_TERRAIN && skinMesh)
+            {
+                newMesh.boneWeights = boneWeights.ToArray();
+            }
+
+            //newMesh.CombineMeshes()
+
+            List<int> tristest = new List<int>();
             for (int i = 0; i < triangles.Count; i++)
-                newMesh.SetTriangles(triangles[i], i);
+            {
+                tristest.AddRange(triangles[i]);
+                //newMesh.SetTriangles(triangles[i], i);
+            }
+            newMesh.triangles = tristest.ToArray();
             
-        if (boneWeights.Count > 0 && !IS_TERRAIN)
-            newMesh.boneWeights = boneWeights.ToArray();
 
             // do materials/textures
             Material mat = new Material(Shader.Find("Standard"));

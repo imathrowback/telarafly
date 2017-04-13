@@ -9,9 +9,17 @@ namespace Assets.DB
     public class DB
     {
         public string dbchecksum;
-        //private List<entry> entries  = new LIn
+        
         private Dictionary<long, Dictionary<long, entry>> data = new Dictionary<long, Dictionary<long, entry>>();
 
+        public List<entry> getEntries()
+        {
+            List<entry> entries = new List<entry>();
+            List<Dictionary<long, entry>> dict = data.Values.ToList();
+            foreach (Dictionary<long, entry> d in dict)
+                entries.AddRange(d.Values.ToList());
+            return entries;
+        }
         internal void Add(entry e)
         {
             if (!data.ContainsKey(e.id))
@@ -20,7 +28,7 @@ namespace Assets.DB
         }
 
 
-        public IEnumerable<entry> getEntriesForKey(long datasetid)
+        public IEnumerable<entry> getEntriesForID(long datasetid)
         {
             return data[datasetid].Values;
         }
