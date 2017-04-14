@@ -25,8 +25,16 @@ public class ModelView : MonoBehaviour
     DB db;
     Slider speedSlider;
     AssetDatabase adb;
+    public GameObject ground;
     Dropdown nIFModelDropdown;
     Dropdown animationDropdown;
+
+    Dropdown AFdropdown;
+    Dropdown GLdropdown;
+    Dropdown MRdropdown;
+    Dropdown SZdropdown;
+    Dropdown SZZdropdown;
+    Dropdown SZZZdropdown;
     System.Threading.Thread loadThread;
     Dictionary<String, AnimatedNif> nifDictionary = new Dictionary<string, AnimatedNif>();
     volatile string progress = "";
@@ -36,6 +44,13 @@ public class ModelView : MonoBehaviour
         progressText = GameObject.Find("ProgressText").GetComponent<Text>();
         nIFModelDropdown = GameObject.Find("NIFModelDropdown").GetComponent<Dropdown>();
         animationDropdown = GameObject.Find("AnimationDropdown").GetComponent<Dropdown>();
+
+        AFdropdown = GameObject.Find("AFdropdown").GetComponent<Dropdown>();
+        GLdropdown = GameObject.Find("GLdropdown").GetComponent<Dropdown>();
+        MRdropdown = GameObject.Find("MRdropdown").GetComponent<Dropdown>();
+        SZdropdown = GameObject.Find("SZdropdown").GetComponent<Dropdown>();
+        SZZdropdown = GameObject.Find("SZZdropdown").GetComponent<Dropdown>();
+        SZZZdropdown = GameObject.Find("SZZZdropdown").GetComponent<Dropdown>();
         speedSlider = GameObject.Find("SpeedSlider").GetComponent<Slider>();
         speedSlider.value = this.animSpeed;
         loader = new NIFLoader();
@@ -52,55 +67,76 @@ public class ModelView : MonoBehaviour
         AssetEntry ae = adb.getEntryForFileName("telara.db");
         string expectedChecksum = BitConverter.ToString(ae.hash);
         db = DBInst.readDB(expectedChecksum, (s) => { progress = s; });
-
-
     }
-
+    private string getStringMember(CObject obj, int member)
+    {
+        foreach (CObject o in obj.members)
+            if (o.datacode == member)
+                return o.convert() + "";
+        return "";
+    }
     private void parse(IEnumerable<entry> entries)
     {
         nIFModelDropdown.ClearOptions();
-        List<String> nIFModelEntries = new List<String>();
-        foreach (entry e in entries)
+
+        this.AFdropdown.ClearOptions();
+        this.GLdropdown.ClearOptions();
+        this.MRdropdown.ClearOptions();
+        this.SZdropdown.ClearOptions();
+        this.SZZdropdown.ClearOptions();
+            this.SZZZdropdown.ClearOptions();
+        List<string> nIFModelEntries = new List<string>();
+        List<string> AFdropdownE = new List<string>();
+        List<string> GLdropdownE = new List<string>();
+        List<string> MRdropdownE = new List<string>();
+        List<string> SZdropdownE = new List<string>();
+        List<string> SZZdropdownE = new List<string>();
+             List<string> SZZZdropdownE = new List<string>();
+        List<entry> lentries = new List<entry>(entries);
+        List<string>[] buckets = new List<string>[] { AFdropdownE , GLdropdownE, MRdropdownE, SZdropdownE , SZZdropdownE ,SZZZdropdownE };
+        
+        List<string> nifsToBucket = new List<string>();
+        foreach (entry e in lentries)
         {
-            if (e.key == -79253527)
-                Debug.Log("process hellbug");
             try
             {
                 CObject obj = Parser.processStreamObject(new MemoryStream(e.decompressedData));
-                if (e.key == -79253527)
-                    Debug.Log("process hellbug:" + obj.members.Count);
-                if (obj.members.Count >= 2)
+                if (obj.members.Count >= 1)
                 {
-                    if (obj.get(0).type == 6 && obj.get(1).type == 6)
+                    string nif = getStringMember(obj, 2);
+                    string kfm = getStringMember(obj, 1);
+                    string postfix = getStringMember(obj, 33);
+                    string nifFile = Path.GetFileNameWithoutExtension(nif) + ".nif";
+
+                    if (kfm.Length > 0)
                     {
-                        string postfix = "";
-                        string kfm = obj.get(0).convert() + "";
-                        string nif = obj.get(1).convert() + "";
-                        //int soundBank = obj.get(2).convert()
-                        for (int j = 2; j < obj.members.Count; j++)
-                        {
-                            if (obj.get(j).type == 6 && ("" + obj.get(j).convert()).StartsWith("_"))
-                                postfix = "" + obj.get(j).convert();
-                        }
-                        string nifFile = Path.GetFileNameWithoutExtension(nif) + ".nif";
                         string kfmFile = Path.GetFileNameWithoutExtension(kfm) + ".kfm";
                         string kfbFile = Path.GetFileNameWithoutExtension(kfm) + postfix + ".kfb";
                         bool nifexists = adb.filenameExists(nifFile);
                         bool kfbexists = adb.filenameExists(kfbFile);
                         if (!(!nifexists || !kfbexists))
                         {
-                            string displayName = nifFile;
-                            // special handling for mounts as we want them grouped together
-                            if (postfix.Length > 0 && postfix.Contains("mount"))
-                                displayName = postfix.Replace("_","") + ":" + nifFile;
-                            nIFModelEntries.Add(displayName);
-                            nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, kfmFile, kfbFile);
+                            if (!nifDictionary.ContainsKey(nifFile))
+                            {
+                                string displayName = nifFile;
+                                // special handling for mounts as we want them grouped together
+                                if (postfix.Length > 0 && postfix.Contains("mount"))
+                                    displayName = postfix.Replace("_", "") + ":" + nifFile;
+                                nIFModelEntries.Add(displayName);
+                                nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, kfmFile, kfbFile);
+                            }
                         }
-                        if (nif.Contains("mount_") && nif.Contains("hellbug"))
-                        {
-                            Debug.Log("nif[" + nifexists + "][" + nifFile + "], kfb[" + kfbexists + "]:" + kfbFile);
-                        }
+                    }
+                    else
+                    {
 
+                        // normal model
+                        if (!nifDictionary.ContainsKey(nifFile))
+                        {
+                            nifsToBucket.Add(nifFile);
+
+                            nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, null, null);
+                        }
                     }
                 }
             }
@@ -109,10 +145,45 @@ public class ModelView : MonoBehaviour
                 Debug.Log("Unable to parse entry " + e.id + ":" + e.key + ":" + ex.Message);
             }
         }
+
+        nifsToBucket.Sort();
+        int bucketSize = nifsToBucket.Count / buckets.Length;
+        Debug.Log("bucketsize: " + nifsToBucket.Count + ":" + bucketSize);
+        foreach (string s in nifsToBucket)
+        {
+            for (int i = 0; i < buckets.Length; i++)
+                if (buckets[i].Count <= bucketSize)
+                {
+                    buckets[i].Add(s);
+                    break;
+                }
+        }
+
+
         nIFModelEntries.Sort();
+        AFdropdownE.Sort();
+        GLdropdownE.Sort();
+        MRdropdownE.Sort();
+        SZdropdownE.Sort();
+        SZZdropdownE.Sort();
+        SZZZdropdownE.Sort();
+        AFdropdown.AddOptions(AFdropdownE);
+        GLdropdown.AddOptions(GLdropdownE);
+        MRdropdown.AddOptions(MRdropdownE);
+        SZdropdown.AddOptions(SZdropdownE);
+        SZZdropdown.AddOptions(SZZdropdownE);
+        SZZZdropdown.AddOptions(SZZZdropdownE);
+
         nIFModelDropdown.AddOptions(nIFModelEntries);
     }
-
+    public void toggleGround()
+    {
+        if (ground != null)
+        {
+            
+            ground.SetActive(GameObject.Find("GroundToggle").GetComponent<Toggle>().isOn);
+        }
+    }
     static object getField(object obj, string fieldName)
     {
         Type type = obj.GetType();
@@ -128,8 +199,10 @@ public class ModelView : MonoBehaviour
         if (newNifP.Contains(":"))
             newNif = newNifP.Split(':')[1];
         AnimatedNif animNif = nifDictionary[newNif];
+        if (animationNif == animNif)
+            return;
 
-        if (nifmodel != null)
+            if (nifmodel != null)
             GameObject.DestroyImmediate(nifmodel);
 
         nifmodel = loader.loadNIF(animNif.nif, true);
@@ -158,13 +231,37 @@ public class ModelView : MonoBehaviour
         animSpeed = speedSlider.value;
     }
 
+    public void changeAF()
+    {
+        changeNif(AFdropdown.options[AFdropdown.value].text);
+    }
+    public void changeGL()
+    {
+        changeNif(GLdropdown.options[GLdropdown.value].text);
+    }
+    public void changeMR()
+    {
+        changeNif(MRdropdown.options[MRdropdown.value].text);
+    }
+    public void changeSZ()
+    {
+        changeNif(SZdropdown.options[SZdropdown.value].text);
+    }
+
+    public void changeSZZZ()
+    {
+        changeNif(SZZZdropdown.options[SZZZdropdown.value].text);
+    }
+
+    public void changeSZZ()
+    {
+        changeNif(SZZdropdown.options[SZZdropdown.value].text);
+    }
+
     public void changeNIF()
     {
-        int value = nIFModelDropdown.value;
-        String nif = nIFModelDropdown.options[value].text;
+        string nif = nIFModelDropdown.options[nIFModelDropdown.value].text;
         changeNif(nif);
-
-
     }
 
     // Update is called once per frame
@@ -183,7 +280,7 @@ public class ModelView : MonoBehaviour
                 IEnumerable<entry> entries = db.getEntriesForID(7305);
                 parse(entries);
                 changeNif("crucia.nif");
-                animationNif.setActiveAnimation(0);
+                animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
                 loadThread = null;
             }
         }
