@@ -31,6 +31,12 @@ public class NifLoadJob : ThreadedJob
         }
     }
 
+    public static void clearCache()
+    {
+        originals.Clear();
+        cacheWait.Clear();
+    }
+
 
     //public Vector3[] InData;  // arbitary job data
     //public Vector3[] OutData; // arbitary job data

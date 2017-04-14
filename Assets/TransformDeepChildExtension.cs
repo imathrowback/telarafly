@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Assets.NIF
-{
     using UnityEngine;
     using System.Collections;
 
@@ -42,4 +40,4 @@ namespace Assets.NIF
         }
         */
     }
-}
+

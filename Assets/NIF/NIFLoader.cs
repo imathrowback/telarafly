@@ -8,17 +8,13 @@ using Assets.RiftAssets;
 using Ionic.Zlib;
 using System.Xml.Serialization;
 using System.Linq;
+using Assets;
 
 public class NIFLoader
 {
 
 
-
-    public Manifest manifest;
     public AssetDatabase db;
-    String assetsManifest = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets64.manifest";
-    String assetsManifest32 = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets.manifest";
-    String assetsDirectory = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets\\";
     
 
     // Use this for initialization
@@ -28,12 +24,7 @@ public class NIFLoader
 
     public void loadManifestAndDB()
     {
-        Properties p = new Properties("nif2obj.properties");
-        assetsDirectory = (p.get("ASSETS_DIR"));
-        assetsManifest = (p.get("ASSETS_MANIFEST64"));
-        assetsManifest32 = (p.get("ASSETS_MANIFEST"));
-        manifest = new Manifest(assetsManifest32);
-        db = AssetProcessor.buildDatabase(manifest, assetsDirectory);
+        db = AssetDatabaseInst.DB;
     }
 
 
@@ -313,7 +304,7 @@ public class NIFLoader
         {
             r = go.AddComponent<SkinnedMeshRenderer>();
             // needed to force Unity to use 2 bones. RIFT exposes 3 bones, and if we let Unity choose, it'll try to use 4
-            // which will make models look funy
+            // which will make models look wrong
             ((SkinnedMeshRenderer)r).quality = SkinQuality.Bone2;  
             ((SkinnedMeshRenderer)r).sharedMesh = newMesh;
         }
@@ -484,7 +475,7 @@ public class NIFLoader
                             int Ofs = Region.a * Stream.elemStride;
                             int End = Ofs + Region.b * Stream.elemStride;
                             byte[] StreamData = Stream.streamData;
-                            Debug.Log("blendi stride:" + Stream.elemStride + ": type:" + type);
+                            //Debug.Log("blendi stride:" + Stream.elemStride + ": type:" + type);
 
                             // each vertex has a blend index
                             using (BinaryReader dis = new BinaryReader(new MemoryStream(StreamData, Ofs, End - Ofs)))
@@ -503,7 +494,7 @@ public class NIFLoader
 
                                     boneWeights.Add(weight);
                                 }
-                                 Debug.Log("blend: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
+                                 //Debug.Log("blend: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
 
                             }
                         }
@@ -535,7 +526,7 @@ public class NIFLoader
                                     w.weight3 = 0;
                                     boneWeights[n+ vOffset] = w;
                                 }
-                                Debug.Log("blendw: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
+                                //Debug.Log("blendw: left over: " + (dis.BaseStream.Length - dis.BaseStream.Position));
                             }
                         }
                     }

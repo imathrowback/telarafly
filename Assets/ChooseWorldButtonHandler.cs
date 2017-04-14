@@ -17,6 +17,7 @@ public class ChooseWorldButtonHandler : MonoBehaviour {
 
     public void chooseWorld()
     {
+        NifLoadJob.clearCache();
         SceneManager.LoadScene("test-decomp");
     }
 }

@@ -20,7 +20,7 @@ using System.Reflection;
 
 public class TestDecomp : MonoBehaviour
 {
-    System.Diagnostics.Process pr;
+   
     DB db;
     string expectedChecksum;
     bool loaded = false;
@@ -35,9 +35,6 @@ public class TestDecomp : MonoBehaviour
     Color color;
     AssetDatabase adb;
     Dropdown dropdown;
-    string assetsManifest;
-    string assetsManifest32;
-    string assetsDirectory;
 
     // Use this for initialization
     void Start()
@@ -61,15 +58,8 @@ public class TestDecomp : MonoBehaviour
 
     void loadManifestAndDB()
     {
-        Properties p = new Properties("nif2obj.properties");
-        assetsDirectory = (p.get("ASSETS_DIR"));
-        assetsManifest = (p.get("ASSETS_MANIFEST64"));
-        assetsManifest32 = (p.get("ASSETS_MANIFEST"));
-
-        error = "Loading manifest";
-        Manifest manifest = new Manifest(assetsManifest32);
         error = "Loading asset database";
-        adb = AssetProcessor.buildDatabase(manifest, assetsDirectory);
+        adb = AssetDatabaseInst.DB;
         AssetEntry ae = adb.getEntryForFileName("telara.db");
         expectedChecksum = BitConverter.ToString(ae.hash);
     }
@@ -94,13 +84,8 @@ public class TestDecomp : MonoBehaviour
             else
             {
                 error = "Decode database, please wait, this could take a few minutes but only needs to be done once per patch.";
-
-                string file = @"decomp\tdbdecomp.exe";
-                pr = new System.Diagnostics.Process();
-                pr.StartInfo.FileName = file;
-                pr.StartInfo.Arguments = "\"" + assetsManifest32 + "\" \"" + assetsDirectory + "\"";
-                pr.Start();
-                pr.WaitForExit();
+                
+                DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
                 db = DBInst.readDB(expectedChecksum, (s)=>error = s);
                 loaded = true;
             }

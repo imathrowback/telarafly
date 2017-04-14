@@ -81,5 +81,16 @@ namespace Assets.DB
             }
             return db;
         }
+
+        internal static void create(string assetManifest, string assetDir)
+        {
+            System.Diagnostics.Process pr;
+            string file = @"decomp\tdbdecomp.exe";
+            pr = new System.Diagnostics.Process();
+            pr.StartInfo.FileName = file;
+            pr.StartInfo.Arguments = "\"" + assetManifest + "\" \"" + assetDir + "\"";
+            pr.Start();
+            pr.WaitForExit();
+        }
     }
 }
