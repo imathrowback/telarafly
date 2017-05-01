@@ -23,6 +23,10 @@ namespace Assets
         NIFFile nifanimation;
         int activeAnimation = -1;
         List<KFAnimation> anims;
+        public void clearBoneMap()
+        {
+            boneMap.Clear();
+        }
         public List<KFAnimation> getAnimations()
         {
             if (anims != null)
@@ -153,6 +157,8 @@ namespace Assets
                         int splineDataIndex = evalObj.splineDataIndex;
                         int basisDataIndex = evalObj.basisDataIndex;
 
+
+
                         if (splineDataIndex != -1 && basisDataIndex != -1)
                         {
                             NiBSplineData splineObj = (NiBSplineData)nifanimation.getObject(splineDataIndex);
@@ -180,6 +186,8 @@ namespace Assets
 
                             }
                         }
+                        //Debug.DrawLine(go.transform.position, go.transform.parent.position);
+
                     }
                 }
             }

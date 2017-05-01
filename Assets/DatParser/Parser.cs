@@ -164,6 +164,7 @@ namespace Assets.DatParser
                             return true;
                         int i = 0;
                         CObject obj = new CObject(datacode, new byte[0], count, null);
+                        obj.index = extradata;
                         parent.addMember(obj);
 
                         int codeOfChildren = r.code;
@@ -189,9 +190,11 @@ namespace Assets.DatParser
                         if (count == 0)
                             return true;
                         int i = 0;
+                        int ii = 0;
                         CObject obj = new CObject(datacode, new byte[0], count, null);
+                        obj.index = extradata;
                         parent.addMember(obj);
-                        while (handleCode(obj, dis, result[0], 0, indent + 1) && handleCode(obj, dis, result[1], 0, indent + 1))
+                        while (handleCode(obj, dis, result[0], ii++, indent + 1) && handleCode(obj, dis, result[1], ii++, indent + 1))
                         {
                             if (++i >= count)
                                 return true;

@@ -53,7 +53,6 @@ namespace Assets.DB
                                     e.name = reader.ReadString();
                                     e.decompressedData = new byte[reader.ReadInt32()];
                                     reader.Read(e.decompressedData, 0, e.decompressedData.Length);
-                                    //string dataStr = Encoding.UTF8.GetString(e.decompressedData);
 
                                     db.Add(e);
                                 }

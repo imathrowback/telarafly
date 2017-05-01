@@ -7,7 +7,7 @@ public class TestNifLoader : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         NIFLoader loader = new NIFLoader();
-        GameObject go = loader.loadNIFFromFile(@"D:\rift_stuff\nif\A_C_keep_stillmoor_south_entry_01.nif");
+        GameObject go = loader.loadNIFFromFile(@"C:\Users\Spikeles\Documents\NetBeansProjects\TelaraDBExplorer\TelaraDBEditorCore\elf_male_cloth_helmet_119.nif");
         go.transform.parent = this.transform;
 
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.NIF
 {
@@ -18,10 +19,9 @@ namespace Assets.NIF
         public override void parse( NIFFile file,  NIFObject baseo,  BinaryReader ds) 
         {
             base.parse(file, baseo, ds);
-
             loadAVObject(file, ds);
             childLinks = loadLinkIDs(ds);
-            
+
             loadLinkIDs(ds);
 
         }

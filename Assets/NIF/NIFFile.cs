@@ -94,6 +94,7 @@ namespace Assets.NIF
 
                 try
                 {
+
                     long pos = dis.BaseStream.Position;
                     data = dis.ReadBytes(size);
                     using (BinaryReader ds = new BinaryReader(new MemoryStream(data, false)))
@@ -135,8 +136,7 @@ namespace Assets.NIF
                 } catch (Exception ex)
                 {
                     //Debug.Log(typeName + ":" + ex);
-                    //Debug.Log("Unhandled nif type:" + typeName + " due to exception:" + ex.Message);
-                    //Debug.Log("data size:" + obj.nifSize);
+                    //Debug.Log("Unhandled nif type:" + typeName + " due to exception:" + ex.Message + " :data size:" + obj.nifSize);
                     continue;
                 }
             }

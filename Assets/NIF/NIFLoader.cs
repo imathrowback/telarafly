@@ -64,38 +64,6 @@ public class NIFLoader
 
     public GameObject loadNIF(NIFFile nf, string fname,  bool skinMesh = false)
     {
-
-        /*
-        using (FileStream fs = new FileStream("fname.xml", FileMode.Create))
-        {
-            Type[] extraTypes = new Type[]
-            {
-                typeof(NiTerrainNode),
-                typeof(NiNode),
-                typeof(NiAVObject),
-                typeof(NiBinaryExtraData),
-                typeof(NiDataStream),
-                typeof(NiBooleanExtraData),
-                typeof(NiFloatExtraData),
-                typeof(NiColorExtraData),
-                typeof(NiTexturingProperty),
-                typeof(NifMeshStream),
-                typeof(NifStreamElement),
-                typeof(NiIntegerExtraData),
-                typeof(NiMaterialProperty),
-                typeof(NiMesh),
-                typeof(NiObjectNET),
-                typeof(NiProperty),
-                typeof(NiRenderObject),
-                typeof(NiSourceTexture),
-                typeof(NiStringExtraData),
-                typeof(StreamAndElement),
-                typeof(StreamRegion),
-            };
-            XmlSerializer x = new XmlSerializer(typeof(NIFFile), extraTypes);
-            x.Serialize(fs, nf);
-        }
-        */
         GameObject root = new GameObject();
         root.name = Path.GetFileNameWithoutExtension(fname);
         root.transform.localPosition = Vector3.zero;
@@ -114,63 +82,69 @@ public class NIFLoader
         }
 
         if (skinMesh)
-            processBones(nf, root);
+            linkBonesToMesh(nf, root);
         return root;
     }
 
-    private void processBones(NIFFile nf, GameObject root)
+    static public void linkBonesToMesh(NIFFile nf, GameObject skeletonRoot)
     {
         List<NiSkinningMeshModifier> skinMods = getSkinMods(nf);
         foreach (NiSkinningMeshModifier skinMod in skinMods)
         {
-            Transform rootBone = null;
-            List<Transform> bones = new List<Transform>();
-
-            NiMesh mes = null;
-            foreach (NIFObject o in nf.objects)
-            {
-                if (o is NiMesh)
-                {
-                    if (((NiMesh)o).modLinks.Contains(skinMod.index))
-                    {
-                        mes = (NiMesh)o;
-                        break;
-                    }
-                }
-            }
-            Transform meshObject = root.transform.FindDeepChild(mes.name);
-            SkinnedMeshRenderer meshRenderer = meshObject.GetComponent<SkinnedMeshRenderer>();
-            List<Matrix4x4> bindPoses = new List<Matrix4x4>();
             if (skinMod != null)
             {
-                rootBone = root.transform.FindDeepChild(nf.getObject(skinMod.rootBoneLinkID).name);
+                List<Transform> bones = new List<Transform>();
+                List<Matrix4x4> bindPoses = new List<Matrix4x4>();
+
+                NIFObject rootBoneNode = nf.getObject(skinMod.rootBoneLinkID);
+                Transform rootBone = skeletonRoot.transform.FindDeepChild(rootBoneNode.name);
 
                 List<int> boneLinkIds = skinMod.boneLinkIDs;
                 for (int boneIdx = 0; boneIdx < boneLinkIds.Count; boneIdx++)
                 {
                     int objId = boneLinkIds[boneIdx];
                     NIFObject ni = nf.getObject(objId);
-                    Transform t = root.transform.FindDeepChild(ni.name);
+                    Transform t = skeletonRoot.transform.FindDeepChild(ni.name);
 
                     if (t != null)
                     {
-                        //Debug.Log("link ni bone[" + ni.name + "] with game transform " + t.name);
                         bones.Add(t);
                         NITransform nit = skinMod.m_pkSkinToBoneTransforms[boneIdx];
                         Matrix4x4 m = toMat(nit.matrix).transpose;
-
                         bindPoses.Add(m);
                     }
                 }
+
+                
+                NiMesh mes = getMeshForMod(nf, skinMod);
+                Transform meshObject = skeletonRoot.transform.FindDeepChild(mes.name);
+                SkinnedMeshRenderer meshRenderer = meshObject.GetComponent<SkinnedMeshRenderer>();
+
+                meshRenderer.rootBone = rootBone;
+                meshRenderer.bones = bones.ToArray();
+                meshRenderer.sharedMesh.bindposes = bindPoses.ToArray();
+                meshRenderer.sharedMesh.RecalculateBounds();
             }
-            meshRenderer.rootBone = rootBone;
-            meshRenderer.bones = bones.ToArray();
-            meshRenderer.sharedMesh.bindposes = bindPoses.ToArray();
-            meshRenderer.sharedMesh.RecalculateBounds();
         }
     }
 
-    public List<NiSkinningMeshModifier> getSkinMods(NIFFile nf)
+    static private NiMesh getMeshForMod(NIFFile nf, NiSkinningMeshModifier skinMod)
+    {
+        foreach (NIFObject o in nf.objects)
+        {
+            if (o is NiMesh)
+            {
+                if (((NiMesh)o).modLinks.Contains(skinMod.index))
+                {
+                    return (NiMesh)o;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    static public List<NiSkinningMeshModifier> getSkinMods(NIFFile nf)
     {
         List<NiSkinningMeshModifier> mods = new List<NiSkinningMeshModifier>();
         foreach (NIFObject o in nf.objects)
@@ -197,10 +171,13 @@ public class NIFLoader
         GameObject goM = new GameObject();
         goM.name = niNode.name;
 
-        //GameObject s = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        //s.transform.parent = goM.transform;
-        //s.transform.localScale = Vector3.one * 0.01f;
-
+        /*
+        GameObject s = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        s.transform.parent = goM.transform;
+        s.transform.localPosition = Vector3.zero;
+        s.transform.localRotation = Quaternion.identity;
+        s.transform.localScale = new Vector3(0.111f, 0.011f, 0.011f);
+        */
         foreach (NiMesh mesh in nf.getMeshes())
             {
                 if (mesh.parentIndex == niNode.index)
@@ -249,7 +226,7 @@ public class NIFLoader
 
     }
 
-    private Matrix4x4 toMat(Matrix4f m4)
+    static private Matrix4x4 toMat(Matrix4f m4)
     {
         Matrix4x4 mat = new Matrix4x4();
         mat.m00 = m4.m11;

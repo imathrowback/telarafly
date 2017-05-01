@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
+
 namespace Assets.DatParser
 {
     public class CObject
@@ -38,6 +39,7 @@ namespace Assets.DatParser
         {
             this.type = type;
             this.datacode = datacode;
+            index = datacode;
             this.data = data;
             this.convertor = convertor;
             if (data.Length == 0)
@@ -48,19 +50,47 @@ namespace Assets.DatParser
         {
             this.type = type;
             this.datacode = datacode;
+            index = datacode;
             data.Seek(0, SeekOrigin.Begin);
             this.data = data.ToArray();
             this.convertor = convertor;
         }
+        public Dictionary<int, CObject> asDict()
+        {
+            if (type != 12)
+                throw new Exception("datatype[" + type + "] is not dictionary type 12:" + this);
+            Dictionary<int, CObject> dict = new Dictionary<int, CObject>();
+            for (int i = 0; i < members.Count; i+=2)
+            {
+                int a = getIntMember(i);
+                CObject b = getMember(i + 1);
+                dict[a] = b;
+
+            }
+            return dict;
+        }
+
+        public int getIntMember(int i)
+        {
+            CObject member = getMember(i);
+            object o = member.convert();
+            if (o is int)
+                return (int)o;
+            if (o is long)
+                return (int)((long)o);
 
 
+            return (int)new CIntConvertor().convert(getMember(i));
+        }
 
 
-       public CObject parent;
+        public CObject parent;
         public int type;
         public List<CObject> members = new List<CObject>();
+        // index of this member in it's parent
+        internal int index;
 
-        public void addMember( CObject newObj)
+        public void addMember(CObject newObj)
         {
             members.Add(newObj);
             newObj.parent = this;
@@ -78,7 +108,15 @@ namespace Assets.DatParser
             return "obj: " + type;
         }
 
-        public CObject get( int i)
+        public CObject getMember(int index)
+        {
+            for (int i = 0; i < members.Count; i++)
+                if (members[i].index == index)
+                    return members[i];
+            return null;
+        }
+
+        public CObject get(int i)
         {
             return members[i];
         }

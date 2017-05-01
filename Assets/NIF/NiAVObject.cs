@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.NIF
 {
@@ -28,8 +29,7 @@ namespace Assets.NIF
 				    ds.readFloat(), ds.readFloat(), ds.readFloat(), 0,
 				    translation.x, translation.y, translation.z, 0);
 		    scale = ds.readFloat();
-		    // nifScaleMatrix(matrix, scale);
-		    nodePropertyIDs = loadLinkIDs(ds);
+            nodePropertyIDs = loadLinkIDs(ds);
 
             loadLinkID(ds); // collision node?
             isBone = true;
