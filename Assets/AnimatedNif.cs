@@ -118,8 +118,8 @@ namespace Assets
         {
             foreach (KFAnimation kfa in getAnimations())
             {
-                Debug.Log(kfa.sequenceFilename + ":" + kfa.sequencename);
-                if (kfa.sequencename.Contains("idle") || kfa.sequenceFilename.Contains("idle"))
+                //Debug.Log(kfa.sequenceFilename + ":" + kfa.sequencename);
+                if (kfa.sequencename.Contains("unarmed_idle") || kfa.sequenceFilename.Contains("unarmed_idle"))
                     return kfa.id;
             }
             return 0;

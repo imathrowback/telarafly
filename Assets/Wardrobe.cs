@@ -24,10 +24,17 @@ public class Wardrobe : MonoBehaviour
     GameObject costumeParts;
     public float animSpeed = 0.02f;
     public Dropdown appearanceDropdown;
-    int gender;
-    int race;
+    public Dropdown genderDropdown;
+    public Dropdown raceDropdown;
+    string raceString = "human";
+    string genderString = "male";
+    Dictionary<string, int> raceMap = new Dictionary<string, int>();
+    Dictionary<string, int> genderMap = new Dictionary<string, int>();
 
-
+    string getBaseModel()
+    {
+        return string.Format("{0}_{1}", raceString, genderString);
+    }
     // Use this for initialization
     void Start()
     {
@@ -37,15 +44,48 @@ public class Wardrobe : MonoBehaviour
         loader.loadManifestAndDB();
         adb = loader.db;
 
+        // initialize the race map       
+        raceMap["human"] = 1;
+        raceMap["elf"] = 2;
+        raceMap["dwarf"] = 3;
+        raceMap["bahmi"] = 2005;
+        // whilst these are seperate races, they re-use existing models
+        //raceMap["eth"] = 2007;
+        //raceMap["highelf"] = 2008;
+        genderMap["male"] = 0;
+        genderMap["female"] = 2;
+
+        raceString = "human";
+        genderString = "male";
+
+        genderDropdown.ClearOptions();
+        genderDropdown.AddOptions(genderMap.Keys.ToList());
+        raceDropdown.ClearOptions();
+        raceDropdown.AddOptions(raceMap.Keys.ToList());
+        appearanceDropdown.ClearOptions();
+        updateRaceGender();
+
+
+        loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(loadDatabase));
+        loadThread.Start();
+    }
+    public void updateRaceGender()
+    {
+        if (refModel != null)
+            GameObject.DestroyImmediate(refModel);
+        if (costumeParts != null)
+            GameObject.DestroyImmediate(costumeParts);
+
+        raceString = raceDropdown.options[raceDropdown.value].text;
+        genderString =genderDropdown.options[genderDropdown.value].text;
+
         // defines the base model
-        string nif = "human_male_refbare.nif";
-        string kfm = "human_male.kfm";
-        string kfb = "human_male.kfb";
-        // race: 1 = human, 2 = elf, 3 = dwarf, 2005 = bahmi, 2007 = ?, 2008 = ?
-        race = 1;
-        gender = 0; // 0 = male, 2 = female
+        string nif = string.Format("{0}_refbare.nif", getBaseModel());
+        string kfm = string.Format("{0}.kfm", getBaseModel());
+        string kfb = string.Format("{0}.kfb", getBaseModel());
 
         this.animationNif = new Assets.AnimatedNif(adb, nif, kfm, kfb);
+        this.animationNif.setActiveAnimation(string.Format("{0}_unarmed_idle", getBaseModel()));
 
         GameObject go = loader.loadNIF(nif, true);
         go.transform.parent = root.transform;
@@ -57,9 +97,17 @@ public class Wardrobe : MonoBehaviour
         // always hide the boots
         enableDisableGeo("boots", go, false);
 
+        // reapply the costume
+        changeAppearance();
+    }
+    void setRace(string race)
+    {
+        this.raceString = race;
+    }
 
-        loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(loadDatabase));
-        loadThread.Start();
+    void setGender(string gender)
+    {
+        this.genderString = gender;
     }
 
     void process(GameObject skeleton, GameObject meshHolder, string nifFile, string geo)
@@ -79,6 +127,9 @@ public class Wardrobe : MonoBehaviour
 
         // disable the proxy geo
         enableDisableGeo(nifFile, skeleton, false);
+        // special case to ensure boots are disabled as well
+        if (nifFile.Contains("foot"))
+            enableDisableGeo("boots", skeleton, false);
 
         GameObject.DestroyObject(GameObject.Find(geo));
         GameObject.DestroyObject(newNifRoot);
@@ -145,7 +196,7 @@ public class Wardrobe : MonoBehaviour
 
     private void loadAppearenceSet(long setKey, int race, int sex)
     {
-        this.animationNif.setActiveAnimation(this.animationNif.getIdleAnimIndex());
+        //this.animationNif.setActiveAnimation(this.animationNif.getIdleAnimIndex());
 
         // set the ref model to be all visible, overriden parts will be hidden later when parts are added
         SetActiveRecursively(refModel, true);
@@ -197,7 +248,7 @@ public class Wardrobe : MonoBehaviour
                     //                    loadAppearenceSet(-89842968, 1, 2);
                     //loadAppearenceSet(2128251532, 1, 2);
 
-                    appearanceDropdown.ClearOptions();
+                   
                     List<DOption> options = new List<DOption>();
                     foreach (entry e in db.getEntriesForID(7638))
                     {
@@ -209,6 +260,7 @@ public class Wardrobe : MonoBehaviour
                         options.Add(option);
                     }
 
+                    options.Sort((a, b) => string.Compare(a.text, b.text));
                     appearanceDropdown.AddOptions(options.Cast<Dropdown.OptionData>().ToList());
                     
                 }
@@ -222,10 +274,12 @@ public class Wardrobe : MonoBehaviour
 
     public void changeAppearance()
     {
+        if (appearanceDropdown.options.Count == 0)
+            return;
         int v = appearanceDropdown.value;
         DOption option = (DOption)appearanceDropdown.options[v];
         entry entry =(entry) option.userObject;
-        loadAppearenceSet(entry.key, race, gender);
+        loadAppearenceSet(entry.key, raceMap[raceString], genderMap[genderString]);
     }
 
     float tt = 0;

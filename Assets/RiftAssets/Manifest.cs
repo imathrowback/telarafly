@@ -126,9 +126,8 @@ namespace Assets.RiftAssets
          */
         public String filenameHashToID(String filenameHash)
         {
-            String id = fileNameHashIDMap[filenameHash];
-            if (id != null)
-                return id;
+            if (fileNameHashIDMap.ContainsKey(filenameHash))
+                return fileNameHashIDMap[filenameHash];
             else
                 throw new Exception("filename hash [" + filenameHash + "] not found in manifest");
         }
