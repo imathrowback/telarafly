@@ -117,8 +117,11 @@ namespace Assets
         public int getIdleAnimIndex()
         {
             foreach (KFAnimation kfa in getAnimations())
+            {
+                Debug.Log(kfa.sequenceFilename + ":" + kfa.sequencename);
                 if (kfa.sequencename.Contains("idle") || kfa.sequenceFilename.Contains("idle"))
                     return kfa.id;
+            }
             return 0;
         }
 

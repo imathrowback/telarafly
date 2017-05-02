@@ -38,12 +38,12 @@ public class Wardrobe : MonoBehaviour
         adb = loader.db;
 
         // defines the base model
-        string nif = "human_female_refbare.nif";
-        string kfm = "human_female.kfm";
-        string kfb = "human_female.kfb";
+        string nif = "human_male_refbare.nif";
+        string kfm = "human_male.kfm";
+        string kfb = "human_male.kfb";
         // race: 1 = human, 2 = elf, 3 = dwarf, 2005 = bahmi, 2007 = ?, 2008 = ?
         race = 1;
-        gender = 2; // 0 = male, 2 = female
+        gender = 0; // 0 = male, 2 = female
 
         this.animationNif = new Assets.AnimatedNif(adb, nif, kfm, kfb);
 
@@ -145,6 +145,8 @@ public class Wardrobe : MonoBehaviour
 
     private void loadAppearenceSet(long setKey, int race, int sex)
     {
+        this.animationNif.setActiveAnimation(this.animationNif.getIdleAnimIndex());
+
         // set the ref model to be all visible, overriden parts will be hidden later when parts are added
         SetActiveRecursively(refModel, true);
         // remove all the existing parts
