@@ -4,6 +4,7 @@ using Assets.DB;
 using Assets.NIF;
 using Assets.RiftAssets;
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -20,10 +21,12 @@ public class Wardrobe : MonoBehaviour
     AssetDatabase adb;
     string progress;
     GameObject refModel;
-
+    GameObject costumeParts;
     public float animSpeed = 0.02f;
+    public Dropdown appearanceDropdown;
+    int gender;
+    int race;
 
-    
 
     // Use this for initialization
     void Start()
@@ -38,6 +41,9 @@ public class Wardrobe : MonoBehaviour
         string nif = "human_female_refbare.nif";
         string kfm = "human_female.kfm";
         string kfb = "human_female.kfb";
+        // race: 1 = human, 2 = elf, 3 = dwarf, 2005 = bahmi, 2007 = ?, 2008 = ?
+        race = 1;
+        gender = 2; // 0 = male, 2 = female
 
         this.animationNif = new Assets.AnimatedNif(adb, nif, kfm, kfb);
 
@@ -45,14 +51,18 @@ public class Wardrobe : MonoBehaviour
         go.transform.parent = root.transform;
         refModel = go;
 
-        disableProxyGeo("boots", go);
+        costumeParts = new GameObject("CostumeParts");
+        costumeParts.transform.parent = refModel.transform;
+
+        // always hide the boots
+        enableDisableGeo("boots", go, false);
 
 
         loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(loadDatabase));
         loadThread.Start();
     }
 
-    void process(GameObject skeleton, string nifFile, string geo)
+    void process(GameObject skeleton, GameObject meshHolder, string nifFile, string geo)
     {
         NIFFile file = loader.getNIF(nifFile);
         GameObject newNifRoot = loader.loadNIF(file, nifFile, true);
@@ -60,7 +70,7 @@ public class Wardrobe : MonoBehaviour
         // First move all the meshes across to the skeleton
 
         foreach (SkinnedMeshRenderer r in newNifRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-            r.transform.parent = skeleton.transform;
+            r.transform.parent = meshHolder.transform;
 
         // now, process the NiSkinningMeshModifier 
         NIFLoader.linkBonesToMesh(file, skeleton);
@@ -68,13 +78,14 @@ public class Wardrobe : MonoBehaviour
         this.animationNif.clearBoneMap();
 
         // disable the proxy geo
-        disableProxyGeo(nifFile, skeleton);
+        enableDisableGeo(nifFile, skeleton, false);
 
         GameObject.DestroyObject(GameObject.Find(geo));
         GameObject.DestroyObject(newNifRoot);
     }
+    
 
-    private void disableProxyGeo(string nifFile, GameObject skeleton)
+    private void enableDisableGeo(string nifFile, GameObject skeleton, bool showGeo)
     {
         List<Transform> geoList = new List<Transform>();
         findChildrenContaining(skeleton.transform, "GEO", geoList);
@@ -85,7 +96,7 @@ public class Wardrobe : MonoBehaviour
             {
                 if (t.name.Contains(s + "_000_GEO") || t.name.Contains(s + "_proxy_GEO"))
                 {
-                    t.gameObject.SetActive(false);
+                    t.gameObject.SetActive(showGeo);
                     return;
                 }
             }
@@ -114,14 +125,31 @@ public class Wardrobe : MonoBehaviour
         }
        
     }
-    private CObject toObj(int ds, int key)
+    private CObject toObj(long ds, long key)
     {
         entry e = db.getEntry(ds, key);
         MemoryStream str = new MemoryStream(e.decompressedData);
         return Parser.processStreamObject(str);
     }
-    private void loadAppearenceSet(int setKey, int race, int sex)
+
+
+    public static void SetActiveRecursively(GameObject rootObject, bool active)
     {
+        rootObject.SetActive(active);
+
+        foreach (Transform childTransform in rootObject.transform)
+        {
+            SetActiveRecursively(childTransform.gameObject, active);
+        }
+    }
+
+    private void loadAppearenceSet(long setKey, int race, int sex)
+    {
+        // set the ref model to be all visible, overriden parts will be hidden later when parts are added
+        SetActiveRecursively(refModel, true);
+        // remove all the existing parts
+        costumeParts.transform.Clear();
+
         Debug.Log("load appearence set[" + setKey + "] race[" + race + "] gender[" + sex + "]");
         CObject obj = toObj(7638, setKey);
 
@@ -139,11 +167,8 @@ public class Wardrobe : MonoBehaviour
             CObject nifRaceObj = dict[race];
             string nif = nifRaceObj.getMember(sex).convert().ToString();
             Debug.Log("Load set part:" + nif);
-            process(refModel, Path.GetFileName(nif), "");
-
-
+            process(refModel, costumeParts, Path.GetFileName(nif), "");
         }
-
         //Debug.Log("loading")
     }
 
@@ -166,10 +191,24 @@ public class Wardrobe : MonoBehaviour
                 // finally everything is loaded and ready so lets load an appearence set
                 try
                 {
-                    // sex: 0 = male, 2 = female
-                    // race: 1 = human, 2 = elf, 3 = dwarf, 2005 = bahmi, 2007 = ?, 2008 = ?
-//                    loadAppearenceSet(-89842968, 1, 2);
-                    loadAppearenceSet(2128251532, 1, 2);
+                   
+                    //                    loadAppearenceSet(-89842968, 1, 2);
+                    //loadAppearenceSet(2128251532, 1, 2);
+
+                    appearanceDropdown.ClearOptions();
+                    List<DOption> options = new List<DOption>();
+                    foreach (entry e in db.getEntriesForID(7638))
+                    {
+                        CObject _7637 = toObj(e.id, e.key);
+                        string str = _7637.getMember(0).convert().ToString();
+                        DOption option = new DOption();
+                        option.text = str;
+                        option.userObject = e;
+                        options.Add(option);
+                    }
+
+                    appearanceDropdown.AddOptions(options.Cast<Dropdown.OptionData>().ToList());
+                    
                 }
                 catch (Exception ex)
                 {
@@ -177,6 +216,14 @@ public class Wardrobe : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void changeAppearance()
+    {
+        int v = appearanceDropdown.value;
+        DOption option = (DOption)appearanceDropdown.options[v];
+        entry entry =(entry) option.userObject;
+        loadAppearenceSet(entry.key, race, gender);
     }
 
     float tt = 0;
@@ -192,5 +239,10 @@ public class Wardrobe : MonoBehaviour
             animationNif.doFrame(tt);
            
         }
+    }
+
+    class DOption : Dropdown.OptionData
+    {
+        public object userObject { get; set; }
     }
 }
