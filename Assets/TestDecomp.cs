@@ -29,6 +29,7 @@ public class TestDecomp : MonoBehaviour
     GameObject loadbutton;
     GameObject loadModelViewerbutton;
     GameObject thirdPersonToggle;
+    public GameObject loadWardrobebutton;
     Text tex;
     Image img;
     string error;
@@ -86,7 +87,10 @@ public class TestDecomp : MonoBehaviour
                 error = "Decode database, please wait, this could take a few minutes but only needs to be done once per patch.";
                 
                 DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
+                error = "DB is created, try to read it";
                 db = DBInst.readDB(expectedChecksum, (s)=>error = s);
+                if (db == null)
+                    throw new Exception("Unable to load DB after creating it!");
                 loaded = true;
             }
             UnityEngine.Debug.Log("Load complete");
@@ -110,6 +114,12 @@ public class TestDecomp : MonoBehaviour
     {
         SceneManager.LoadScene("model_viewer");
     }
+
+    public void loadWardrobe()
+    {
+        SceneManager.LoadScene("wardrobe");
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -176,6 +186,7 @@ public class TestDecomp : MonoBehaviour
             dropdownbox.SetActive(true);
             loadbutton.SetActive(true);
             loadModelViewerbutton.SetActive(true);
+            loadWardrobebutton.SetActive(true);
                 thirdPersonToggle.SetActive(true);
         }
         if (tex != null && img != null)
@@ -205,6 +216,7 @@ public class TestDecomp : MonoBehaviour
             dropdownbox.SetActive(false);
             loadbutton.SetActive(false);
             loadModelViewerbutton.SetActive(false);
+            loadWardrobebutton.SetActive(false);
             thirdPersonToggle.SetActive(false);
             //ThirdPersonUIToggle.set
             loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
@@ -597,5 +609,6 @@ public class TestDecomp : MonoBehaviour
             return typeToDeserialize;
         }
     }
+
 
 }

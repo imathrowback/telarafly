@@ -76,6 +76,7 @@ namespace Assets.DB
             catch (Exception ex)
             {
                 UnityEngine.Debug.Log("Unable to read existing database so we will recreate it:" + ex);
+                db = null;
                 return null;
             }
             return db;
