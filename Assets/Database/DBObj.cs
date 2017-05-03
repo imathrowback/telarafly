@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Assets.DB
+namespace Assets.Database
 {
     [Serializable()]
     public class DB
@@ -11,6 +11,7 @@ namespace Assets.DB
         public string dbchecksum;
         
         private Dictionary<long, Dictionary<long, entry>> data = new Dictionary<long, Dictionary<long, entry>>();
+
 
         public List<entry> getEntries()
         {

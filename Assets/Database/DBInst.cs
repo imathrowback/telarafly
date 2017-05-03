@@ -1,4 +1,6 @@
-﻿using CGS;
+﻿using Assets.DatParser;
+using Assets.RiftAssets;
+using CGS;
 using Ionic.Zlib;
 using System;
 using System.Collections.Generic;
@@ -7,20 +9,69 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace Assets.DB
+namespace Assets.Database
 {
-    class DBInst
+    public delegate void ProgressCallback(string message);
+    public delegate void LoadedCallback(DB db);
+    public static class DBInst
     {
-        static DB db;
+        private static System.Threading.Thread loadThread;
+        static object lockObj = new object();
 
-        public static DB readDB(string expectedChecksum, Action<String> progress)
+        public static CObject toObj(this DB db, long ds, long key)
         {
-            if (db != null)
-                return db;
-            GC.Collect();
-            db = new DB();
+            entry e = db.getEntry(ds, key);
+            MemoryStream str = new MemoryStream(e.decompressedData);
+            return Parser.processStreamObject(str);
+        }
+        public static bool loaded = false;
+        public static bool loading {  get { return loadThread.IsAlive; } }
+        static private DB db;
+        public static DB inst   { get {
+                lock (lockObj)
+                {
+                    return db;
+                }
+            }
+        }
+
+        
+        public static event ProgressCallback progress = delegate { };
+        public static event LoadedCallback loadedCallback = delegate { };
+
+        static DBInst()
+        {
+            loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(loadDatabase_));
+            loadThread.Start();
+        }
+        
+        private static void loadDatabase_()
+        {
+            lock (lockObj)
+            {
+                AssetDatabase adb = AssetDatabaseInst.DB;
+                AssetEntry ae = adb.getEntryForFileName("telara.db");
+                string expectedChecksum = BitConverter.ToString(ae.hash);
+                db = DBInst.readDB(expectedChecksum, (s) => { progress.Invoke(s); });
+                if (db == null)
+                {
+                    DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
+                    db = DBInst.readDB(expectedChecksum, (s) => { progress.Invoke(s); });
+                }
+                if (db != null)
+                    loadedCallback.Invoke(db);
+
+            }
+        }
+
+        private static DB readDB(string expectedChecksum, Action<String> progress)
+        {
             try
             {
+                if (db != null)
+                    return db;
+                GC.Collect();
+                db = new DB();
                 using (FileStream fs = new FileStream("dat.xmlz", FileMode.Open))
                 {
                     using (ProgressStream ps = new ProgressStream(fs))
@@ -56,19 +107,8 @@ namespace Assets.DB
 
                                     db.Add(e);
                                 }
+                                loaded = true;
                             }
-                            try
-                            {
-
-
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.Log(ex);
-                            }
-
-                            //Debug.Log("done read");
-
                         }
                     }
                 }
@@ -78,6 +118,9 @@ namespace Assets.DB
                 UnityEngine.Debug.Log("Unable to read existing database so we will recreate it:" + ex);
                 db = null;
                 return null;
+            }
+            finally
+            {
             }
             return db;
         }

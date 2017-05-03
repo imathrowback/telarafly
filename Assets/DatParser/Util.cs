@@ -16,6 +16,7 @@ namespace Assets.DatParser
         }
     }
 
+    
 
     public static class BinaryReaderUtil
     {

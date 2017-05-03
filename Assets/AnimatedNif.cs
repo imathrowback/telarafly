@@ -23,9 +23,17 @@ namespace Assets
         NIFFile nifanimation;
         int activeAnimation = -1;
         List<KFAnimation> anims;
+        GameObject skeletonRoot;
+
+
         public void clearBoneMap()
         {
             boneMap.Clear();
+        }
+
+        public void setSkeletonRoot(GameObject root)
+        {
+            this.skeletonRoot = root;
         }
         public List<KFAnimation> getAnimations()
         {
@@ -57,6 +65,7 @@ namespace Assets
 
         public AnimatedNif(AssetDatabase adb, string nif, string kfm, string kfb)
         {
+            //Debug.Log("AnimatedNif:" + nif + ":" + kfm + ":" + kfb);
             this.adb = adb;
             this.nif = nif;
             this.kfm = kfm;
@@ -125,13 +134,17 @@ namespace Assets
             return 0;
         }
 
+
         public void doFrame(float t)
         {
             if (nifanimation == null || activeAnimation == -1)
             {
                 setActiveAnimation(getIdleAnimIndex());
                 if (nifanimation == null)
+                {
+                   
                     return;
+                }
             }
 
             /** For each sequence, evaluate it with the current time and apply the result to the related bone */
@@ -150,7 +163,8 @@ namespace Assets
                             go = boneMap[boneName];
                         else
                         {
-                            go = boneMap[boneName] = GameObject.Find(boneName);
+                            go = boneMap[boneName] = skeletonRoot.transform.FindDeepChild(boneName).gameObject;
+                                //GameObject.Find(boneName);
                         }
                         if (go == null)
                         {
@@ -189,7 +203,8 @@ namespace Assets
 
                             }
                         }
-                        //Debug.DrawLine(go.transform.position, go.transform.parent.position);
+                        //Debug.Log("drawLine", go);
+                        Debug.DrawLine(go.transform.position, go.transform.parent.position);
 
                     }
                 }

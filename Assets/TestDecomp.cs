@@ -6,7 +6,7 @@ using Assets.RiftAssets;
 using System;
 using Ionic.Zlib;
 using System.Xml.Serialization;
-using Assets.DB;
+using Assets.Database;
 using System.Threading;
 using UnityEngine.UI;
 using System.Text;
@@ -23,8 +23,6 @@ public class TestDecomp : MonoBehaviour
    
     DB db;
     string expectedChecksum;
-    bool loaded = false;
-    System.Threading.Thread loadThread;
     GameObject dropdownbox;
     GameObject loadbutton;
     GameObject loadModelViewerbutton;
@@ -53,8 +51,7 @@ public class TestDecomp : MonoBehaviour
         loadbutton.SetActive(false);
         loadModelViewerbutton.SetActive(false);
         color = Color.grey;
-        loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(readDB));
-        loadThread.Start();
+        DBInst.loadedCallback += (d) => db = d;
     }
 
     void loadManifestAndDB()
@@ -64,49 +61,6 @@ public class TestDecomp : MonoBehaviour
         AssetEntry ae = adb.getEntryForFileName("telara.db");
         expectedChecksum = BitConverter.ToString(ae.hash);
     }
-    void readDB()
-    {
-        UnityEngine.Debug.Log("Begin db load in thread");
-        try
-        {
-            loadManifestAndDB();
-
-            AssetEntry ae = adb.getEntryForFileName("telara.db");
-            expectedChecksum = BitConverter.ToString(ae.hash);
-
-            error = "read database";
-            Debug.Log("read database");
-            db = DBInst.readDB(expectedChecksum, (s) => error = s);
-            Debug.Log("Db:" + db);
-            if (db != null)
-            {
-                loaded = true;
-            }
-            else
-            {
-                error = "Decode database, please wait, this could take a few minutes but only needs to be done once per patch.";
-                
-                DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
-                error = "DB is created, try to read it";
-                db = DBInst.readDB(expectedChecksum, (s)=>error = s);
-                if (db == null)
-                    throw new Exception("Unable to load DB after creating it!");
-                loaded = true;
-            }
-            UnityEngine.Debug.Log("Load complete");
-            error = "Select world to load";
-            color = Color.green;
-        }
-        catch (Exception ex)
-        {
-
-            color = Color.magenta;
-            error = "There was an error. Please exit and check output_log.txt in the data directory";
-            UnityEngine.Debug.LogWarning(ex);
-        }
-    }
-
-    
 
     bool doMapChange = false;
     List<WorldSpawn> worlds = new List<WorldSpawn>();
@@ -120,6 +74,7 @@ public class TestDecomp : MonoBehaviour
         SceneManager.LoadScene("wardrobe");
     }
 
+    bool first = false;
     // Update is called once per frame
     void Update()
     {
@@ -128,8 +83,9 @@ public class TestDecomp : MonoBehaviour
             SceneManager.LoadScene("scene1");
             return;
         }
-        if (loaded)
+        if (db != null && !first)
         {
+            first = true;
             Debug.Log("get keys");
             IEnumerable<entry> keys = db.getEntriesForID(4479);
             worlds.Clear();
@@ -182,7 +138,6 @@ public class TestDecomp : MonoBehaviour
             }
             dropdown.value = startIndex;
             dropdown.RefreshShownValue();
-            loaded = false;
             dropdownbox.SetActive(true);
             loadbutton.SetActive(true);
             loadModelViewerbutton.SetActive(true);
@@ -197,31 +152,13 @@ public class TestDecomp : MonoBehaviour
     }
 
     
-    public static bool abortThread = false;
     public void loadMap()
     {
-        if (loaded)
-            return;
-
-        if (loadThread != null & loadThread.IsAlive)
-        {
-            loadThread.Abort();
-            abortThread = true;
-            error = "Aborted";
-        }
-        else
-        {
-            abortThread = false;
-
             dropdownbox.SetActive(false);
             loadbutton.SetActive(false);
             loadModelViewerbutton.SetActive(false);
             loadWardrobebutton.SetActive(false);
             thirdPersonToggle.SetActive(false);
-            //ThirdPersonUIToggle.set
-            loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
-            loadThread.Start();
-        }
     }
 
     public void doLoadMap()
@@ -370,8 +307,6 @@ public class TestDecomp : MonoBehaviour
         
         try
         {
-            if (abortThread)
-                return;
             processCDR(s, addFunc, adb, db);
             // also add the terrain nif!
             String type = "_split";
@@ -396,8 +331,6 @@ public class TestDecomp : MonoBehaviour
 
     public void OnDestroy()
     {
-        if (loadThread != null & loadThread.IsAlive)
-            loadThread.Abort();
     }
     static void processCDR(String str, Action<ObjectPosition> addFunc, AssetDatabase adb, DB db)
     {

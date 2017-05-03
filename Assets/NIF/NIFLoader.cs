@@ -88,6 +88,7 @@ public class NIFLoader
 
     static public void linkBonesToMesh(NIFFile nf, GameObject skeletonRoot)
     {
+        //Debug.Log("link bones to mesh[" + skeletonRoot.GetInstanceID());
         List<NiSkinningMeshModifier> skinMods = getSkinMods(nf);
         foreach (NiSkinningMeshModifier skinMod in skinMods)
         {
@@ -119,7 +120,7 @@ public class NIFLoader
                 NiMesh mes = getMeshForMod(nf, skinMod);
                 Transform meshObject = skeletonRoot.transform.FindDeepChild(mes.name);
                 SkinnedMeshRenderer meshRenderer = meshObject.GetComponent<SkinnedMeshRenderer>();
-
+                //Debug.Log("found mesh renderer: " + meshRenderer.GetInstanceID() + " with bones:" + bones.Count);
                 meshRenderer.rootBone = rootBone;
                 meshRenderer.bones = bones.ToArray();
                 meshRenderer.sharedMesh.bindposes = bindPoses.ToArray();

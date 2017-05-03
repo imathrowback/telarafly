@@ -69,7 +69,10 @@ namespace Assets.DatParser
             }
             return dict;
         }
-
+        public bool hasMember(int i)
+        {
+            return getMember(i) != null;
+        }
         public int getIntMember(int i)
         {
             CObject member = getMember(i);
