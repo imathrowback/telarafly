@@ -35,7 +35,7 @@ public class ThreadedJob
     }
 
 
-    public virtual void Start(System.Threading.ThreadPriority priority)
+    public virtual void Start(System.Threading.ThreadPriority priority = ThreadPriority.Normal)
     {
         m_Thread = new System.Threading.Thread(Run);
         m_Thread.Priority = priority;

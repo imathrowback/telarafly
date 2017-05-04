@@ -22,7 +22,6 @@ public class TestDecomp : MonoBehaviour
 {
    
     DB db;
-    string expectedChecksum;
     GameObject dropdownbox;
     GameObject loadbutton;
     GameObject loadModelViewerbutton;
@@ -51,15 +50,9 @@ public class TestDecomp : MonoBehaviour
         loadbutton.SetActive(false);
         loadModelViewerbutton.SetActive(false);
         color = Color.grey;
-        DBInst.loadedCallback += (d) => db = d;
-    }
-
-    void loadManifestAndDB()
-    {
+        DBInst.loadOrCallback((d) => db = d);
         error = "Loading asset database";
         adb = AssetDatabaseInst.DB;
-        AssetEntry ae = adb.getEntryForFileName("telara.db");
-        expectedChecksum = BitConverter.ToString(ae.hash);
     }
 
     bool doMapChange = false;
@@ -118,7 +111,7 @@ public class TestDecomp : MonoBehaviour
                         }
                     }catch (Exception ex)
                     {
-                        Debug.Log("Unable to get position for spawn [" + e.id + "][" + e.key + "]");
+                        Debug.Log("Unable to get position for spawn [" + e.id + "][" + e.key + "]" + ex);
                     }
                 }
             }

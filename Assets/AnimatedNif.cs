@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Assets
 {
-    class AnimatedNif
+    public class AnimatedNif
     {
         Dictionary<String, GameObject> boneMap = new Dictionary<string, GameObject>();
 
@@ -89,7 +89,7 @@ namespace Assets
 
                 int animIdx = indexData.intExtraData;
                 if (animIdx == animToUse)
-                    return binData.decompressed;
+                    return binData.getDecompressed();
             }
             return null;
         }

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.Wardrobe
 {
@@ -96,20 +97,29 @@ namespace Assets.Wardrobe
         {
             this.key = key;
             this.id = 7629;
-            CObject gearDef = db.toObj(7629, key);
-
-            this.name = gearDef.getMember(0).convert() + "";
-            CObject allowedSlotsArray = gearDef.getMember(5);
-            foreach (CObject o in allowedSlotsArray.members)
+            try
             {
-                int slot = int.Parse(o.convert() + "");
-                allowedSlots.Add(WardrobeStuff.getSlot(slot));
+                CObject gearDef = db.toObj(7629, key);
+                this.name = gearDef.getMember(0).convert() + "";
+                if (gearDef.hasMember(5))
+                {
+                    CObject allowedSlotsArray = gearDef.getMember(5);
+                    foreach (CObject o in allowedSlotsArray.members)
+                    {
+                        int slot = int.Parse(o.convert() + "");
+                        allowedSlots.Add(WardrobeStuff.getSlot(slot));
+                    }
+                }
+
+                if (gearDef.hasMember(6))
+                    type = WardrobeStuff.getGearType(gearDef.getIntMember(6));
+
+           
+                nifRef = new NIFReference(db, gearDef.getIntMember(2));
+            }catch (Exception ex)
+            {
+                Debug.Log("Unable to process [" + this + "] nif reference:" + ex);
             }
-
-            if (gearDef.hasMember(6))
-                type = WardrobeStuff.getGearType(gearDef.getIntMember(6));
-
-            nifRef = new NIFReference(db, gearDef.getIntMember(2));
         }
     }
     public class NIFReference
@@ -119,28 +129,43 @@ namespace Assets.Wardrobe
 
         public string getNif(int race, int gender)
         {
-            return nifs[race][gender];
+            if (nifs.Count() > 0)
+            {
+                Dictionary<int, string> nifD = nifs[race];
+                if (nifD.ContainsKey(gender))
+                    return nifD[gender];
+                {
+                    Debug.LogWarning("No gender[" + gender + "] NIF for model " + baseName);
+                    return nifD.First().Value;
+                }
+            }
+            return baseName;
         }
 
-        public NIFReference(DB db, int key)
+        public NIFReference(DB db, long key)
         {
             CObject nifObj = db.toObj( 7305, key);
 
-            baseName = nifObj.getMember(2).ToString();
-
-            Dictionary<int, CObject> dict = nifObj.getMember(5).asDict();
-
-            foreach (int race in dict.Keys)
+            baseName = nifObj.getMember(2).convert().ToString();
+            if (nifObj.hasMember(5))
             {
-                CObject nifRaceObj = dict[race];
-                string malenif = nifRaceObj.getMember(0).convert().ToString();
-                string femalenif = nifRaceObj.getMember(2).convert().ToString();
+                Dictionary<int, CObject> dict = nifObj.getMember(5).asDict();
 
-                nifs[race] = new Dictionary<int, string>();
-                nifs[race][0] = malenif;
-                nifs[race][2] = femalenif;
+                foreach (int race in dict.Keys)
+                {
+                    CObject nifRaceObj = dict[race];
+                    nifs[race] = new Dictionary<int, string>();
+
+                    string malenif = nifRaceObj.getMember(0).convert().ToString();
+                    if (nifRaceObj.hasMember(2))
+                    {
+                        string femalenif = nifRaceObj.getMember(2).convert().ToString();
+                        nifs[race][2] = femalenif;
+                    }
+
+                    nifs[race][0] = malenif;
+                }
             }
-
         }
     }
 }

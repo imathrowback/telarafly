@@ -37,7 +37,18 @@ namespace Assets.Database
 
         
         public static event ProgressCallback progress = delegate { };
-        public static event LoadedCallback loadedCallback = delegate { };
+        public static event LoadedCallback isloadedCallback = delegate { };
+
+        /**
+         * If the db is loaded, call the callback immediately, otherwise, register the callback
+         */ 
+        public static void loadOrCallback(LoadedCallback loadCallback)
+        {
+            if (db != null)
+                loadCallback.Invoke(db);
+            else
+                isloadedCallback += loadCallback;
+        }
 
         static DBInst()
         {
@@ -52,26 +63,25 @@ namespace Assets.Database
                 AssetDatabase adb = AssetDatabaseInst.DB;
                 AssetEntry ae = adb.getEntryForFileName("telara.db");
                 string expectedChecksum = BitConverter.ToString(ae.hash);
-                db = DBInst.readDB(expectedChecksum, (s) => { progress.Invoke(s); });
+                db = readDB(expectedChecksum, (s) => { progress.Invoke(s); });
                 if (db == null)
                 {
-                    DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
-                    db = DBInst.readDB(expectedChecksum, (s) => { progress.Invoke(s); });
+                    create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
+                    db = readDB(expectedChecksum, (s) => { progress.Invoke(s); });
                 }
                 if (db != null)
-                    loadedCallback.Invoke(db);
+                    isloadedCallback.Invoke(db);
 
             }
         }
 
         private static DB readDB(string expectedChecksum, Action<String> progress)
         {
+            DB db = new DB();
             try
             {
-                if (db != null)
-                    return db;
-                GC.Collect();
-                db = new DB();
+                if (DBInst.db != null)
+                    return DBInst.db;
                 using (FileStream fs = new FileStream("dat.xmlz", FileMode.Open))
                 {
                     using (ProgressStream ps = new ProgressStream(fs))

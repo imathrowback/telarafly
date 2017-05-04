@@ -56,7 +56,7 @@ public class ModelView : MonoBehaviour
         loader.loadManifestAndDB();
         adb = AssetDatabaseInst.DB;
 
-        DBInst.loadedCallback += (d) => db = d;
+        DBInst.loadOrCallback((d) => db = d);
         DBInst.progress += (m) => progress = m;
     }
 

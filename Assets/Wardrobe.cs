@@ -22,19 +22,23 @@ public class Wardrobe : MonoBehaviour
     string progress;
 
     public Paperdoll paperDoll;
-    
+    public Dropdown slotChangeDropdown;
     public Dropdown appearanceDropdown;
     public Dropdown genderDropdown;
     public Dropdown raceDropdown;
-   
+    ClothingItem[] clothingItems;
     string raceString;
     string genderString;
+
+    List<ClothingItemRenderer> clothingPanels = new List<ClothingItemRenderer>();
+    int previewIndex = 0;
   
     // Use this for initialization
     void Start()
     {
+        GameObject previewPanel = GameObject.Find("PreviewPanel");
+        clothingPanels.AddRange(previewPanel.GetComponentsInChildren<ClothingItemRenderer>());
 
-       
 
         raceString = "human";
         genderString = "male";
@@ -46,8 +50,50 @@ public class Wardrobe : MonoBehaviour
         appearanceDropdown.ClearOptions();
         updateRaceGender();
 
+        slotChangeDropdown.ClearOptions();
+        List<DOption> slotOptions = new List<DOption>();
+        foreach (GearSlot slot in Enum.GetValues(typeof(GearSlot)))
+        {
+            DOption option = new DOption();
+            option.text = slot.ToString();
+            option.userObject = slot;
+            slotOptions.Add(option);
+        }
+        slotChangeDropdown.AddOptions(slotOptions.Cast<Dropdown.OptionData>().ToList());
+
         DBInst.progress += (m) => progress = m;
-        DBInst.loadedCallback += (d) => db = d;
+        DBInst.loadOrCallback((d) => db = d);
+    }
+    public void clickLeft()
+    {
+        previewIndex-= clothingPanels.Count();
+        if (previewIndex < 0)
+            previewIndex = 0;
+        updatePreview();
+    }
+    public void clickRight()
+    {
+        previewIndex += clothingPanels.Count();
+        if (previewIndex > clothingItems.Count()- clothingPanels.Count())
+            previewIndex = clothingItems.Count() - clothingPanels.Count();
+        updatePreview();
+    }
+    public void changeSlot()
+    {
+        DOption option = (DOption)slotChangeDropdown.options[slotChangeDropdown.value];
+        GearSlot slot = (GearSlot)option.userObject;
+        clothingItems = db.getClothing().Where(c => c.allowedSlots.Contains(slot)).ToArray();
+        previewIndex = 0;
+        updatePreview();
+    }
+    void updatePreview()
+    {
+        for (int i = 0; i < clothingPanels.Count(); i++)
+        {
+            ClothingItem item = clothingItems[previewIndex + i];
+            Debug.Log("set panel[" + i + "] to " + item);
+            clothingPanels[i].setItem(item);
+        }
     }
 
     public void updateRaceGender()
@@ -58,7 +104,15 @@ public class Wardrobe : MonoBehaviour
         paperDoll.setGender(genderString);
         paperDoll.setRace(raceString);
         paperDoll.updateRaceGender();
-
+        if (clothingPanels != null)
+            foreach (ClothingItemRenderer r in clothingPanels)
+            {
+                if (r.previewPaperdoll != null)
+                {
+                    r.previewPaperdoll.updateRaceGender();
+                    r.refresh();
+                }
+            }
         // reapply the costume
         changeAppearance();
     }
@@ -89,10 +143,13 @@ public class Wardrobe : MonoBehaviour
 
                 options.Sort((a, b) => string.Compare(a.text, b.text));
                 appearanceDropdown.AddOptions(options.Cast<Dropdown.OptionData>().ToList());
-                    
+                changeSlot();
+
+                updatePreview();
             }
             catch (Exception ex)
             {
+                
                 Debug.Log("failed to load appearence set: " + ex);
             }
         }

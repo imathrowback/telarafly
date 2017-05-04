@@ -91,12 +91,19 @@ namespace Assets.NIF
                 String typeName = obj.typeName;
                 int size = obj.nifSize;
                 byte[] data;
+                String cName = "Assets.NIF." + typeName;
+
+                
 
                 try
                 {
 
                     long pos = dis.BaseStream.Position;
                     data = dis.ReadBytes(size);
+
+                    if (notImplementedMap.ContainsKey(typeName))
+                        continue;
+                    
                     using (BinaryReader ds = new BinaryReader(new MemoryStream(data, false)))
                     {
                         if (typeName.StartsWith("NiDataStream"))
@@ -107,7 +114,6 @@ namespace Assets.NIF
                         }
                         else
                         {
-                            String cName = "Assets.NIF." + typeName;
                             NIFObject newObj;
 
                             //if (typeName.Contains("Eval"))
@@ -117,7 +123,10 @@ namespace Assets.NIF
                                 newObj = (NIFObject)typeCacheC[typeName].Invoke();
                             }
                             else
+                            {
+                                Debug.LogWarning("[PERFORMANCE WARNING] using activator for " + typeName);
                                 newObj = (NIFObject)Activator.CreateInstance(Type.GetType(cName));
+                            }
 
                             objects[i] = newObj;
 
@@ -135,8 +144,9 @@ namespace Assets.NIF
                     //Debug.Log("[" + i + "]: " + objects[i].GetType());
                 } catch (Exception ex)
                 {
-                    //Debug.Log(typeName + ":" + ex);
+                    Debug.Log(typeName + ":" + ex);
                     //Debug.Log("Unhandled nif type:" + typeName + " due to exception:" + ex.Message + " :data size:" + obj.nifSize);
+                    notImplementedMap[typeName] = true;
                     continue;
                 }
             }
@@ -169,7 +179,7 @@ namespace Assets.NIF
             }
         }
 
-        static Dictionary<String, Type> typeCache = new Dictionary<string, Type>();
+        static Dictionary<string, bool> notImplementedMap = new Dictionary<string, bool>();
         static Dictionary<String, Func<object>> typeCacheC = initTypeCache();
 
         static Dictionary<String, Func<object>> initTypeCache()
@@ -183,9 +193,19 @@ namespace Assets.NIF
             typeCacheCC["NiIntegerExtraData"] = () => new NiIntegerExtraData();
             typeCacheCC["NiColorExtraData"] = () => new NiColorExtraData();
             typeCacheCC["NiNode"] = () => new NiNode();
+            typeCacheCC["NiBSplineCompTransformEvaluator"] = () => new NiBSplineCompTransformEvaluator();
             typeCacheCC["NiSourceTexture"] = () => new NiSourceTexture();
             typeCacheCC["NiStringExtraData"] = () => new NiStringExtraData();
             typeCacheCC["NiTexturingProperty"] = () => new NiTexturingProperty();
+
+            typeCacheCC["NiMaterialProperty"] = () => new NiMaterialProperty();
+            typeCacheCC["NiBooleanExtraData"] = () => new NiBooleanExtraData();
+            typeCacheCC["NiSequenceData"] = () => new NiSequenceData();
+            typeCacheCC["NiBSplineData"] = () => new NiBSplineData();
+            typeCacheCC["NiBSplineBasisData"] = () => new NiBSplineBasisData();
+
+            typeCacheCC["NiSkinningMeshModifier"] = () => new NiSkinningMeshModifier();
+
             return typeCacheCC;
         }
 

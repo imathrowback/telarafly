@@ -15,8 +15,9 @@ public class ClothingItemRenderer : MonoBehaviour {
     public GameObject previewsRoot;
     GameObject ourPreview;
     Paperdoll mainPaperdoll;
-    Paperdoll previewPaperdoll;
+    public Paperdoll previewPaperdoll;
     ClothingItem item;
+    public int previewIndex;
 
     // Use this for initialization
     void Start () {
@@ -24,7 +25,7 @@ public class ClothingItemRenderer : MonoBehaviour {
         loader.loadManifestAndDB();
         adb = loader.db;
         previewsRoot = GameObject.Find("PreviewsRoot");
-        DBInst.loadedCallback += (d) => db = d;
+        DBInst.loadOrCallback((d) => db = d);
         mainPaperdoll = GameObject.Find("MainPaperdoll").GetComponent<Paperdoll>();
         ourPreview = new GameObject();
         ourPreview.transform.parent = previewsRoot.transform;
@@ -42,7 +43,10 @@ public class ClothingItemRenderer : MonoBehaviour {
     {
         mainPaperdoll.setGear(item.allowedSlots.First(), item.key);
     }
-
+    public void refresh()
+    {
+        setItem(item);
+    }
     public void setItem(ClothingItem item)
     {
         this.item = item;
@@ -50,13 +54,15 @@ public class ClothingItemRenderer : MonoBehaviour {
         if (previewPaperdoll != null)
             GameObject.Destroy(previewPaperdoll);
         previewPaperdoll = ourPreview.AddComponent<Paperdoll>();
+        previewPaperdoll.setGender(mainPaperdoll.getGenderString());
+        previewPaperdoll.setRace(mainPaperdoll.getRaceString());
         // start isn't called until the next "update" so we need to start it manually
         previewPaperdoll.init();
         string nifstr = Path.GetFileName(item.nifRef.getNif(1, 0));
         ourPreview.name = item.name;
 
         previewPaperdoll.setGear(item.allowedSlots.First(), item.key);
-        SetLayerRecursively(ourPreview, LayerMask.NameToLayer("Preview"));
+        SetLayerRecursively(ourPreview, LayerMask.NameToLayer("Preview" + previewIndex));
     }
     // Update is called once per frame
     bool first = false;
@@ -67,10 +73,10 @@ public class ClothingItemRenderer : MonoBehaviour {
             db = DBInst.inst;
             if (item == null)
             {
-                IEnumerable<ClothingItem> clothing = db.getClothing();
-                item = clothing.First();
+                //IEnumerable<ClothingItem> clothing = db.getClothing();
+                //item = clothing.First();
             }
-            setItem(item);
+            //setItem(item);
         }
 	}
 
