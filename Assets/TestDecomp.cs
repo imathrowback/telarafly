@@ -20,13 +20,14 @@ using System.Reflection;
 
 public class TestDecomp : MonoBehaviour
 {
-   
+    bool loaded = false;
     DB db;
     GameObject dropdownbox;
     GameObject loadbutton;
     GameObject loadModelViewerbutton;
     GameObject thirdPersonToggle;
     public GameObject loadWardrobebutton;
+    System.Threading.Thread loadThread;
     Text tex;
     Image img;
     string error;
@@ -50,6 +51,7 @@ public class TestDecomp : MonoBehaviour
         loadbutton.SetActive(false);
         loadModelViewerbutton.SetActive(false);
         color = Color.grey;
+        DBInst.progress += (s) => this.error = s;
         DBInst.loadOrCallback((d) => db = d);
         error = "Loading asset database";
         adb = AssetDatabaseInst.DB;
@@ -144,14 +146,29 @@ public class TestDecomp : MonoBehaviour
         }
     }
 
-    
+    public static bool abortThread = false;
     public void loadMap()
     {
+        if (loaded)
+            return;
+
+        if (loadThread != null && loadThread.IsAlive)
+        {
+            loadThread.Abort();
+            abortThread = true;
+            error = "Aborted";
+        }
+        else
+        {
             dropdownbox.SetActive(false);
             loadbutton.SetActive(false);
             loadModelViewerbutton.SetActive(false);
             loadWardrobebutton.SetActive(false);
             thirdPersonToggle.SetActive(false);
+            loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
+            loadThread.Start();
+        }
+         
     }
 
     public void doLoadMap()
@@ -160,6 +177,8 @@ public class TestDecomp : MonoBehaviour
         {
             Debug.Log("Load map");
             Assets.GameWorld.Clear();
+
+
 
             WorldSpawn spawn = worlds[dropdown.value];
             int startX = 0;
@@ -300,6 +319,8 @@ public class TestDecomp : MonoBehaviour
         
         try
         {
+            if (abortThread)
+                return;
             processCDR(s, addFunc, adb, db);
             // also add the terrain nif!
             String type = "_split";
