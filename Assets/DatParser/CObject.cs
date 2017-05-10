@@ -107,7 +107,10 @@ namespace Assets.DatParser
             }
             return "obj: " + type;
         }
-
+        public bool hasMember(int index)
+        {
+            return getMember(index) != null;
+        }
         public CObject getMember(int index)
         {
             for (int i = 0; i < members.Count; i++)

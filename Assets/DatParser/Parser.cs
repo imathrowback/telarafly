@@ -9,6 +9,11 @@ namespace Assets.DatParser
 {
     public class Parser
     {
+        public static CObject processStreamObject(byte[] data)
+        {
+            return processStreamObject(new MemoryStream(data));
+        }
+
         public static CObject processStreamObject(Stream ins)
         {
             BinaryReader dis = new BinaryReader(ins);

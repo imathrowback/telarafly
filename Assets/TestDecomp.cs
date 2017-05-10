@@ -203,7 +203,7 @@ public class TestDecomp : MonoBehaviour
         if (loaded)
             return;
 
-        if (loadThread != null & loadThread.IsAlive)
+        if (loadThread != null && loadThread.IsAlive)
         {
             loadThread.Abort();
             abortThread = true;
@@ -224,33 +224,43 @@ public class TestDecomp : MonoBehaviour
         }
     }
 
+    private void getMinMax(string worldName, ref int x, ref int y)
+    {
+        if (!adb.getManifest().containsHash(Util.hashFileName(worldName)))
+            throw new Exception("Unable to find world name:" + worldName);
+        CObject obj = Parser.processStreamObject(adb.extractUsingFilename(worldName));
+        adb.extractToFilename(worldName, worldName);
+        Debug.Log("got world name:" + worldName);
+        y = obj.getIntMember(3) * 256;
+        if (obj.hasMember(2))
+            x = obj.getIntMember(2) * 256;
+        else
+            x = y;
+    }
+
     public void doLoadMap()
     {
         try
         {
             Debug.Log("Load map");
+            error = "Load map";
             Assets.GameWorld.Clear();
 
             WorldSpawn spawn = worlds[dropdown.value];
-            int startX = 0;
-            int startY = 0;
+
+
+            string worldName = spawn.worldName;
+            string worldCDR = worldName + "_map.cdr";
             int maxX = 0;
             int maxY = 0;
-            for (int x = 0; x < 50176; x += 256)
-            {
-                for (int y = 0; y < 50176; y += 256)
-                {
-                    string s = spawn.worldName + "_" + x + "_" + y + ".cdr";
-                    if (adb.filenameExists(s))
-                    {
-                        maxX = Math.Max(maxX, x);
-                        maxY = Math.Max(maxY, y);
-                    }
-                    else
-                        break;
-                }
-             }
 
+            error = "get min max";
+            Debug.Log("get min/max");
+            getMinMax(worldCDR, ref maxX, ref maxY);
+            Debug.Log("got min/max: [" + maxX + "][" + maxY + "]");
+
+
+            error = "build spawns";
             Assets.GameWorld.initialSpawn = spawn;
             foreach (WorldSpawn s in worlds)
                 if (s.worldName.Equals(spawn.worldName))
@@ -272,10 +282,12 @@ public class TestDecomp : MonoBehaviour
             Action<ObjectPosition> addFunc = (o) => Assets.GameWorld.Add(o);
 
             Queue<CDRJob> cdrJobs = new Queue<CDRJob>();
+
             error = "Enqueing jobs";
-            for (int x = startX; x <= maxX; x += 256)
+            Debug.Log(error);
+            for (int x = 0; x <= maxX; x += 256)
             {
-                for (int y = startY; y <= maxY; y += 256)
+                for (int y = 0; y <= maxY; y += 256)
                 {
                     //doCDR(spawn, x, y, addFunc);
                     CDRJob job = new CDRJob(adb, db, spawn, x, y, addFunc);
@@ -318,6 +330,12 @@ public class TestDecomp : MonoBehaviour
         catch (ThreadAbortException ex)
         {
             return;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            Debug.Log(ex);
+            throw ex;
         }
     }
 
@@ -396,7 +414,7 @@ public class TestDecomp : MonoBehaviour
 
     public void OnDestroy()
     {
-        if (loadThread != null & loadThread.IsAlive)
+        if (loadThread != null && loadThread.IsAlive)
             loadThread.Abort();
     }
     static void processCDR(String str, Action<ObjectPosition> addFunc, AssetDatabase adb, DB db)
@@ -508,14 +526,18 @@ public class TestDecomp : MonoBehaviour
                                                 CObject _7318 = findFirstType(dbAry, 7318);
                                                 if (_7319 != null)
                                                 {
-                                                    long nifKey = Convert.ToInt64(_7319.get(0).convert());
-                                                    CObject _7305Obj = getDBObj(db, 7305, nifKey);
-                                                    String nif = "" + _7305Obj.members[0].convert();
+                                                    if (_7319.members.Count == 0)
+                                                        Debug.Log("empty 7319 for nif ref 623:" + nif_hkx_ref);
+                                                    else
+                                                    {
+                                                        long nifKey = Convert.ToInt64(_7319.get(0).convert());
+                                                        CObject _7305Obj = getDBObj(db, 7305, nifKey);
+                                                        String nif = "" + _7305Obj.members[0].convert();
 
-                                                    string nifFile = Path.GetFileName(nif);
+                                                        string nifFile = Path.GetFileName(nif);
 
-                                                    addFunc.Invoke(new Assets.ObjectPosition(nifFile, min, qut, max, scale));
-                                                    
+                                                        addFunc.Invoke(new Assets.ObjectPosition(nifFile, min, qut, max, scale));
+                                                    }
                                                 }
                                             }
 
