@@ -189,6 +189,7 @@ public class NIFLoader
                         //Debug.Log("found a terrain node");
                     }
                     meshGo.transform.parent = goM.transform;
+                  meshGo.transform.localScale = new Vector3(mesh.scale, mesh.scale, mesh.scale);
                 }
             }
 
@@ -552,13 +553,28 @@ public class NIFLoader
                 mat = new Material(Resources.Load("terrainmat", typeof(Material)) as Material);
 
             if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water"))
-            {
                 mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
+
+            if (mesh.materialNames.Contains("TwoSided_Alpha_Specular"))
+                mat = new Material(Resources.Load("transmat_fade", typeof(Material)) as Material);
+
+            if (mesh.materialNames.Contains("Additive_UVScroll_Distort") || 
+                mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") )
+                {
+                    mat = new Material(Resources.Load("transmat_fade", typeof(Material)) as Material);
+
+                UVScroll scroller = go.AddComponent<UVScroll>();
+                scroller.material = mat;
+
+               NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
+                if (extra != null)
+                {
+                    scroller.xRate = extra.floatData[0];
+                    scroller.yRate = extra.floatData[1];
+                }
+
             }
 
-
-
-            r.material = mat;
 
             foreach (int eid in mesh.extraDataIDs)
             {
@@ -570,23 +586,7 @@ public class NIFLoader
                     {
                         case "doAlphaTest":
                             if (fExtra.booleanData)
-                            {
-                                Material transmat = new Material(Resources.Load("transmat", typeof(Material)) as Material);
-
-                                mat = transmat;
-                                r.material = mat;
-                                /*
-                                mat.SetFloat("_Mode", 2.0f);
-                                // The following is needed to force the engine to listen to our request to set the mode
-                                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                                mat.SetInt("_ZWrite", 0);
-                                mat.DisableKeyword("_ALPHATEST_ON");
-                                mat.EnableKeyword("_ALPHABLEND_ON");
-                                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                                mat.renderQueue = 3000;
-                                */
-                            }
+                                mat = new Material(Resources.Load("transmat", typeof(Material)) as Material);
                             break;
                         default:
                             break;
@@ -594,6 +594,8 @@ public class NIFLoader
                     }
                 }
             }
+            r.material = mat;
+
             foreach (int eid in mesh.extraDataIDs)
             {
                 NIFObject obj = nf.getObject(eid);
@@ -659,6 +661,9 @@ public class NIFLoader
                                         case "decalNormalTexture":
                                             mat.SetTexture("_DetailNormalMap", loadTexture(db, texName));
                                             break;
+                                        case "normalTexture":
+                                            mat.SetTexture("_BumpMap", loadTexture(db, texName));
+                                            break;
                                         case "glowTexture":
                                             mat.SetTexture("_EmissionMap", loadTexture(db, texName));
                                             break;
@@ -683,6 +688,20 @@ public class NIFLoader
         return go;
     }
 
+    private NiFloatsExtraData getFloatsExtraData(NIFFile nf, NiMesh mesh, string v)
+    {
+        foreach (int eid in mesh.extraDataIDs)
+        {
+            NIFObject obj = nf.getObject(eid);
+            if (obj is NiFloatsExtraData)
+            {
+                NiFloatsExtraData fExtra = (NiFloatsExtraData)obj;
+                if (fExtra.extraDataString.Equals(v))
+                    return fExtra;
+            }
+        }
+        return null;
+    }
 
     Dictionary<String, Texture> toriginals = new Dictionary<string, Texture>();
 

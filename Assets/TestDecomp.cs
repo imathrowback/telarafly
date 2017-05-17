@@ -527,7 +527,10 @@ public class TestDecomp : MonoBehaviour
                                                 if (_7319 != null)
                                                 {
                                                     if (_7319.members.Count == 0)
-                                                        Debug.Log("empty 7319 for nif ref 623:" + nif_hkx_ref);
+                                                    {
+                                                        // Collision only NIF, ignore it
+                                                        // Debug.Log("empty 7319 for nif ref 623:" + nif_hkx_ref);
+                                                    }
                                                     else
                                                     {
                                                         long nifKey = Convert.ToInt64(_7319.get(0).convert());
