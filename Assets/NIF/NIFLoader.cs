@@ -189,8 +189,11 @@ public class NIFLoader
                         //Debug.Log("found a terrain node");
                     }
                     meshGo.transform.parent = goM.transform;
-                  meshGo.transform.localScale = new Vector3(mesh.scale, mesh.scale, mesh.scale);
-                }
+                    meshGo.transform.localScale = new Vector3(mesh.scale, mesh.scale, mesh.scale);
+                    Quaternion q = GetRotation(toMat(mesh.matrix));
+                    meshGo.transform.localRotation = q;
+                //meshGo.transform.localEulerAngles = new Vector3(mesh.ma)
+            }
             }
 
         List<NIFObject> children = getChildren(nf, niNode.index);
