@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
@@ -20,7 +21,8 @@ using System.Reflection;
 
 public class TestDecomp : MonoBehaviour
 {
-   
+    bool threaded = true;
+
     DB db;
     string expectedChecksum;
     bool loaded = false;
@@ -219,29 +221,54 @@ public class TestDecomp : MonoBehaviour
             loadWardrobebutton.SetActive(false);
             thirdPersonToggle.SetActive(false);
             //ThirdPersonUIToggle.set
-            loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
-            loadThread.Start();
+            if (threaded)
+            {
+                loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
+                loadThread.Start();
+            }
+            else
+            {
+                System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+                watch.Start();
+                doLoadMap();
+                watch.Stop();
+                Debug.Log("doLoadMap in " + watch.ElapsedMilliseconds + " ms");
+            }
         }
     }
 
     private void getMinMax(string worldName, ref int x, ref int y)
     {
+        System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+
+        watch.Start();
         if (!adb.getManifest().containsHash(Util.hashFileName(worldName)))
             throw new Exception("Unable to find world name:" + worldName);
-        CObject obj = Parser.processStreamObject(adb.extractUsingFilename(worldName));
-        adb.extractToFilename(worldName, worldName);
-        Debug.Log("got world name:" + worldName);
+        byte[] data = adb.extractUsingFilename(worldName);
+        //Debug.Log("extract in " + watch.ElapsedMilliseconds + " ms");
+
+        watch.Reset(); watch.Start();
+        CObject obj = Parser.processStreamObject(data);
+        //Debug.Log("processStreamObject in " + watch.ElapsedMilliseconds + " ms");
+
+        watch.Reset(); watch.Start();
+        //Debug.Log("got world name:" + worldName);
         y = obj.getIntMember(3) * 256;
         if (obj.hasMember(2))
             x = obj.getIntMember(2) * 256;
         else
             x = y;
+        //Debug.Log("get min max in " + watch.ElapsedMilliseconds + " ms");
+        watch.Stop();
     }
 
     public void doLoadMap()
     {
+        
         try
         {
+
+
             Debug.Log("Load map");
             error = "Load map";
             Assets.GameWorld.Clear();
@@ -253,10 +280,17 @@ public class TestDecomp : MonoBehaviour
             string worldCDR = worldName + "_map.cdr";
             int maxX = 0;
             int maxY = 0;
-
             error = "get min max";
             Debug.Log("get min/max");
+            System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
             getMinMax(worldCDR, ref maxX, ref maxY);
+
+            watch.Stop();
+            Debug.Log("getMinMax(return) in " + watch.ElapsedMilliseconds + " ms");
+
+            //if (true)
+            //    return;
             Debug.Log("got min/max: [" + maxX + "][" + maxY + "]");
 
 
@@ -265,7 +299,6 @@ public class TestDecomp : MonoBehaviour
             foreach (WorldSpawn s in worlds)
                 if (s.worldName.Equals(spawn.worldName))
                     Assets.GameWorld.AddSpawns(s);
-
 
             /*
              * A_C_keep_stillmoor_south_entry_01.nif
@@ -301,15 +334,19 @@ public class TestDecomp : MonoBehaviour
             error = "Doing CDRs";
             //Debug.Log("do cdrs");
             int currentThreads = 0;
+
             List<CDRJob> runningJobs = new List<CDRJob>();
-            while (cdrJobs.Count > 0)
+            while (cdrJobs.Count > 0 || runningJobs.Count > 0)
             {
-                if (currentThreads < 10)
+                while (currentThreads < 4 && cdrJobs.Count > 0)
                 {
                     Interlocked.Increment(ref currentThreads);
                     CDRJob job = cdrJobs.Dequeue();
                     //Debug.Log("job [" + job.x + "," + job.y + "], starting");
-                    job.Start(System.Threading.ThreadPriority.Normal);
+                    if (threaded)
+                        job.Start(System.Threading.ThreadPriority.Normal);
+                    else
+                        job.Run();
                     runningJobs.Add(job);
                 }
                 foreach (CDRJob j in runningJobs.ToArray())
@@ -321,7 +358,8 @@ public class TestDecomp : MonoBehaviour
                         runningJobs.Remove(j);
                     }
                 }
-                Thread.Sleep(10);
+                if (threaded)
+                    Thread.Sleep(10);
             }
 
             Debug.Log("scene change");

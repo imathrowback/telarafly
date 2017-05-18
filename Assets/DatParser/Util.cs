@@ -59,8 +59,7 @@ namespace Assets.DatParser
 
    
     public static long readUnsignedVarLong( this BinaryReader din, MemoryStream bos)
-        {
-
+    {
         long value = 0L;
         int i = 0;
         long b;

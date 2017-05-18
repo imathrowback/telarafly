@@ -86,7 +86,7 @@ namespace Assets.DatParser
 
         public CObject parent;
         public int type;
-        public List<CObject> members = new List<CObject>();
+        public List<CObject> members = new List<CObject>(10);
         // index of this member in it's parent
         internal int index;
 
@@ -122,6 +122,11 @@ namespace Assets.DatParser
         public CObject get(int i)
         {
             return members[i];
+        }
+
+        internal void hintCapacity(int count)
+        {
+            this.members.Capacity = count;
         }
     }
 }

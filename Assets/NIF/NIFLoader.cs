@@ -558,6 +558,7 @@ public class NIFLoader
             if (mesh.materialNames.Contains("TwoSided_Alpha_Specular"))
                 mat = new Material(Resources.Load("transmat_fade", typeof(Material)) as Material);
 
+            // handle some simple animated "scrolling" textures
             if (mesh.materialNames.Contains("Additive_UVScroll_Distort") || 
                 mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") )
                 {
@@ -685,6 +686,7 @@ public class NIFLoader
                 }
             }
         }
+
         return go;
     }
 

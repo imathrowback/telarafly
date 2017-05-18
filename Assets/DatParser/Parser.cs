@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace Assets.DatParser
 {
     public class Parser
     {
+
         public static CObject processStreamObject(byte[] data)
         {
             return processStreamObject(new MemoryStream(data));
@@ -19,7 +21,9 @@ namespace Assets.DatParser
             BinaryReader dis = new BinaryReader(ins);
 
             int code1 = dis.readUnsignedLeb128_X();
+#if (PLOG)
             log("code1:" + code1, 0);
+#endif
             CObject root = new CObject(code1, new byte[0], code1, null);
             root.type = code1;
             if (code1 == 8)
@@ -31,7 +35,9 @@ namespace Assets.DatParser
                 BitResult result = Parser.readCodeAndExtract(dis, 0);
                 if (result == null)
                     throw new Exception("Unable to process result, class code:" + code1 + ":" + result);
+#if (PLOG)
                 log("do member " + (++i) + ": with code:" + result, 0);
+#endif
                 r = Parser.handleCode(root, dis, result.code, result.data, 1);
             } while (r);
             return root;
@@ -41,14 +47,17 @@ namespace Assets.DatParser
         {
             //parent.index = codedata;
             switch (datacode)
-
             {
                 case 0:
+#if (PLOG)
                     log("handleCode:" + datacode + ", possibly boolean 0", indent);
+#endif
                     parent.addMember(new CObject(0, new byte[] { 0x0 }, extradata, new CBooleanConvertor()));
                     return true;
                 case 1:
+#if (PLOG)
                     log("handleCode:" + datacode + ", possibly boolean 1", indent);
+#endif
                     if (parent.type == 127)
                         parent.addMember(new CObject(1, new byte[] { 0x1 }, extradata, new CLongConvertor()));
                     else
@@ -57,32 +66,41 @@ namespace Assets.DatParser
                 case 2:
                     {
                         // Variable length encoded long
-                        MemoryStream bos = new MemoryStream();
+                        MemoryStream bos = new MemoryStream(20);
                         long x = dis.readUnsignedVarLong(bos);
                         parent.addMember(new CObject(2, bos, extradata, new CUnsignedVarLongConvertor()));
+#if (PLOG)
                         log("handleCode:" + datacode + ", unsigned long: " + x, indent);
+#endif
                         return true;
                     }
                 case 3:
                     {
                         // Variable length encoded long
-                        MemoryStream bos = new MemoryStream();
+                        MemoryStream bos = new MemoryStream(20);
                         long x = dis.readSignedVarLong(bos);
                         parent.addMember(new CObject(3, bos, extradata, new CSignedVarLongConvertor()));
+#if (PLOG)
                         log("handleCode:" + datacode + ", signed long: " + x, indent);
+
+#endif
                         return true;
                     }
                 case 4:
                     {
                         // 4 bytes, int maybe?
+#if (PLOG)
                         log("handleCode:" + datacode + ", int?", indent);
+#endif
                         parent.addMember(new CObject(4, dis.ReadBytes(4), extradata, ClassDefaults.getConv(parent.type, 4)));
                         return true;
                     }
                 case 5:
                     // 8 bytes, double maybe?
 
+#if (PLOG)
                     log("handleCode:" + datacode + ", long?", indent);
+#endif
                     byte[] d = dis.ReadBytes(8);
 
                     if ((parent.type == 4086))
@@ -97,7 +115,9 @@ namespace Assets.DatParser
                     return true;
 
                 case 6:
+#if (PLOG)
                     log("handleCode:" + datacode + ", string/data?", indent);
+#endif
                     // string or data
                     int strLength = dis.readUnsignedLeb128_X();
                     byte[] data = dis.ReadBytes(strLength);
@@ -127,7 +147,9 @@ namespace Assets.DatParser
                                 return false;
                             }
                         }
+#if (PLOG)
                         log("handleCode:" + datacode + ", array: " + obj.type, indent + 1);
+#endif
                         // array?
                         BitResult rr;
                         int x = 0;
@@ -143,10 +165,14 @@ namespace Assets.DatParser
                             }
                             if (rr.code == 8)
                             {
+#if (PLOG)
                                 log("end object, read [" + x + "], objects", indent + 1);
+#endif
                                 return true;
                             }
+#if (PLOG)
                             log("handle code[" + rr.code + "]", indent + 1);
+#endif
                             x++;
                         } while (handleCode(obj, dis, rr.code, rr.data, indent + 2));
                         loge("overun while code [" + datacode + "]:" + rr, indent + 1);
@@ -156,28 +182,37 @@ namespace Assets.DatParser
                 case 11:
                     {
                         // array?
+#if (PLOG)
                         log("handlecode:" + datacode + ", get data", indent + 1);
+#endif
                         BitResult r = readCodeAndExtract(dis, indent + 1);
                         if (r == null)
                         {
                             loge("bad bitresult code 11", indent + 1);
                             return false;
                         }
+#if (PLOG)
                         log("bitresult:" + r, indent+1);
+#endif
                         int count = r.data;
                         if (count == 0)
                             return true;
                         int i = 0;
                         CObject obj = new CObject(datacode, new byte[0], count, null);
+                        obj.hintCapacity(count);
                         obj.index = extradata;
                         parent.addMember(obj);
 
                         int codeOfChildren = r.code;
+#if (PLOG)
                         log("array size: " + count + " of type[" + codeOfChildren + "]", indent + 1);
+#endif
                         while (handleCode(obj, dis, codeOfChildren, r.data, indent + 2))
                         {
+#if (PLOG)
                             log("code 11: handled  item[" + i + " of " + count + "], childcode[" + codeOfChildren + "]",
                                     indent + 1);
+#endif
                             if (++i >= count)
                                 return true;
                         }
@@ -188,7 +223,9 @@ namespace Assets.DatParser
                     }
                 case 12:
                     {
+#if (PLOG)
                         log("handleCode:" + datacode + ", array3?", indent);
+#endif
                         int[] result = readCodeThenReadTwice(dis, indent + 1);
 
                         int count = result[2];
@@ -208,7 +245,9 @@ namespace Assets.DatParser
                         return false;
                     }
                 case 8:
+#if (PLOG)
                     log("handleCode:" + datacode + ", end of object", indent);
+#endif
                     // END OF OBJECT
                     return false;
                 default:
@@ -218,7 +257,6 @@ namespace Assets.DatParser
             }
 
             loge("exit case", indent);
-
             return false;
         }
 
@@ -227,7 +265,9 @@ namespace Assets.DatParser
         {
 
             int byteX = dis.readUnsignedLeb128_X();
+#if (PLOG)
             log("byteX:" + byteX, indent);
+#endif
             BitResult result = splitCode(byteX);
             if (byteX == 0)
                 return null;
