@@ -669,6 +669,8 @@ public class NIFLoader
                                             mat.SetTexture("_BumpMap", loadTexture(db, texName));
                                             break;
                                         case "glowTexture":
+                                            mat.EnableKeyword("_EMISSION");
+                                            mat.SetColor("_EmissionColor", Color.white);
                                             mat.SetTexture("_EmissionMap", loadTexture(db, texName));
                                             break;
                                         case "glossTexture":
