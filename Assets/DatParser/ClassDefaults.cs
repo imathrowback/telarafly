@@ -21,9 +21,9 @@ namespace Assets.DatParser
                             case 7318:
                             case 602:
                             case 603:
-                                return new CIntConvertor();
+                                return CIntConvertor.inst;
                         }
-                        return new CFloatConvertor();
+                        return CFloatConvertor.inst;
                     }
             }
 

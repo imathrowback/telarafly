@@ -7,7 +7,9 @@ namespace Assets.DatParser
 {
     class CBooleanConvertor : CObjectConverter
     {
-        public CBooleanConvertor()
+        internal static readonly CObjectConverter inst = new CBooleanConvertor();
+
+        private CBooleanConvertor()
         {
         }
 

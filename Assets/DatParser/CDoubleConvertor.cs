@@ -7,7 +7,9 @@ namespace Assets.DatParser
 {
     class CDoubleConvertor : CObjectConverter
     {
-        public CDoubleConvertor()
+        internal static readonly CObjectConverter inst = new CDoubleConvertor();
+
+        private CDoubleConvertor()
         {
         }
 

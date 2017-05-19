@@ -7,8 +7,9 @@ namespace Assets.DatParser
 {
     public class CFloatConvertor : CObjectConverter
     {
+        public static CFloatConvertor inst = new CFloatConvertor();
 
-        public CFloatConvertor()
+        private CFloatConvertor()
         {
 
         }

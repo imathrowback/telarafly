@@ -7,8 +7,9 @@ namespace Assets.DatParser
 {
     public class CStringConvertor : CObjectConverter
     {
+        internal static readonly CObjectConverter inst = new CStringConvertor();
 
-        public CStringConvertor()
+        private CStringConvertor()
         {
         }
 

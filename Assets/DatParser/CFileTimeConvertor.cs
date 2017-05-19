@@ -8,7 +8,7 @@ namespace Assets.DatParser
 {
     class CFileTimeConvertor : CObjectConverter
     {
-        public CFileTimeConvertor()
+        private CFileTimeConvertor()
         {
         }
 
@@ -19,6 +19,7 @@ namespace Assets.DatParser
 
         public static int NANO100_TO_MILLI = 10000;
         public static long WINDOWS_TO_UNIX_EPOCH = 0x19DB1DED53E8000L;
+        internal static readonly CObjectConverter inst = new CFileTimeConvertor();
 
         public static DateTime readFileTime(BinaryReader diss)
         {

@@ -7,8 +7,9 @@ namespace Assets.DatParser
 {
     class CLongConvertor : CObjectConverter
     {
+        internal static readonly CObjectConverter inst = new CLongConvertor();
 
-        public CLongConvertor()
+        private CLongConvertor()
         {
         }
 

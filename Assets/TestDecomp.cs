@@ -322,7 +322,6 @@ public class TestDecomp : MonoBehaviour
             {
                 for (int y = 0; y <= maxY; y += 256)
                 {
-                    //doCDR(spawn, x, y, addFunc);
                     CDRJob job = new CDRJob(adb, db, spawn, x, y, addFunc);
                     job.doneFunc = (v) => { i++;
                         error = "Loading " + spawn.worldName + "  -  " + (int)(((float)i / (float)total) * 100.0) + " %";
@@ -549,7 +548,7 @@ public class TestDecomp : MonoBehaviour
                                                 if (_603.members.Count >= 5
                                                         && _603.members[4].type == 11)
                                                 {
-                                                    scale = (float)(new CFloatConvertor().convert(_603.members[3]));
+                                                    scale = (float)(CFloatConvertor.inst.convert(_603.members[3]));
                                                     max = readVec3(_603.members[4]);
                                                 }
                                             }
@@ -620,7 +619,7 @@ public class TestDecomp : MonoBehaviour
     {
         if (cObject.members.Count != 4)
             throw new Exception("Not arrary of 4 was ary of :" + cObject.members.Count);
-        CFloatConvertor conv = new CFloatConvertor();
+        CFloatConvertor conv = CFloatConvertor.inst;
         float a = (float)conv.convert(cObject.members[0]);
         float b = (float)conv.convert(cObject.members[1]);
         float c = (float)conv.convert(cObject.members[2]);
@@ -632,7 +631,7 @@ public class TestDecomp : MonoBehaviour
     {
         if (cObject.members.Count != 3)
             throw new Exception("Not arrary of 3 was ary of :" + cObject.members.Count);
-        CFloatConvertor conv = new CFloatConvertor();
+        CFloatConvertor conv = CFloatConvertor.inst;
         try
         {
             return new Vector3((float)conv.convert(cObject.members[0]), (float)conv.convert(cObject.members[1]),

@@ -52,23 +52,23 @@ namespace Assets.DatParser
 #if (PLOG)
                     log("handleCode:" + datacode + ", possibly boolean 0", indent);
 #endif
-                    parent.addMember(new CObject(0, new byte[] { 0x0 }, extradata, new CBooleanConvertor()));
+                    parent.addMember(new CObject(0, new byte[] { 0x0 }, extradata, CBooleanConvertor.inst));
                     return true;
                 case 1:
 #if (PLOG)
                     log("handleCode:" + datacode + ", possibly boolean 1", indent);
 #endif
                     if (parent.type == 127)
-                        parent.addMember(new CObject(1, new byte[] { 0x1 }, extradata, new CLongConvertor()));
+                        parent.addMember(new CObject(1, new byte[] { 0x1 }, extradata, CLongConvertor.inst));
                     else
-                        parent.addMember(new CObject(1, new byte[] { 0x1 }, extradata, new CBooleanConvertor()));
+                        parent.addMember(new CObject(1, new byte[] { 0x1 }, extradata,  CBooleanConvertor.inst));
                     return true;
                 case 2:
                     {
                         // Variable length encoded long
                         MemoryStream bos = new MemoryStream(20);
                         long x = dis.readUnsignedVarLong(bos);
-                        parent.addMember(new CObject(2, bos, extradata, new CUnsignedVarLongConvertor()));
+                        parent.addMember(new CObject(2, bos, extradata, CUnsignedVarLongConvertor.inst));
 #if (PLOG)
                         log("handleCode:" + datacode + ", unsigned long: " + x, indent);
 #endif
@@ -79,7 +79,7 @@ namespace Assets.DatParser
                         // Variable length encoded long
                         MemoryStream bos = new MemoryStream(20);
                         long x = dis.readSignedVarLong(bos);
-                        parent.addMember(new CObject(3, bos, extradata, new CSignedVarLongConvertor()));
+                        parent.addMember(new CObject(3, bos, extradata, CSignedVarLongConvertor.inst));
 #if (PLOG)
                         log("handleCode:" + datacode + ", signed long: " + x, indent);
 
@@ -105,12 +105,12 @@ namespace Assets.DatParser
 
                     if ((parent.type == 4086))
                     {
-                        parent.addMember(new CObject(5, d, extradata, new CFileTimeConvertor()));
+                        parent.addMember(new CObject(5, d, extradata,  CFileTimeConvertor.inst));
                         //parent.addMember(readFileTime(diss));
                     }
                     else
                     {
-                        parent.addMember(new CObject(5, d, extradata, new CDoubleConvertor()));
+                        parent.addMember(new CObject(5, d, extradata,  CDoubleConvertor.inst));
                     }
                     return true;
 
@@ -121,10 +121,10 @@ namespace Assets.DatParser
                     // string or data
                     int strLength = dis.readUnsignedLeb128_X();
                     byte[] data = dis.ReadBytes(strLength);
-                    String newString = ASCIIEncoding.ASCII.GetString(data);
+                    //String newString = ASCIIEncoding.ASCII.GetString(data);
 
 
-                    parent.addMember(new CObject(6, data, extradata, new CStringConvertor()));
+                    parent.addMember(new CObject(6, data, extradata,  CStringConvertor.inst));
 
                     return true;
                 case 10:

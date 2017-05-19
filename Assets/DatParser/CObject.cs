@@ -80,7 +80,7 @@ namespace Assets.DatParser
                 return (int)((long)o);
 
 
-            return (int)new CIntConvertor().convert(getMember(i));
+            return (int)CIntConvertor.inst.convert(getMember(i));
         }
 
 
