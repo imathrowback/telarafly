@@ -175,7 +175,7 @@ public class telera_spawner : MonoBehaviour
             light.type = LightType.Point;
             light.color = new Color(lp.r, lp.g, lp.b);
             light.intensity = lp.range;
-            light.shadows = LightShadows.Soft;
+            light.shadows = LightShadows.Hard;
             return;
         }
 
