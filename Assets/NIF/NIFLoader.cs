@@ -670,7 +670,8 @@ public class NIFLoader
                                             break;
                                         case "glowTexture":
                                             mat.EnableKeyword("_EMISSION");
-                                            mat.SetColor("_EmissionColor", Color.white);
+                                            
+                                            mat.SetColor("_EmissionColor", Color.white*0.5f);
                                             mat.SetTexture("_EmissionMap", loadTexture(db, texName));
                                             break;
                                         case "glossTexture":

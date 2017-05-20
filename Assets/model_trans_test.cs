@@ -13,9 +13,8 @@ public class model_trans_test : MonoBehaviour {
         NIFLoader load = new NIFLoader();
         load.loadManifestAndDB();
 
-        GameObject go = load.loadNIF("abyssal_precipice_terrain_1280_1024_split.nif");
+        GameObject go = load.loadNIF("N_SF_rock_water_rapids_01.nif");
         go.transform.parent = this.transform;
-
         /*
         string x = "A_TNB_embassy_01.nif";
 

@@ -162,6 +162,23 @@ public class telera_spawner : MonoBehaviour
     private void process(ObjectPosition op)
     {
         GameObject go;
+        if (op is LightPosition)
+        {
+            LightPosition lp = (LightPosition)op;
+            go = new GameObject("Light");
+            go.transform.SetParent(meshRoot.transform);
+            go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
+            go.transform.localPosition = op.min;
+            go.transform.localRotation = op.qut;
+
+            Light light = go.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(lp.r, lp.g, lp.b);
+            light.intensity = lp.range;
+            light.shadows = LightShadows.Soft;
+            return;
+        }
+
         string name = op.nifFile;
         if (name.Contains("_terrain_") || name.Contains("ocean_chunk"))
         {

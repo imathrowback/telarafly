@@ -526,6 +526,7 @@ public class TestDecomp : MonoBehaviour
                                 }
                                 else
                                 {
+                                  
                                     try
                                     {
                                         nif_hkx_ref = Convert.ToInt64(_602.get(0).convert());
@@ -581,6 +582,19 @@ public class TestDecomp : MonoBehaviour
                                                 }
                                             }
 
+                                        }
+                                        // does it have a light source?
+                                        if (_602.hasMember(3))
+                                        {
+                                            CObject lary = _602.getMember(3);
+                                            //Debug.Log("found a light! process ary:" + lary);
+                                            float r = (float)CFloatConvertor.inst.convert(lary.get(0));
+                                            float g = (float)CFloatConvertor.inst.convert(lary.get(1));
+                                            float b = (float)CFloatConvertor.inst.convert(lary.get(2));
+                                            float range = 0;
+                                            if (_602.hasMember(4))
+                                                range = (float)CFloatConvertor.inst.convert(_602.getMember(4));
+                                            addFunc.Invoke(new Assets.LightPosition(range, r, g, b, min, qut, max, scale));
                                         }
                                     }
                                     catch (Exception ex)

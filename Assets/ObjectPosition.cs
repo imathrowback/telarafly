@@ -23,4 +23,19 @@ namespace Assets
             this.scale = scale;
         }
     }
+
+    public class LightPosition : ObjectPosition
+    {
+        public float range;
+        public float r;
+        public float g;
+        public float b;
+        public LightPosition(float range, float r, float g, float b, Vector3 min, Quaternion qut, Vector3 max, float scale) : base(null, min, qut, max, scale)
+        {
+            this.range = range;
+            this.r = r;
+            this.g = g;
+            this.b = b;
+        }
+    }
 }
