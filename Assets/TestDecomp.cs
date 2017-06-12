@@ -7,7 +7,7 @@ using Assets.RiftAssets;
 using System;
 using Ionic.Zlib;
 using System.Xml.Serialization;
-using Assets.DB;
+using Assets.Database;
 using System.Threading;
 using UnityEngine.UI;
 using System.Text;
@@ -26,12 +26,12 @@ public class TestDecomp : MonoBehaviour
     DB db;
     string expectedChecksum;
     bool loaded = false;
-    System.Threading.Thread loadThread;
     GameObject dropdownbox;
     GameObject loadbutton;
     GameObject loadModelViewerbutton;
     GameObject thirdPersonToggle;
     public GameObject loadWardrobebutton;
+    System.Threading.Thread loadThread;
     Text tex;
     Image img;
     string error;
@@ -55,60 +55,11 @@ public class TestDecomp : MonoBehaviour
         loadbutton.SetActive(false);
         loadModelViewerbutton.SetActive(false);
         color = Color.grey;
-        loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(readDB));
-        loadThread.Start();
-    }
-
-    void loadManifestAndDB()
-    {
+        DBInst.progress += (s) => this.error = s;
+        DBInst.loadOrCallback((d) => db = d);
         error = "Loading asset database";
         adb = AssetDatabaseInst.DB;
-        AssetEntry ae = adb.getEntryForFileName("telara.db");
-        expectedChecksum = BitConverter.ToString(ae.hash);
     }
-    void readDB()
-    {
-        UnityEngine.Debug.Log("Begin db load in thread");
-        try
-        {
-            loadManifestAndDB();
-
-            AssetEntry ae = adb.getEntryForFileName("telara.db");
-            expectedChecksum = BitConverter.ToString(ae.hash);
-
-            error = "read database";
-            Debug.Log("read database");
-            db = DBInst.readDB(expectedChecksum, (s) => error = s);
-            Debug.Log("Db:" + db);
-            if (db != null)
-            {
-                loaded = true;
-            }
-            else
-            {
-                error = "Decode database, please wait, this could take a few minutes but only needs to be done once per patch.";
-                
-                DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
-                error = "DB is created, try to read it";
-                db = DBInst.readDB(expectedChecksum, (s)=>error = s);
-                if (db == null)
-                    throw new Exception("Unable to load DB after creating it!");
-                loaded = true;
-            }
-            UnityEngine.Debug.Log("Load complete");
-            error = "Select world to load";
-            color = Color.green;
-        }
-        catch (Exception ex)
-        {
-
-            color = Color.magenta;
-            error = "There was an error. Please exit and check output_log.txt in the data directory";
-            UnityEngine.Debug.LogWarning(ex);
-        }
-    }
-
-    
 
     bool doMapChange = false;
     List<WorldSpawn> worlds = new List<WorldSpawn>();
@@ -122,6 +73,7 @@ public class TestDecomp : MonoBehaviour
         SceneManager.LoadScene("wardrobe");
     }
 
+    bool first = false;
     // Update is called once per frame
     void Update()
     {
@@ -130,8 +82,9 @@ public class TestDecomp : MonoBehaviour
             SceneManager.LoadScene("scene1");
             return;
         }
-        if (loaded)
+        if (db != null && !first)
         {
+            first = true;
             Debug.Log("get keys");
             IEnumerable<entry> keys = db.getEntriesForID(4479);
             worlds.Clear();
@@ -164,7 +117,7 @@ public class TestDecomp : MonoBehaviour
                         }
                     }catch (Exception ex)
                     {
-                        Debug.Log("Unable to get position for spawn [" + e.id + "][" + e.key + "]");
+                        Debug.Log("Unable to get position for spawn [" + e.id + "][" + e.key + "]" + ex);
                     }
                 }
             }
@@ -184,7 +137,6 @@ public class TestDecomp : MonoBehaviour
             }
             dropdown.value = startIndex;
             dropdown.RefreshShownValue();
-            loaded = false;
             dropdownbox.SetActive(true);
             loadbutton.SetActive(true);
             loadModelViewerbutton.SetActive(true);
@@ -198,7 +150,6 @@ public class TestDecomp : MonoBehaviour
         }
     }
 
-    
     public static bool abortThread = false;
     public void loadMap()
     {
@@ -213,8 +164,6 @@ public class TestDecomp : MonoBehaviour
         }
         else
         {
-            abortThread = false;
-
             dropdownbox.SetActive(false);
             loadbutton.SetActive(false);
             loadModelViewerbutton.SetActive(false);
@@ -235,6 +184,7 @@ public class TestDecomp : MonoBehaviour
                 Debug.Log("doLoadMap in " + watch.ElapsedMilliseconds + " ms");
             }
         }
+         
     }
 
     private void getMinMax(string worldName, ref int x, ref int y)
@@ -272,6 +222,8 @@ public class TestDecomp : MonoBehaviour
             Debug.Log("Load map");
             error = "Load map";
             Assets.GameWorld.Clear();
+
+
 
             WorldSpawn spawn = worlds[dropdown.value];
 

@@ -304,6 +304,8 @@ public class telera_spawner : MonoBehaviour
                 if (loadingObj != null)
                     GameObject.Destroy(loadingObj.gameObject);
 
+               
+
 
                 to.doLoad = false;
                 to.loaded = true;

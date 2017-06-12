@@ -18,7 +18,7 @@ namespace Assets
         private AssetDatabase db;
         private String assetsManifest = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets64.manifest";
         private String assetsDirectory = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets\\";
-
+        static object lockObj = new object();
         private void init()
         {
             Properties p = new Properties("nif2obj.properties");
@@ -40,12 +40,16 @@ namespace Assets
 
         public static AssetDatabaseInst getInst()
         {
-            if (inst == null)
+            lock (lockObj)
             {
-                inst = new AssetDatabaseInst();
-                inst.init();
+
+                if (inst == null)
+                {
+                    inst = new AssetDatabaseInst();
+                    inst.init();
+                }
+                return inst;
             }
-            return inst;
         }
 
 
