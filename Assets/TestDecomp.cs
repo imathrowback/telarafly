@@ -33,6 +33,8 @@ public class TestDecomp : MonoBehaviour
     GameObject thirdPersonToggle;
     public GameObject loadWardrobebutton;
     Text tex;
+    Text downloaderProgress;
+    string downloadProgress;
     Image img;
     string error;
     Color color;
@@ -42,7 +44,8 @@ public class TestDecomp : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-
+        downloaderProgress = GameObject.Find("DownloaderText").GetComponent<Text>();
+        AssetDatabaseInst.progressUpdate += (s) => downloadProgress = s;
         tex = GetComponentInChildren<Text>();
         img = GetComponentInChildren<Image>();
         dropdown = GetComponentInChildren<Dropdown>();
@@ -63,8 +66,7 @@ public class TestDecomp : MonoBehaviour
     {
         error = "Loading asset database";
         adb = AssetDatabaseInst.DB;
-        AssetEntry ae = adb.getEntryForFileName("telara.db");
-        expectedChecksum = BitConverter.ToString(ae.hash);
+        expectedChecksum = adb.getHash("telara.db");
     }
     void readDB()
     {
@@ -73,8 +75,7 @@ public class TestDecomp : MonoBehaviour
         {
             loadManifestAndDB();
 
-            AssetEntry ae = adb.getEntryForFileName("telara.db");
-            expectedChecksum = BitConverter.ToString(ae.hash);
+            expectedChecksum = adb.getHash("telara.db");
 
             error = "read database";
             Debug.Log("read database");
@@ -86,10 +87,13 @@ public class TestDecomp : MonoBehaviour
             }
             else
             {
+                Debug.Log("null db, decode it as new");
                 error = "Decode database, please wait, this could take a few minutes but only needs to be done once per patch.";
-                
-                DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
+
+                Debug.Log("createTelaraDBFromDB");
+                DBInst.createTelaraDBFromDB(adb);
                 error = "DB is created, try to read it";
+                Debug.Log(error);
                 db = DBInst.readDB(expectedChecksum, (s)=>error = s);
                 if (db == null)
                     throw new Exception("Unable to load DB after creating it!");
@@ -125,6 +129,7 @@ public class TestDecomp : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        downloaderProgress.text = downloadProgress;
         if (doMapChange)
         {
             SceneManager.LoadScene("scene1");
@@ -242,7 +247,7 @@ public class TestDecomp : MonoBehaviour
         System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
 
         watch.Start();
-        if (!adb.getManifest().containsHash(Util.hashFileName(worldName)))
+        if (!adb.filenameExists(worldName))
             throw new Exception("Unable to find world name:" + worldName);
         byte[] data = adb.extractUsingFilename(worldName);
         //Debug.Log("extract in " + watch.ElapsedMilliseconds + " ms");
@@ -458,8 +463,7 @@ public class TestDecomp : MonoBehaviour
     {
         if (!adb.filenameExists(str))
             return;
-        AssetEntry ae = adb.getEntryForFileName(str);
-        byte[] data = adb.extract(ae);
+        byte[] data = adb.extractUsingFilename(str);
         if (data[0] != 0x6B)
         {
             UnityEngine.Debug.Log("Unknown code " + data[0] + ", expected:" + 0x6b);
@@ -591,7 +595,7 @@ public class TestDecomp : MonoBehaviour
                                             float r = (float)CFloatConvertor.inst.convert(lary.get(0));
                                             float g = (float)CFloatConvertor.inst.convert(lary.get(1));
                                             float b = (float)CFloatConvertor.inst.convert(lary.get(2));
-                                            float range = 0;
+                                            float range = 1;
                                             if (_602.hasMember(4))
                                                 range = (float)CFloatConvertor.inst.convert(_602.getMember(4));
                                             addFunc.Invoke(new Assets.LightPosition(range, r, g, b, min, qut, max, scale));

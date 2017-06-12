@@ -1,4 +1,5 @@
-﻿using CGS;
+﻿using Assets.RiftAssets;
+using CGS;
 using Ionic.Zlib;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using UnityEngine;
 
 namespace Assets.DB
 {
+    /** TelaraDB  */
     class DBInst
     {
         static DB db;
@@ -35,10 +37,11 @@ namespace Assets.DB
                             using (BinaryReader reader = new BinaryReader(ds))
                             {
                                 db.dbchecksum = reader.ReadString();
-                                if (!expectedChecksum.Equals(db.dbchecksum))
+                                string simpleHash = db.dbchecksum.Replace("-", string.Empty).ToLower();
+                                if (!expectedChecksum.Equals(simpleHash))
                                 {
+                                    UnityEngine.Debug.Log("Checksum in file[" + db.dbchecksum + "] doesn't match expected from assets[" + expectedChecksum + "]");
                                     db = null;
-                                    UnityEngine.Debug.Log("Checksum in file doesn't match file from assets");
                                     return null;
                                 }
                                 else
@@ -82,7 +85,7 @@ namespace Assets.DB
             return db;
         }
 
-        internal static void create(string assetManifest, string assetDir)
+        private static void create(string assetManifest, string assetDir)
         {
             System.Diagnostics.Process pr;
             string file = @"decomp\tdbdecomp.exe";
@@ -91,6 +94,27 @@ namespace Assets.DB
             pr.StartInfo.Arguments = "\"" + assetManifest + "\" \"" + assetDir + "\"";
             pr.Start();
             pr.WaitForExit();
+        }
+        internal static void createTelaraDBFromDB(AssetDatabase adb)
+        {
+            byte[] data = adb.extractUsingFilename("telara.db");
+            string dbName = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllBytes(dbName, data);
+
+                System.Diagnostics.Process pr;
+                string file = @"decomp\tdbdecomp-norift.exe";
+                pr = new System.Diagnostics.Process();
+                pr.StartInfo.FileName = file;
+                pr.StartInfo.Arguments = "\"" + dbName + "\"";
+                pr.Start();
+                pr.WaitForExit();
+            }
+            finally
+            {
+                File.Delete(dbName);
+            }
         }
     }
 }

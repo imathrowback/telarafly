@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+
 namespace Assets.RiftAssets
 {
     public class Manifest
@@ -19,6 +20,12 @@ namespace Assets.RiftAssets
             processTable(manifestData);
         }
 
+        public Manifest(byte[] manifestData, bool _64)
+        {
+            this.is64 = _64;
+            processTable(manifestData);
+        }
+
         public List<String> getIDs()
         {
             return idToNameNameHashMap.Keys.ToList();
@@ -29,60 +36,7 @@ namespace Assets.RiftAssets
             return fileNameHashIDMap.Keys.ToList();
         }
 
-        private void processTable(byte[] manifestData)
-        {
-            // See http://forum.xentax.com/viewtopic.php?f=17&t=10119
-            using (MemoryStream memStream = new MemoryStream(manifestData))
-            {
-                using (BinaryReader dis = new BinaryReader(memStream))
-                {
 
-                    int tableOffset;
-                    int count;
-                    // read the manifest header
-
-
-                    byte[] twam = dis.ReadBytes(4);
-                    // These two are definitely version numbers
-                    ushort majorV = dis.ReadUInt16();
-                    ushort minorV = dis.ReadUInt16();
-                    // skip the next 24 bytes as we don't know what they are
-                    dis.ReadBytes(24);
-                    tableOffset = dis.ReadInt32();
-                    int unknown = dis.ReadInt32(); // unknown
-                    count = dis.ReadInt32();
-
-
-                    // each manifest entry is 56 bytes but we only actually read the first 12, we don't know what the rest are
-                    int entrySize = 56;
-                    byte[] id = new byte[8];
-                    byte[] filenamehash = new byte[4];
-
-                    fileNameHashIDMap = new Dictionary<String, String>(count);
-                    idToNameNameHashMap = new Dictionary<String, String>(count);
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        int start = tableOffset + (i * entrySize);
-                        memStream.Seek(start, SeekOrigin.Begin);
-                        // read the ID of the entry
-                        dis.Read(id, 0, 8);
-
-                        // read the filename hash of the entry
-                        dis.Read(filenamehash, 0, 4);
-                        reverse(filenamehash);
-
-
-                        // store the ID and filename hash into a map for easy lookup
-                        String idStr = Util.bytesToHexString(id);
-                        String hashStr = Util.bytesToHexString(filenamehash);
-
-                        idToNameNameHashMap[idStr] = hashStr;
-                        fileNameHashIDMap[hashStr] = idStr;
-                    }
-                }
-            }
-        }
 
         void reverse(byte[] arr)
         {
@@ -154,5 +108,148 @@ namespace Assets.RiftAssets
             return is64;
         }
 
+
+
+        class TableEntry
+        {
+            public int offset;
+            public int tableSize;
+            public int count;
+            public int stride;
+            public string name;
+
+            public TableEntry(string str, BinaryReader dis)
+            {
+                name = str;
+                offset = dis.readInt();
+                tableSize = dis.readInt();
+                count = dis.readInt();
+                stride = dis.readInt();
+            }
+
+            override public string ToString()
+            {
+                int bytes = stride * count;
+                int extra = tableSize - bytes;
+                return (String.Format(
+                        "\t[" + name
+                                + "]\n\ttableoffset:{0}\n\ttable size in bytes:{1}(extra: {4})\n\tcount:{2}\n\tstride:{3}\n",
+                        offset, tableSize, count, stride, extra));
+
+            }
+        }
+
+
+        public List<PAKFileEntry> getPAKs()
+        {
+            return pakFiles;
+        }
+
+        public PAKFileEntry getPAK( int index)
+        {
+            return pakFiles[index];
+        }
+
+        public string getPAKName(int index)
+        {
+            return pakFiles[index].name;
+        }
+
+        public List<PAKFileEntry> pakFiles = new List<PAKFileEntry>();
+        public List<ManifestEntry> manifestEntries = new List<ManifestEntry>();
+
+        private void processTable(byte[] manifestData)
+        {
+            readHeader(manifestData);
+            readAssetEntries(manifestData);
+        }
+
+        private void readAssetEntries(byte[] manifestData)
+        { 
+            int count = assetNames.count;
+            int tableOffset = assetNames.offset;
+            int entrySize = 56;
+            for (int i = 0; i < count; i++)
+            {
+                int start = tableOffset + (i * entrySize);
+
+                using (BinaryReader dis = new BinaryReader(
+                        new MemoryStream(manifestData, start, entrySize)))
+			{
+                ManifestEntry entry = new ManifestEntry(dis);
+                manifestEntries.Add(entry);
+            }
+        }
+    }
+
+        TableEntry assetNames;
+        private void readHeader(byte[] manifestData)
+        {
+            // See http://forum.xentax.com/viewtopic.php?f=17&t=10119
+            using (MemoryStream memStream = new MemoryStream(manifestData))
+            {
+                using (BinaryReader dis = new BinaryReader(memStream))
+                {
+                    // read the manifest header
+
+
+                    byte[] twam = dis.ReadBytes(4);
+                    // These two are definitely version numbers
+                    ushort majorV = dis.ReadUInt16();
+                    ushort minorV = dis.ReadUInt16();
+
+
+                    int _256tableoffset = dis.readInt();
+                    int _256 = dis.readInt();
+
+                    TableEntry a = new TableEntry("pak table", dis);
+                    TableEntry b = new TableEntry("asset names", dis);
+                    this.assetNames = b;
+                    TableEntry c = new TableEntry("unk", dis);
+
+
+                    int[] table = new int[256];
+                    for (int i = 0; i < _256; i++)
+                    {
+                        using (BinaryReader dis2 = new BinaryReader(
+                                new MemoryStream(manifestData, _256tableoffset + i, 1)))
+                        {
+                            table[i] = dis2.readByte();
+                        }
+                    }
+                    for (int i = 0; i < a.count; i++)
+                    {
+                        using (BinaryReader dis2 = new BinaryReader(
+                                new MemoryStream(manifestData, a.offset + (i * a.stride), a.stride)))
+                        {
+                            pakFiles.Add(new PAKFileEntry(manifestData, dis2));
+
+                        }
+                    }
+                    int stringOffset = a.offset + (a.count * a.stride);
+                    using (BinaryReader dis2 = new BinaryReader(
+                    new MemoryStream(manifestData, c.offset, c.tableSize)))
+                    {
+                        for (int i = 0; i < c.count; i++)
+                        {
+                            int ia = dis2.readInt() & 0xFFFFFF;
+                            int ecount = dis2.readInt();
+                            int offset = dis2.readInt();
+                            //System.out.println(MessageFormat.format("{0}:count:{1}:offset:{2}", ia, ecount, offset));
+                            using (BinaryReader dis3 = new BinaryReader(
+                                    new MemoryStream(manifestData, offset, ecount * 4)))
+                            {
+                                for (int j = 0; j < ecount; j++)
+                                {
+                                    //if (j < 100)
+                                    //	System.out.println("[" + j + "]" + dis3.readInt());
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
     }
 }

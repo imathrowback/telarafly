@@ -165,13 +165,11 @@ public class Wardrobe : MonoBehaviour
 
     void loadDatabase()
     {
-        
-        AssetEntry ae = adb.getEntryForFileName("telara.db");
-        string expectedChecksum = BitConverter.ToString(ae.hash);
+        string expectedChecksum = adb.getHash("telara.db");
         db = DBInst.readDB(expectedChecksum, (s) => { progress = s; });
         if (db == null)
         {
-            DBInst.create(AssetDatabaseInst.ManifestFile, AssetDatabaseInst.AssetsDirectory);
+            DBInst.createTelaraDBFromDB(adb);
             db = DBInst.readDB(expectedChecksum, (s) => { progress = s; });
         }
        

@@ -5,11 +5,11 @@ using System.Text;
 using System.IO;
 namespace Assets.RiftAssets
 {
-    public class AssetProcessor
+    public class LocalAssetProcessor
     {
         public static AssetDatabase buildDatabase(Manifest manifest, String assetDirectory)
         {
-            AssetDatabase assets = new AssetDatabase(manifest);
+            LocalAssetDatabase assets = new LocalAssetDatabase(manifest);
 
             string[] files = Directory.GetFiles(assetDirectory);
             foreach (string file in files)

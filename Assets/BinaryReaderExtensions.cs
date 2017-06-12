@@ -1,14 +1,30 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-
-namespace Assets.DatParser
+namespace Assets
 {
     public static class BinaryReaderExtensions
     {
+       
+        public static void skip(this BinaryReader r, int bytes)
+        {
+            r.ReadBytes(bytes);
+        }
+        public static void read(this BinaryReader r, byte[] data)
+        {
+            byte[] read = r.ReadBytes(data.Length);
+            Array.Copy(read, data, read.Length);
+        }
+
+
+        public static void readFully(this BinaryReader r, byte[] data)
+        {
+            byte[] read = r.ReadBytes(data.Length);
+            Array.Copy(read, data, read.Length);
+        }
         public static Boolean EOF(this BinaryReader r)
         {
             return r.BaseStream.Position == r.BaseStream.Length;
@@ -19,7 +35,11 @@ namespace Assets.DatParser
         {
             return r.ReadUInt16();
         }
-
+        /** Read 2 bytes */
+        public static short readShort(this BinaryReader r)
+        {
+            return (short)r.ReadUInt16();
+        }
         public static float readFloat(this BinaryReader r)
         {
             return r.ReadSingle();
@@ -38,7 +58,12 @@ namespace Assets.DatParser
         {
             return r.ReadByte();
         }
+        
         public static byte readUnsignedByte(this BinaryReader r)
+        {
+            return r.ReadByte();
+        }
+        public static byte readByte(this BinaryReader r)
         {
             return r.ReadByte();
         }

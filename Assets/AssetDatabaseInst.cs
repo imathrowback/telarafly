@@ -8,24 +8,37 @@ namespace Assets
 {
     public class AssetDatabaseInst
     {
+        public delegate void ProgressD(string s);
+        public static ProgressD progressUpdate = delegate { };
+
         private static AssetDatabaseInst inst;
         public static AssetDatabaseInst Inst { get { return getInst(); } }
         public static AssetDatabase DB { get { return getInst().getDB(); } }
         public static Manifest Manifest { get { return getInst().getManifest(); } }
-        public static string ManifestFile {  get { return getInst().assetsManifest; } }
-        public static string AssetsDirectory { get { return getInst().assetsDirectory; } }
+        //private static string ManifestFile {  get { return getInst().assetsManifest; } }
+        //private static string AssetsDirectory { get { return getInst().assetsDirectory; } }
         private Manifest manifest;
         private AssetDatabase db;
         private String assetsManifest = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets64.manifest";
         private String assetsDirectory = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets\\";
+        bool local = false;
 
         private void init()
         {
-            Properties p = new Properties("nif2obj.properties");
-            assetsDirectory = (p.get("ASSETS_DIR"));
-            assetsManifest = (p.get("ASSETS_MANIFEST"));
-            manifest = new Manifest(assetsManifest);
-            db = AssetProcessor.buildDatabase(manifest, assetsDirectory);
+            if (local)
+            {
+                Properties p = new Properties("nif2obj.properties");
+                assetsDirectory = (p.get("ASSETS_DIR"));
+                assetsManifest = (p.get("ASSETS_MANIFEST"));
+                db = LocalAssetProcessor.buildDatabase(new Manifest(assetsManifest), assetsDirectory);
+            }
+            else
+            {
+                RemoteAssetDatabase rad = new RemoteAssetDatabase();
+                rad.progressUpdate += (s) =>  progressUpdate.Invoke(s);
+                db = rad;
+            }
+            manifest = db.getManifest();
         }
 
         public AssetDatabase getDB()

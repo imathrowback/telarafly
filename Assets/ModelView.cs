@@ -64,8 +64,7 @@ public class ModelView : MonoBehaviour
 
     void loadDatabase()
     {
-        AssetEntry ae = adb.getEntryForFileName("telara.db");
-        string expectedChecksum = BitConverter.ToString(ae.hash);
+        string expectedChecksum = adb.getHash("telara.db");
         db = DBInst.readDB(expectedChecksum, (s) => { progress = s; });
     }
     private string getStringMember(CObject obj, int member)
