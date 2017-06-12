@@ -164,6 +164,12 @@ namespace Assets.RiftAssets
             return af.extractPart(ae, size, null, false);
         }
 
+        internal string getHash(string v)
+        {
+            AssetEntry ae = getEntryForFileName(v);
+            return BitConverter.ToString(ae.hash);
+        }
+
         public void extract( AssetEntry ae,  Stream fos)
         {
             findAssetFileForID(ae.strID).extract(ae, fos);
