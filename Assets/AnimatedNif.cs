@@ -33,6 +33,8 @@ namespace Assets
 
         public void setSkeletonRoot(GameObject root)
         {
+            if (root == null)
+                throw new Exception("attempt to set null skeleton");
             this.skeletonRoot = root;
         }
         public List<KFAnimation> getAnimations()
@@ -51,12 +53,13 @@ namespace Assets
             sp.Start();
             foreach (KFAnimation anim in kfmfile.kfanimations)
             {
+
                 int id = anim.id;
                 //Debug.Log("[" + sp.ElapsedMilliseconds + "] check id[" + id + "]");
-                if (getData(id) != null)
-                {
+                byte[] data = getKFBData(id);
+                if (data != null)
                     anims.Add(anim);
-                }
+                //Debug.Log("Found anim [" + anim.id + "]:" + anim.sequenceFilename + ":" + anim.sequencename +": hasData:" + (data != null));
                 // Debug.Log("[" + sp.ElapsedMilliseconds + "] done check id[" + id + "]");
             }
 
@@ -72,13 +75,16 @@ namespace Assets
             this.kfb = kfb;
         }
 
-        private byte[] getData(int animToUse)
+        /** Load the KFB data for the selected animation, will return null if the animation does not exist in the KFB */
+        private byte[] getKFBData(int animToUse)
         {
             if (kfb == null)
                 return null;
             if (kfbfile == null)
+            {
                 kfbfile = new NIFFile(new MemoryStream(adb.extractUsingFilename(this.kfb)));
-
+                Debug.Log("getting KFB: " + this.kfb);
+            }
             /** Choose the right animation to load from the KFB file. Ideally we should use the KFM to know what index to use */
             for (int i = 0; i < kfbfile.numObjects; i += 4)
             {
@@ -96,7 +102,7 @@ namespace Assets
 
         public NIFFile loadKFB(int animToUse)
         {
-            byte[] data = getData(animToUse);
+            byte[] data = getKFBData(animToUse);
             if (data != null)
                 return new NIFFile(new MemoryStream(data));
             //Debug.Log("unable to load KFB for anim:" + animToUse);
@@ -127,7 +133,6 @@ namespace Assets
         {
             foreach (KFAnimation kfa in getAnimations())
             {
-                //Debug.Log(kfa.sequenceFilename + ":" + kfa.sequencename);
                 if (kfa.sequencename.Contains("unarmed_idle") || kfa.sequenceFilename.Contains("unarmed_idle"))
                     return kfa.id;
             }
@@ -137,6 +142,11 @@ namespace Assets
 
         public void doFrame(float t)
         {
+            if (skeletonRoot == null)
+            {
+                Debug.LogError("no skeleton root");
+                return;
+            }
             if (nifanimation == null || activeAnimation == -1)
             {
                 setActiveAnimation(getIdleAnimIndex());
@@ -163,7 +173,13 @@ namespace Assets
                             go = boneMap[boneName];
                         else
                         {
-                            go = boneMap[boneName] = skeletonRoot.transform.FindDeepChild(boneName).gameObject;
+                            Transform bone = skeletonRoot.transform.FindDeepChild(boneName);
+                            if (bone == null)
+                            {
+                                Debug.LogError("unable to find bone in skeleton for " + boneName);
+                                continue;
+                            }
+                            go = boneMap[boneName] = bone.gameObject;
                                 //GameObject.Find(boneName);
                         }
                         if (go == null)

@@ -29,6 +29,7 @@ public class Wardrobe : MonoBehaviour
     ClothingItem[] clothingItems;
     string raceString;
     string genderString;
+    Text pageText;
     
     List<ClothingItemRenderer> clothingPanels = new List<ClothingItemRenderer>();
     int previewIndex = 0;
@@ -37,6 +38,7 @@ public class Wardrobe : MonoBehaviour
     void Start()
     {
         GameObject previewPanel = GameObject.Find("PreviewPanel");
+        pageText = GameObject.Find("PageText").GetComponent<Text>();
         clothingPanels.AddRange(previewPanel.GetComponentsInChildren<ClothingItemRenderer>());
 
 
@@ -86,8 +88,14 @@ public class Wardrobe : MonoBehaviour
         previewIndex = 0;
         updatePreview();
     }
+
+    void updatePage()
+    {
+        pageText.text = "Items " + previewIndex + "-" + clothingPanels.Count() + " of " + clothingItems.Length;
+    }
     void updatePreview()
     {
+        updatePage();
         for (int i = 0; i < clothingPanels.Count(); i++)
         {
             ClothingItem item = clothingItems[previewIndex + i];

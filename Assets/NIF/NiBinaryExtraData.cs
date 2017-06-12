@@ -16,6 +16,13 @@ namespace Assets.NIF
         private byte[] decompressedData;
         private static System.Threading.Thread loadThread;
 
+
+        public byte[] getData()
+        {
+            if (getDecompressed() != null)
+                return decompressedData;
+            return extraData;
+        }
         public NiBinaryExtraData()
         {
 

@@ -190,6 +190,7 @@ namespace Assets.NIF
             typeCacheCC["NiTexture"] = () => new NiTexture();
             typeCacheCC["NiBinaryExtraData"] = () => new NiBinaryExtraData();
             typeCacheCC["NiFloatExtraData"] = () => new NiFloatExtraData();
+            typeCacheCC["NiFloatsExtraData"] = () => new NiFloatsExtraData();
             typeCacheCC["NiIntegerExtraData"] = () => new NiIntegerExtraData();
             typeCacheCC["NiColorExtraData"] = () => new NiColorExtraData();
             typeCacheCC["NiNode"] = () => new NiNode();

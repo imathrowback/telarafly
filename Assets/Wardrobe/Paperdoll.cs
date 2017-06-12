@@ -171,8 +171,32 @@ namespace Assets.Wardrobe
                 foreach (SkinnedMeshRenderer r in newNifRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                     r.transform.parent = meshes.transform;
 
-                // now, process the NiSkinningMeshModifier 
-                NIFLoader.linkBonesToMesh(file, skeleton);
+                // weapons are a bit different
+                if (!WardrobeStuff.isWeapon(slot))
+                    // process the NiSkinningMeshModifier 
+                    NIFLoader.linkBonesToMesh(file, skeleton);
+                else
+                {
+                    /*
+                    switch (slot)
+                    {
+                        case GearSlot.MAIN_HAND:
+                        */
+                            //newNifRoot.FindDeepChild("propShape").localPosition = Vector3.zero;
+                            Transform t = skeleton.transform.FindDeepChild("AP_r_hand");
+                            meshes.transform.parent = t;
+                            meshes.transform.localPosition = new Vector3(0, 0, 0);
+                            //meshes.transform.localPosition = new Vector3(0, 0, 0);
+                            //meshes.transform.GetChild(0).localPosition = Vector3.zero;
+
+                    /*
+                            break;
+                        default:
+                            break;
+
+                    }
+                    */
+                }
 
                 this.animationNif.clearBoneMap();
 

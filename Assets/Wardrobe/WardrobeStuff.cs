@@ -8,9 +8,10 @@ using UnityEngine;
 
 namespace Assets.Wardrobe
 {
+    // Dataset 230?
     public enum GearSlot
     {
-
+       
         MAIN_HAND = 1,
         OFF_HAND = 2,
         TWO_HAND = 3,
@@ -41,11 +42,15 @@ namespace Assets.Wardrobe
     }
     static public class WardrobeStuff
     {
-
+        public static bool isWeapon(GearSlot slot)
+        {
+            return slot == GearSlot.MAIN_HAND || slot == GearSlot.OFF_HAND || slot == GearSlot.RANGED || slot == GearSlot.TWO_HAND;
+        }
         public static Dictionary<string, int> raceMap = new Dictionary<string, int>();
         public static Dictionary<string, int> genderMap = new Dictionary<string, int>();
+        public static Dictionary<GearSlot, string> weaponBindMap = new Dictionary<GearSlot, string>();
 
-        static  WardrobeStuff()
+        static WardrobeStuff()
         {
             // initialize the race map       
             raceMap["human"] = 1;
@@ -57,6 +62,8 @@ namespace Assets.Wardrobe
             //raceMap["highelf"] = 2008;
             genderMap["male"] = 0;
             genderMap["female"] = 2;
+
+            //weaponBindMap[GearSlot.MAIN_HAND] = 
         }
         public static GearSlot getSlot(int i)
         {

@@ -67,7 +67,7 @@ public class ModelView : MonoBehaviour
                 return o.convert() + "";
         return "";
     }
-    private void parse(IEnumerable<entry> entries)
+    private void parse7305(IEnumerable<entry> entries)
     {
         nIFModelDropdown.ClearOptions();
 
@@ -86,7 +86,11 @@ public class ModelView : MonoBehaviour
              List<string> SZZZdropdownE = new List<string>();
         List<entry> lentries = new List<entry>(entries);
         List<string>[] buckets = new List<string>[] { AFdropdownE , GLdropdownE, MRdropdownE, SZdropdownE , SZZdropdownE ,SZZZdropdownE };
-        
+
+        //nIFModelEntries.Add("human_male_ref.nif");
+        //nifDictionary["human_male_ref.nif"] = new AnimatedNif(adb, "human_male_ref.nif", "human_male.kfm", "human_male.kfb");
+
+
         List<string> nifsToBucket = new List<string>();
         foreach (entry e in lentries)
         {
@@ -207,8 +211,11 @@ public class ModelView : MonoBehaviour
             anims.Add(ani.sequencename);
         }
         anims.Sort();
+        animNif.setSkeletonRoot(nifmodel);
         animationNif = animNif;
+        
         this.animationDropdown.AddOptions(anims);
+        
     }
     public void changeAnim()
     {
@@ -266,7 +273,7 @@ public class ModelView : MonoBehaviour
         {
             first = true;
             IEnumerable<entry> entries = db.getEntriesForID(7305);
-            parse(entries);
+            parse7305(entries);
             changeNif("crucia.nif");
             animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
         }
