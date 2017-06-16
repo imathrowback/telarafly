@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Assets
 {
-    class AnimatedNif
+    public class AnimatedNif
     {
         Dictionary<String, GameObject> boneMap = new Dictionary<string, GameObject>();
 
@@ -23,9 +23,19 @@ namespace Assets
         NIFFile nifanimation;
         int activeAnimation = -1;
         List<KFAnimation> anims;
+        GameObject skeletonRoot;
+
+
         public void clearBoneMap()
         {
             boneMap.Clear();
+        }
+
+        public void setSkeletonRoot(GameObject root)
+        {
+            if (root == null)
+                throw new Exception("attempt to set null skeleton");
+            this.skeletonRoot = root;
         }
         public List<KFAnimation> getAnimations()
         {
@@ -43,12 +53,13 @@ namespace Assets
             sp.Start();
             foreach (KFAnimation anim in kfmfile.kfanimations)
             {
+
                 int id = anim.id;
                 //Debug.Log("[" + sp.ElapsedMilliseconds + "] check id[" + id + "]");
-                if (getData(id) != null)
-                {
+                byte[] data = getKFBData(id);
+                if (data != null)
                     anims.Add(anim);
-                }
+                //Debug.Log("Found anim [" + anim.id + "]:" + anim.sequenceFilename + ":" + anim.sequencename +": hasData:" + (data != null));
                 // Debug.Log("[" + sp.ElapsedMilliseconds + "] done check id[" + id + "]");
             }
 
@@ -57,19 +68,23 @@ namespace Assets
 
         public AnimatedNif(AssetDatabase adb, string nif, string kfm, string kfb)
         {
+            //Debug.Log("AnimatedNif:" + nif + ":" + kfm + ":" + kfb);
             this.adb = adb;
             this.nif = nif;
             this.kfm = kfm;
             this.kfb = kfb;
         }
 
-        private byte[] getData(int animToUse)
+        /** Load the KFB data for the selected animation, will return null if the animation does not exist in the KFB */
+        private byte[] getKFBData(int animToUse)
         {
             if (kfb == null)
                 return null;
             if (kfbfile == null)
+            {
                 kfbfile = new NIFFile(new MemoryStream(adb.extractUsingFilename(this.kfb)));
-
+                Debug.Log("getting KFB: " + this.kfb);
+            }
             /** Choose the right animation to load from the KFB file. Ideally we should use the KFM to know what index to use */
             for (int i = 0; i < kfbfile.numObjects; i += 4)
             {
@@ -80,14 +95,14 @@ namespace Assets
 
                 int animIdx = indexData.intExtraData;
                 if (animIdx == animToUse)
-                    return binData.decompressed;
+                    return binData.getDecompressed();
             }
             return null;
         }
 
         public NIFFile loadKFB(int animToUse)
         {
-            byte[] data = getData(animToUse);
+            byte[] data = getKFBData(animToUse);
             if (data != null)
                 return new NIFFile(new MemoryStream(data));
             //Debug.Log("unable to load KFB for anim:" + animToUse);
@@ -118,20 +133,28 @@ namespace Assets
         {
             foreach (KFAnimation kfa in getAnimations())
             {
-                //Debug.Log(kfa.sequenceFilename + ":" + kfa.sequencename);
                 if (kfa.sequencename.Contains("unarmed_idle") || kfa.sequenceFilename.Contains("unarmed_idle"))
                     return kfa.id;
             }
             return 0;
         }
 
+
         public void doFrame(float t)
         {
+            if (skeletonRoot == null)
+            {
+                Debug.LogError("no skeleton root");
+                return;
+            }
             if (nifanimation == null || activeAnimation == -1)
             {
                 setActiveAnimation(getIdleAnimIndex());
                 if (nifanimation == null)
+                {
+                   
                     return;
+                }
             }
 
             /** For each sequence, evaluate it with the current time and apply the result to the related bone */
@@ -150,7 +173,14 @@ namespace Assets
                             go = boneMap[boneName];
                         else
                         {
-                            go = boneMap[boneName] = GameObject.Find(boneName);
+                            Transform bone = skeletonRoot.transform.FindDeepChild(boneName);
+                            if (bone == null)
+                            {
+                                Debug.LogError("unable to find bone in skeleton for " + boneName);
+                                continue;
+                            }
+                            go = boneMap[boneName] = bone.gameObject;
+                                //GameObject.Find(boneName);
                         }
                         if (go == null)
                         {
@@ -189,7 +219,8 @@ namespace Assets
 
                             }
                         }
-                        //Debug.DrawLine(go.transform.position, go.transform.parent.position);
+                        //Debug.Log("drawLine", go);
+                        Debug.DrawLine(go.transform.position, go.transform.parent.position);
 
                     }
                 }

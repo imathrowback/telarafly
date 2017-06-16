@@ -1,4 +1,5 @@
-﻿using Assets.RiftAssets;
+﻿using Assets.DatParser;
+using Assets.RiftAssets;
 using CGS;
 using Ionic.Zlib;
 using System;
@@ -8,21 +9,99 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace Assets.DB
+namespace Assets.Database
 {
-    /** TelaraDB  */
-    class DBInst
+    public delegate void ProgressCallback(string message);
+    public delegate void LoadedCallback(DB db);
+    public static class DBInst
     {
-        static DB db;
+        private static System.Threading.Thread loadThread;
+        static object lockObj = new object();
 
-        public static DB readDB(string expectedChecksum, Action<String> progress)
+        public static CObject toObj(this DB db, long ds, long key)
+        {
+            entry e = db.getEntry(ds, key);
+            MemoryStream str = new MemoryStream(e.decompressedData);
+            return Parser.processStreamObject(str);
+        }
+
+        public static bool loaded = false;
+        public static bool loading {  get { return loadThread.IsAlive; } }
+        static private EnglishLang langdb;
+        static private DB db;
+        public static DB inst   { get {
+                lock (lockObj)
+                {
+                    return db;
+                }
+            }
+        }
+
+        public static EnglishLang lang_inst
+        {
+            get
+            {
+                lock (lockObj)
+                {
+                    return langdb;
+                }
+            }
+        }
+
+
+        public static event ProgressCallback progress = delegate { };
+        public static event LoadedCallback isloadedCallback = delegate { };
+
+        /**
+         * If the db is loaded, call the callback immediately, otherwise, register the callback
+         */ 
+        public static void loadOrCallback(LoadedCallback loadCallback)
         {
             if (db != null)
-                return db;
-            GC.Collect();
-            db = new DB();
+                loadCallback.Invoke(db);
+            else
+                isloadedCallback += loadCallback;
+        }
+
+        static DBInst()
+        {
+            loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(loadDatabase_));
+            loadThread.Start();
+        }
+        
+        private static void loadDatabase_()
+        {
+            lock (lockObj)
+            {
+                AssetDatabase adb = AssetDatabaseInst.DB;
+                string expectedChecksum = adb.getHash("telara.db");
+                DB db = readDB(expectedChecksum, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+                if (db == null)
+                {
+                    createTelaraDBFromDB(adb);
+                    db = readDB(expectedChecksum, (s) => { progress.Invoke("[Phase 1.1 of 2]" + s); });
+                }
+
+                langdb = new EnglishLang(adb, (s) => { progress.Invoke("[Phase 2 of 2]" + s); });
+
+                DBInst.db = db;
+                if (db != null)
+                {
+                    loaded = true;
+                    isloadedCallback.Invoke(db);
+                    progress.Invoke("");
+                }
+
+            }
+        }
+
+        private static DB readDB(string expectedChecksum, Action<String> progress)
+        {
+            DB db = new DB();
             try
             {
+                if (DBInst.db != null)
+                    return DBInst.db;
                 using (FileStream fs = new FileStream("dat.xmlz", FileMode.Open))
                 {
                     using (ProgressStream ps = new ProgressStream(fs))
@@ -37,11 +116,10 @@ namespace Assets.DB
                             using (BinaryReader reader = new BinaryReader(ds))
                             {
                                 db.dbchecksum = reader.ReadString();
-                                string simpleHash = db.dbchecksum.Replace("-", string.Empty).ToLower();
-                                if (!expectedChecksum.Equals(simpleHash))
+                                if (!expectedChecksum.Equals(db.dbchecksum))
                                 {
-                                    UnityEngine.Debug.Log("Checksum in file[" + db.dbchecksum + "] doesn't match expected from assets[" + expectedChecksum + "]");
                                     db = null;
+                                    UnityEngine.Debug.Log("Checksum in file doesn't match file from assets");
                                     return null;
                                 }
                                 else
@@ -59,19 +137,8 @@ namespace Assets.DB
 
                                     db.Add(e);
                                 }
+                               
                             }
-                            try
-                            {
-
-
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.Log(ex);
-                            }
-
-                            //Debug.Log("done read");
-
                         }
                     }
                 }
@@ -82,9 +149,13 @@ namespace Assets.DB
                 db = null;
                 return null;
             }
+            finally
+            {
+            }
             return db;
         }
 
+      
         private static void create(string assetManifest, string assetDir)
         {
             System.Diagnostics.Process pr;

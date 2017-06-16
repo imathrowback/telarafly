@@ -6,7 +6,7 @@ using UnityEngine;
 using Ionic.Zlib;
 using System;
 using System.Reflection;
-using Assets.DB;
+using Assets.Database;
 using Assets.RiftAssets;
 using UnityEngine.UI;
 using Assets.DatParser;
@@ -22,7 +22,6 @@ public class ModelView : MonoBehaviour
     GameObject nifmodel;
     AnimatedNif animationNif;
     Text progressText;
-    DB db;
     Slider speedSlider;
     AssetDatabase adb;
     public GameObject ground;
@@ -35,8 +34,8 @@ public class ModelView : MonoBehaviour
     Dropdown SZdropdown;
     Dropdown SZZdropdown;
     Dropdown SZZZdropdown;
-    System.Threading.Thread loadThread;
     Dictionary<String, AnimatedNif> nifDictionary = new Dictionary<string, AnimatedNif>();
+    DB db;
     volatile string progress = "";
     void Start()
     {
@@ -57,16 +56,10 @@ public class ModelView : MonoBehaviour
         loader.loadManifestAndDB();
         adb = AssetDatabaseInst.DB;
 
-
-        loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(loadDatabase));
-        loadThread.Start();
+        DBInst.loadOrCallback((d) => db = d);
+        DBInst.progress += (m) => progress = m;
     }
 
-    void loadDatabase()
-    {
-        string expectedChecksum = adb.getHash("telara.db");
-        db = DBInst.readDB(expectedChecksum, (s) => { progress = s; });
-    }
     private string getStringMember(CObject obj, int member)
     {
         foreach (CObject o in obj.members)
@@ -74,7 +67,7 @@ public class ModelView : MonoBehaviour
                 return o.convert() + "";
         return "";
     }
-    private void parse(IEnumerable<entry> entries)
+    private void parse7305(IEnumerable<entry> entries)
     {
         nIFModelDropdown.ClearOptions();
 
@@ -93,7 +86,11 @@ public class ModelView : MonoBehaviour
              List<string> SZZZdropdownE = new List<string>();
         List<entry> lentries = new List<entry>(entries);
         List<string>[] buckets = new List<string>[] { AFdropdownE , GLdropdownE, MRdropdownE, SZdropdownE , SZZdropdownE ,SZZZdropdownE };
-        
+
+        //nIFModelEntries.Add("human_male_ref.nif");
+        //nifDictionary["human_male_ref.nif"] = new AnimatedNif(adb, "human_male_ref.nif", "human_male.kfm", "human_male.kfb");
+
+
         List<string> nifsToBucket = new List<string>();
         foreach (entry e in lentries)
         {
@@ -214,8 +211,11 @@ public class ModelView : MonoBehaviour
             anims.Add(ani.sequencename);
         }
         anims.Sort();
+        animNif.setSkeletonRoot(nifmodel);
         animationNif = animNif;
+        
         this.animationDropdown.AddOptions(anims);
+        
     }
     public void changeAnim()
     {
@@ -265,23 +265,17 @@ public class ModelView : MonoBehaviour
 
     // Update is called once per frame
     float tt = 0;
+    bool first = false;
     void FixedUpdate()
     {
         progressText.text = progress;
-        if (loadThread != null)
+        if (DBInst.loaded && !first)
         {
-            if (loadThread.IsAlive)
-            {
-                return;
-            }
-            if (db != null)
-            {
-                IEnumerable<entry> entries = db.getEntriesForID(7305);
-                parse(entries);
-                changeNif("crucia.nif");
-                animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
-                loadThread = null;
-            }
+            first = true;
+            IEnumerable<entry> entries = db.getEntriesForID(7305);
+            parse7305(entries);
+            changeNif("crucia.nif");
+            animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
         }
         tt += animSpeed;
         if (tt > 1)

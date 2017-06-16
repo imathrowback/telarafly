@@ -23,6 +23,7 @@ namespace Assets
         private String assetsDirectory = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets\\";
         bool local = false;
 
+        static object lockObj = new object();
         private void init()
         {
             if (local)
@@ -53,12 +54,16 @@ namespace Assets
 
         public static AssetDatabaseInst getInst()
         {
-            if (inst == null)
+            lock (lockObj)
             {
-                inst = new AssetDatabaseInst();
-                inst.init();
+
+                if (inst == null)
+                {
+                    inst = new AssetDatabaseInst();
+                    inst.init();
+                }
+                return inst;
             }
-            return inst;
         }
 
 

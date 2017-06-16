@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 using UnityEngine;
 
@@ -116,6 +117,11 @@ namespace Assets.RiftAssets
 
         public byte[] download(Manifest manifest, ManifestEntry e)
         {
+            string name = e.hashStr;
+            if (entryMap.ContainsKey(name))
+                name = entryMap[name];
+
+            Debug.Log("downloading " + name);
             MemoryStream ms = new MemoryStream();
 
             int pakIndex = e.pakIndex;
@@ -131,9 +137,7 @@ namespace Assets.RiftAssets
             {
                 using (Stream stream = response.GetResponseStream())
                 {
-                    string name = e.hashStr;
-                    if (entryMap.ContainsKey(name))
-                        name = entryMap[name];
+                   
 
                     CopyToWithProgress(stream, response.ContentLength, ms, (s) => progressUpdate.Invoke("entry[" +name + "]:" + s + "%"));
                 }
@@ -144,20 +148,40 @@ namespace Assets.RiftAssets
 
             if (e.size != e.compressedSize)
             {
-                //SevenZipCompressor c = new SevenZipCompressor();
-                //c.CompressionMethod = CompressionMethod.Lzma2;
-                
-                LzmaDecodeStream lstr = new LzmaDecodeStream(ms);
-                MemoryStream outMs = new MemoryStream();
+                Debug.Log("lzma decompress " + name);
+                byte[] sourceArray = ms.ToArray();
+                int sourceLen = sourceArray.Length;
+                byte[] destArray = new byte[e.size];
+                int destLen = destArray.Length;
 
-                CopyTo(lstr, outMs);
-                outMs.Seek(0, SeekOrigin.Begin);
-                return outMs.ToArray();
+                GCHandle src = GCHandle.Alloc(sourceArray, GCHandleType.Pinned);
+                GCHandle dst = GCHandle.Alloc(destArray, GCHandleType.Pinned);
+
+
+                lzma2decode(src.AddrOfPinnedObject(), sourceLen, dst.AddrOfPinnedObject(), destLen);
+
+                src.Free();
+                dst.Free();
+
+                return destArray;
             }
             else
             {
                 return ms.ToArray();
             }
         }
+
+
+#if UNITY_64
+        [DllImport(@"riftlzma2_x64")]
+        static extern void lzma2decode(IntPtr src, int srcLen, IntPtr dest, int destLen);
+#elif UNITY_32
+        [DllImport(@"riftlzma2")]
+        static extern void lzma2decode(IntPtr src, int srcLen, IntPtr dest, int destLen);
+#endif
+
     }
+
+
+
 }

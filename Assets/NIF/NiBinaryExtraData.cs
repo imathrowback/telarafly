@@ -13,11 +13,25 @@ namespace Assets.NIF
 
         public int binaryDataSize;
         public byte[] extraData;
-        public byte[] decompressed;
+        private byte[] decompressedData;
+        private static System.Threading.Thread loadThread;
 
+
+        public byte[] getData()
+        {
+            if (getDecompressed() != null)
+                return decompressedData;
+            return extraData;
+        }
         public NiBinaryExtraData()
         {
 
+        }
+
+        public byte[] getDecompressed()
+        {
+            loadThread.Join();
+            return decompressedData;
         }
 
         public override void parse(NIFFile file, NIFObject baseo, BinaryReader ds)
@@ -29,14 +43,17 @@ namespace Assets.NIF
             if (binaryDataSize > 0)
             {
                 extraData = ds.ReadBytes(binaryDataSize);
-                tryDecompress();
+
+                loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(tryDecompress));
+                loadThread.Start();
+
             }
         }
 
         /** return true if the data was compressed */
         public bool wasCompressed()
         {
-            return decompressed != null;
+            return getDecompressed() != null;
         }
 
         /** Try to the decompress the data if possible, otherwise fail silently */
@@ -44,7 +61,7 @@ namespace Assets.NIF
         {
             try
             {
-                decompressed = Ionic.Zlib.ZlibStream.UncompressBuffer(extraData);
+                decompressedData = Ionic.Zlib.ZlibStream.UncompressBuffer(extraData);
             }catch (Exception ex)
             {
                 //Debug.Log("data not compressed for obj:" + name + ":" + ex.Message);
