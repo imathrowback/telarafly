@@ -124,8 +124,15 @@ namespace Assets.NIF
                             }
                             else
                             {
+                                Type t = Type.GetType(cName);
+                                if (t == null)
+                                {
+                                    Debug.LogWarning("type " + cName + " not implemented");
+                                    notImplementedMap[typeName] = true;
+                                    continue;
+                                }
                                 Debug.LogWarning("[PERFORMANCE WARNING] using activator for " + typeName);
-                                newObj = (NIFObject)Activator.CreateInstance(Type.GetType(cName));
+                                newObj = (NIFObject)Activator.CreateInstance(t);
                             }
 
                             objects[i] = newObj;

@@ -32,10 +32,8 @@ namespace Assets.RiftAssets
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
-        public override byte[] extractUsingFilename(string filename)
+        override public byte[] extractUsingHash(string hash)
         {
-            string hash = Util.hashFileName(filename);
-            
             foreach (ManifestEntry me in manifest.manifestEntries)
             {
                 if (me.lang == 0 || me.lang == 1)
@@ -43,6 +41,13 @@ namespace Assets.RiftAssets
                         return rPak.download(manifest, me);
             }
             return null;
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public override byte[] extractUsingFilename(string filename)
+        {
+            string hash = Util.hashFileName(filename);
+            return extractUsingHash(hash);
         }
 
         public override bool filenameExists(string filename)

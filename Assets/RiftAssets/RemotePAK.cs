@@ -58,7 +58,7 @@ namespace Assets.RiftAssets
         }
 
         RemoteType type;
-        int index = 0;
+        int index = 4;
 
         private string getBaseURL(int index)
         {
@@ -75,14 +75,23 @@ namespace Assets.RiftAssets
         public RemotePAK(RemoteType type)
         {
             this.type = type;
-            this.index = 2;
             initNameDB();
         }
 
         public byte[] downloadManifest()
         {
+            // TODO: Some kind of sha test
+            String cacheFile = Path.Combine(cacheDir, "assets64.manifest");
+            if (cache)
+            {
+                if (File.Exists(cacheFile))
+                    return File.ReadAllBytes(cacheFile);
+            }
+
             string url = getBaseURL(index) + "recovery64/assets64.manifest";
             MemoryStream ms = new MemoryStream();
+
+            Debug.Log("Attempt to get:" + url);
 
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
             using (WebResponse response = req.GetResponse())
@@ -98,25 +107,46 @@ namespace Assets.RiftAssets
 
 
             ms.Seek(0, SeekOrigin.Begin);
-            return ms.ToArray();
+            byte[] data =  ms.ToArray();
+            if (cache)
+                File.WriteAllBytes(cacheFile, data);
+            return data;
         }
 
         private void initNameDB()
         {
-            byte[] data = File.ReadAllBytes(@"decomp\single-entries.dat");
-            GZipStream str = new GZipStream(new MemoryStream(data), Ionic.Zlib.CompressionMode.Decompress);
-            StreamReader reader = new StreamReader(str);
-            while (!reader.EndOfStream)
+            try
             {
-                string line = reader.ReadLine();
-                string[] parts = line.Split(':');
-                if (parts.Length == 2)
-                    entryMap[parts[0]] = parts[1];
+                byte[] data = File.ReadAllBytes(@"decomp\single-entries.dat");
+                GZipStream str = new GZipStream(new MemoryStream(data), Ionic.Zlib.CompressionMode.Decompress);
+                StreamReader reader = new StreamReader(str);
+                while (!reader.EndOfStream)
+                {
+                    string line = reader.ReadLine();
+                    string[] parts = line.Split(':');
+                    if (parts.Length == 2)
+                        entryMap[parts[0]] = parts[1];
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("Unable to load entries database:" + ex.Message);
             }
         }
 
+        bool cache = true;
+        String cacheDir = @"c:\temp\cache";
         public byte[] download(Manifest manifest, ManifestEntry e)
         {
+            // combine the name and sha hash to make a unique filename
+            String cacheFile = Path.Combine(cacheDir, e.hashStr + e.idStr);
+            if (cache)
+            {
+                if (File.Exists(cacheFile))
+                    return File.ReadAllBytes(cacheFile);
+            }
+
+
             string name = e.hashStr;
             if (entryMap.ContainsKey(name))
                 name = entryMap[name];
@@ -137,15 +167,13 @@ namespace Assets.RiftAssets
             {
                 using (Stream stream = response.GetResponseStream())
                 {
-                   
-
                     CopyToWithProgress(stream, response.ContentLength, ms, (s) => progressUpdate.Invoke("entry[" +name + "]:" + s + "%"));
                 }
             }
 
 
             ms.Seek(0, SeekOrigin.Begin);
-
+            byte[] returnData = null;
             if (e.size != e.compressedSize)
             {
                 Debug.Log("lzma decompress " + name);
@@ -163,12 +191,15 @@ namespace Assets.RiftAssets
                 src.Free();
                 dst.Free();
 
-                return destArray;
+                returnData = destArray;
             }
             else
             {
-                return ms.ToArray();
+                returnData = ms.ToArray();
             }
+            if (cache)
+                File.WriteAllBytes(cacheFile, returnData);
+            return returnData;
         }
 
 

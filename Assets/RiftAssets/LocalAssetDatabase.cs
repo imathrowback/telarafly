@@ -136,6 +136,11 @@ namespace Assets.RiftAssets
             return extract(getEntryForFileName(filename));
         }
 
+        override public byte[] extractUsingHash(string fname)
+        {
+            return extract(getEntryForFileNameHash(fname));
+        }
+
         /** Attempt to extract the asset with the given filename */
         private void extractToFilename( String filename,  String outputfilename)
         {

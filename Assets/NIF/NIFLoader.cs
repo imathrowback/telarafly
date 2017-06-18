@@ -41,7 +41,13 @@ public class NIFLoader
 
     public NIFFile getNIF(String fname)
     {
-        byte[] nifData = db.extractUsingFilename(fname);
+        byte[] nifData;
+        Debug.Log("get nif:" + fname);
+        // if the name contains a "." then assume its a filename, otherwise treat it as a hash
+        if (fname.Contains("."))
+            nifData = db.extractUsingFilename(fname);
+        else
+            nifData = db.extractUsingHash(fname);
         using (MemoryStream nifStream = new MemoryStream(nifData))
         {
             return new NIFFile(nifStream);

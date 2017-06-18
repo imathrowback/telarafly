@@ -300,7 +300,7 @@ public class telera_spawner : MonoBehaviour
             if (job.Update())
             {
                 telara_obj to = job.parent;
-                Transform loadingObj = to.gameObject.transform.FindChild("Loading");
+                Transform loadingObj = to.gameObject.transform.Find("Loading");
                 if (loadingObj != null)
                     GameObject.Destroy(loadingObj.gameObject);
 

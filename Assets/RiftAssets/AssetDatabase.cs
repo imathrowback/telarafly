@@ -12,6 +12,6 @@ namespace Assets.RiftAssets
         abstract public byte[] extractUsingFilename(String filename);
         abstract public bool filenameExists(String filename);
 
-
+        abstract public byte[] extractUsingHash(string fname);
     }
 }
