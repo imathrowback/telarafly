@@ -37,10 +37,11 @@ public class telara_obj : MonoBehaviour {
         spawner.addJob(this, file);
     }
 
-    void objectNoLongerVisible()
+    public void unload()
     {
-        //foreach (Transform child in transform)
-        //   GameObject.Destroy(child.gameObject);
+        foreach (Transform child in transform)
+           GameObject.DestroyImmediate(child.gameObject);
+        doLoad = loaded = false;
     }
 
     void Start () {

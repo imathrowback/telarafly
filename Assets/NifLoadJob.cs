@@ -24,8 +24,15 @@ public class NifLoadJob : ThreadedJob
             if (originals.ContainsKey(fn))
             {
                 GameObject go = originals[fn];
-                GameObject newG = GameObject.Instantiate(go);
-                return newG;
+                // check if the object has been destroyed before we try to use it
+                if (go != null)
+                {
+                    GameObject newG = GameObject.Instantiate(go);
+                    return newG;
+                }
+                // object was destroyed, return null;
+                originals.Remove(fn);
+                return null;
             }
             return null;
         }
@@ -79,6 +86,7 @@ public class NifLoadJob : ThreadedJob
             // extra check for terrain
             if (filename.Contains("_terrain_"))
             {
+                parent.gameObject.AddComponent<TerrainObj>();
                 string lodname = filename.Replace("_split", "_lod_split");
                 try
                 {

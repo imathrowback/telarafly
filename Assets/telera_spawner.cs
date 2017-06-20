@@ -11,7 +11,6 @@ public class telera_spawner : MonoBehaviour
 {
     GameObject meshRoot;
     Properties p;
-    Queue<string> nodeBuildQueue = new Queue<string>();
     List<NifLoadJob> ObjJobLoadQueue = new List<NifLoadJob>();
     GameObject charC;
     ThirdPersonUserControl tpuc;
@@ -24,6 +23,28 @@ public class telera_spawner : MonoBehaviour
     int MAX_OBJ_PER_FRAME = 150;
     int MAX_NODE_PER_FRAME = 15025;
     NIFLoader nifloader;
+
+    public void purgeObjects()
+    {
+        if (ObjJobLoadQueue.Count > 0)
+            return;
+        NifLoadJob.clearCache();
+        foreach (telara_obj obj in GameObject.FindObjectsOfType<telara_obj>())
+        {
+            // don't unload terrain
+            if (obj.gameObject.GetComponent<TerrainObj>() == null)
+                obj.unload();
+        }
+        // clear the job queue as well
+        NifLoadJob[] queue = ObjJobLoadQueue.ToArray();
+        ObjJobLoadQueue.Clear();
+        foreach (NifLoadJob job in queue)
+        {
+            telara_obj obj = job.parent;
+            if (obj.gameObject.GetComponent<TerrainObj>() != null)
+                ObjJobLoadQueue.Add(job);
+        }
+    }
 
     bool firstLoad = true;
     public void addJob(telara_obj parent, string filename)
@@ -39,10 +60,6 @@ public class telera_spawner : MonoBehaviour
             ObjJobLoadQueue.Insert(0, job);
         else
             ObjJobLoadQueue.Add(job);
-    }
-    public int getNodeBuildSize()
-    {
-        return nodeBuildQueue.Count;
     }
     public int ObjJobLoadQueueSize()
     {
@@ -220,7 +237,6 @@ public class telera_spawner : MonoBehaviour
     }
 
     int runningThreads = 0;
-    bool nodeBuildQueueDone = false;
     private Dropdown dropdown;
 
     public Collider[] checkHits(Vector3 position)
@@ -262,16 +278,6 @@ public class telera_spawner : MonoBehaviour
             setCameraLoc(GameWorld.initialSpawn, true);
         }
         int i = 0;
-        while (nodeBuildQueue.Count > 0 && i++ < MAX_NODE_PER_FRAME)
-            processNodeLine(nodeBuildQueue.Dequeue());
-        if (i > 1)
-        {
-            if (nodeBuildQueue.Count == 0)
-                checkHits(charC.transform.position);
-        }
-
-        i = 0;
-
 
         foreach (NifLoadJob job in ObjJobLoadQueue.ToArray())
         {

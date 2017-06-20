@@ -39,11 +39,6 @@ public class ShowCamLoc : MonoBehaviour {
 
         
         x +="\nCamera position: " + meshRoot.transform.InverseTransformPoint(mcamera.transform.position).ToString() ;
-        if (spawner.getNodeBuildSize() > 0)
-        {
-            //pos.y += 30;
-            x += "\nRemaining positions to load from database: " + spawner.getNodeBuildSize() ;
-        }
 
         if (spawner.ObjJobLoadQueueSize() > 0 )
         {
