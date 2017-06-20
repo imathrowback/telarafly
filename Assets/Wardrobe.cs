@@ -91,7 +91,12 @@ public class Wardrobe : MonoBehaviour
 
     void updatePage()
     {
-        pageText.text = "Items " + previewIndex + "-" + clothingPanels.Count() + " of " + clothingItems.Length;
+        pageText.text = "Items " + previewIndex + "-" + (previewIndex+clothingPanels.Count()) + " of " + clothingItems.Length;
+    }
+    public void mainMenu()
+    {
+        UnityEngine.SceneManagement.SceneManager.LoadScene("test-decomp");
+
     }
     void updatePreview()
     {
