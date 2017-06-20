@@ -86,7 +86,6 @@ public class NifLoadJob : ThreadedJob
             // extra check for terrain
             if (filename.Contains("_terrain_"))
             {
-                parent.gameObject.AddComponent<TerrainObj>();
                 string lodname = filename.Replace("_split", "_lod_split");
                 try
                 {
@@ -109,7 +108,11 @@ public class NifLoadJob : ThreadedJob
     {
         try
         {
-            GameObject go;
+            if (filename.Contains("_terrain_"))
+                parent.gameObject.AddComponent<TerrainObj>();
+        
+
+                GameObject go;
 
             count--;
             // This is executed by the Unity main thread when the job is finished
