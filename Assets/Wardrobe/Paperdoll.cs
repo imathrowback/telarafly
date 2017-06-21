@@ -118,8 +118,29 @@ namespace Assets.Wardrobe
             // always hide the boots
             enableDisableGeo("boots", go, false);
 
+            // if the model is female, give it some clothes for "modesty" because for some reason all female models except bahmi are "nude"
+            if (genderString.Equals("female"))
+            {
+                if (db != null)
+                {
+                    if (!gearSlots.ContainsKey(GearSlot.TORSO))
+                        setGear(GearSlot.TORSO, 1127855431);
+                    if (!gearSlots.ContainsKey(GearSlot.LEGS))
+                        setGear(GearSlot.LEGS, 1300181064);
+                }
+            }
+
             //this.animationNif = nifJobLoad.animationNif;
-            
+
+
+        }
+
+        void loadDefault()
+        {
+            // set default gear
+            int race = WardrobeStuff.raceMap[raceString];
+            int sex = WardrobeStuff.genderMap[genderString];
+            loadAppearenceSet(176073892, race, sex);
         }
 
         Dictionary<GearSlot, GameObject> gearSlots = new Dictionary<GearSlot, GameObject>();
@@ -231,6 +252,7 @@ namespace Assets.Wardrobe
         {
             if (nifJobLoad != null)
                 nifJobLoad.Update();
+           
         }
 
         public void FixedUpdate()
