@@ -15,7 +15,7 @@ The 32bit executables are required to process certain information and are only n
 
 ## Configuration
 
-Read the RUNNINGREADME and edit nif2obj.properties
+Read the RUNNINGREADME and edit telarafly.cfg
 
 ## Running
 

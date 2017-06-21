@@ -5,7 +5,7 @@ README
 Step 1
 ------
 
-Edit nif2obj.properties and set the values to whatever your environment is. Most Directories must have \\ ending them
+Edit telarafly.cfg and set the values to whatever your environment is. Most Directories must have \\ ending them
 
 ASSETS_DIR      - Path to RIFT assets directory
 ASSETS_MANIFEST - Path to RIFT manifest file
@@ -14,7 +14,7 @@ TERRAIN_VIS			- Distane that terrain becomes visible and loaded (val*256)
 
 Step 2
 -------
-Run terafly.exe
+Run telarafly.exe
 
 ===== Movement
 Mouse to look around
