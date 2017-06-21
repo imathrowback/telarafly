@@ -530,10 +530,7 @@ public class OBJLoader
             MeshRenderer mr = subObject.AddComponent<MeshRenderer>();
             //MeshCollider mc = subObject.AddComponent<MeshCollider>();
 
-            // public static String DDS_DIR = "d:\\rift_stuff\\dds\\";
-            Properties p = new Properties("nif2obj.properties");
-            //string DDS_DIR = p.get("DDS_TEXTURE_DIR");
-            string PNG_DIR = p.get("PNG_TEXTURE_DIR");
+            string PNG_DIR = Assets.ProgramSettings.get("PNG_TEXTURE_DIR");
             Shader basicBasic = Shader.Find("BasicShader");
             Shader basicTransparent = Shader.Find("TransparentBasicShader");
             Shader basicWaterTransparent = Shader.Find("WaterShader");

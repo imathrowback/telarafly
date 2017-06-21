@@ -10,7 +10,6 @@ using UnityEngine.UI;
 public class telera_spawner : MonoBehaviour
 {
     GameObject meshRoot;
-    Properties p;
     List<NifLoadJob> ObjJobLoadQueue = new List<NifLoadJob>();
     GameObject charC;
     ThirdPersonUserControl tpuc;
@@ -79,10 +78,9 @@ public class telera_spawner : MonoBehaviour
         mcamera = GameObject.Find("Main Camera");
         meshRoot = GameObject.Find("NIFRotationRoot");
 
-        p = new Properties("nif2obj.properties");
-        MAX_OBJ_PER_FRAME = int.Parse(p.get("MAX_OBJ_PER_FRAME", "100"));
-        MAX_RUNNING_THREADS = int.Parse(p.get("MAX_RUNNING_THREADS", "4"));
-        MAX_NODE_PER_FRAME = int.Parse(p.get("MAX_NODE_PER_FRAME", "15000"));
+        MAX_OBJ_PER_FRAME = ProgramSettings.get("MAX_OBJ_PER_FRAME", 100);
+        MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 4);
+        MAX_NODE_PER_FRAME = ProgramSettings.get("MAX_NODE_PER_FRAME", 15000);
 
         setCameraLoc(GameWorld.initialSpawn);
 
@@ -201,7 +199,7 @@ public class telera_spawner : MonoBehaviour
         {
             // use a vertical box as our collider for now
             go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            float c = float.Parse(p.get("TERRAIN_VIS", "15"));
+            float c = ProgramSettings.get("TERRAIN_VIS", 15.0f);
             go.GetComponent<BoxCollider>().size = new Vector3(256 * c, 5000, 256 * c);
             go.GetComponent<BoxCollider>().center = new Vector3(128, 0, 128);
             go.layer = 30;
@@ -209,7 +207,11 @@ public class telera_spawner : MonoBehaviour
         else
         {
             go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.GetComponent<SphereCollider>().radius = 5;
+            Bounds b = new Bounds(op.min, Vector3.one);
+            b.Encapsulate(op.max);
+            
+            
+            go.GetComponent<SphereCollider>().radius = b.size.magnitude;
             go.layer = 30;
         }
         telara_obj tobj = go.AddComponent<telara_obj>();
@@ -242,7 +244,7 @@ public class telera_spawner : MonoBehaviour
     public Collider[] checkHits(Vector3 position)
     {
         //Debug.Log("camera moved, update colliders");
-        Collider[] hitColliders = Physics.OverlapSphere(position, float.Parse(p.get("OBJECT_VISIBLE", "500")), 1 << 30);
+        Collider[] hitColliders = Physics.OverlapSphere(position, ProgramSettings.get("OBJECT_VISIBLE", 500), 1 << 30);
 
         System.Array.Sort(hitColliders, (b, a) => Vector3.Distance(position, a.gameObject.transform.position).CompareTo(Vector3.Distance(position, b.gameObject.transform.position)));
 

@@ -16,14 +16,14 @@ namespace Assets
         public static string AssetsDirectory { get { return getInst().assetsDirectory; } }
         private Manifest manifest;
         private AssetDatabase db;
-        private String assetsManifest = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets64.manifest";
-        private String assetsDirectory = "L:\\SteamStuff\\Steam2\\steamapps\\common\\rift\\assets\\";
+        private string assetsManifest;
+        private string assetsDirectory;
         static object lockObj = new object();
         private void init()
         {
-            Properties p = new Properties("nif2obj.properties");
-            assetsDirectory = (p.get("ASSETS_DIR"));
-            assetsManifest = (p.get("ASSETS_MANIFEST"));
+            
+            assetsDirectory = ProgramSettings.get("ASSETS_DIR");
+            assetsManifest = ProgramSettings.get("ASSETS_MANIFEST");
             manifest = new Manifest(assetsManifest);
             db = AssetProcessor.buildDatabase(manifest, assetsDirectory);
         }

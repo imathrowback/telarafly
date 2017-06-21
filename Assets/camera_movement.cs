@@ -31,11 +31,8 @@ namespace cam
         public float mouseSensitivity = 5.0f;        // Mouse rotation sensitivity.
         private float rotationY = 0.0f;
         Vector3 lastPos = Vector3.zero;
-        static Properties p = null;
         void Start()
         {
-            if (p == null)
-                p = new Properties("nif2obj.properties");
         }
         void Update()
         {
