@@ -215,6 +215,7 @@ public class telera_spawner : MonoBehaviour
             go.layer = 30;
         }
         telara_obj tobj = go.AddComponent<telara_obj>();
+
         go.transform.SetParent(meshRoot.transform);
         GameObject.Destroy(go.GetComponent<MeshRenderer>());
 
@@ -223,6 +224,7 @@ public class telera_spawner : MonoBehaviour
         go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
         go.transform.localPosition = op.min;
         go.transform.localRotation = op.qut;
+        applyLOD(tobj.gameObject);
     }
 
     Vector3 getV3(string str)
@@ -312,9 +314,6 @@ public class telera_spawner : MonoBehaviour
                 if (loadingObj != null)
                     GameObject.Destroy(loadingObj.gameObject);
 
-               
-
-
                 to.doLoad = false;
                 to.loaded = true;
                 ObjJobLoadQueue.Remove(job);
@@ -322,5 +321,19 @@ public class telera_spawner : MonoBehaviour
                 i++;
             }
         }
+    }
+
+    private void applyLOD(GameObject go)
+    {
+        Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
+        LODGroup group = go.AddComponent<LODGroup>();
+        group.animateCrossFading = true;
+        group.fadeMode = LODFadeMode.SpeedTree;
+        LOD[] lods = new LOD[2];
+        lods[0] = new LOD(0.9f, renderers);
+        lods[1] = new LOD(0.1f, renderers);
+        group.SetLODs(lods);
+
+
     }
 }

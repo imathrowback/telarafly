@@ -20,11 +20,12 @@ public class NIFLoader
     // Use this for initialization
     public NIFLoader()
     {
+        db = AssetDatabaseInst.DB;
     }
 
     public void loadManifestAndDB()
     {
-        db = AssetDatabaseInst.DB;
+        //db = ;
     }
 
 

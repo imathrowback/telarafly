@@ -1,9 +1,12 @@
 ﻿using System.Collections;
+
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ShowCamLoc : MonoBehaviour {
+public class ShowCamLoc : MonoBehaviour
+{
     GameObject mcamera;
     //camera_movement camMov;
     telera_spawner spawner;
@@ -23,6 +26,15 @@ public class ShowCamLoc : MonoBehaviour {
         background = GetComponentInChildren<RectTransform>();
     }
 
+    public void OnClick()
+    {
+        //Debug.Log(getCamPos());
+        TextEditor te = new TextEditor();
+        te.text = getCamPos();
+        te.SelectAll();
+        te.Copy();
+    }
+
     // Update is called once per frame
     void Update() {
         string x = "";
@@ -38,7 +50,7 @@ public class ShowCamLoc : MonoBehaviour {
 
 
         
-        x +="\nCamera position: " + meshRoot.transform.InverseTransformPoint(mcamera.transform.position).ToString() ;
+        x +="\nCamera position: " + getCamPos() ;
 
         if (spawner.ObjJobLoadQueueSize() > 0 )
         {
@@ -55,4 +67,9 @@ public class ShowCamLoc : MonoBehaviour {
         //background.bott
         //text.
 	}
+
+    private string getCamPos()
+    {
+        return meshRoot.transform.InverseTransformPoint(mcamera.transform.position).ToString();
+    }
 }
