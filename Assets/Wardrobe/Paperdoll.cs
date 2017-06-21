@@ -100,26 +100,25 @@ namespace Assets.Wardrobe
             string kfb = string.Format("{0}.kfb", getBaseModel());
 
             
-                NIFFile file = loader.getNIF(nif);
-                animationNif = new Assets.AnimatedNif(adb, nif, kfm, kfb);
-            
-               
-                GameObject go = loader.loadNIF(file, nif, true);
-                go.transform.parent = this.transform;
-                go.transform.localPosition = Vector3.zero;
-                refModel = go;
+            animationNif = new Assets.AnimatedNif(adb, nif, kfm, kfb);
+
+            NIFFile file = loader.getNIF(nif);
+            GameObject go = loader.loadNIF(file, nif, true);
+            go.transform.parent = this.transform;
+            go.transform.localPosition = Vector3.zero;
+            refModel = go;
 
 
-                animationNif.setActiveAnimation(string.Format("{0}_unarmed_idle", getBaseModel()));
-                animationNif.setSkeletonRoot(refModel);
+            animationNif.setActiveAnimation(string.Format("{0}_unarmed_idle", getBaseModel()));
+            animationNif.setSkeletonRoot(refModel);
                 
-                costumeParts = new GameObject("CostumeParts");
-                costumeParts.transform.parent = refModel.transform;
+            costumeParts = new GameObject("CostumeParts");
+            costumeParts.transform.parent = refModel.transform;
 
-                // always hide the boots
-                enableDisableGeo("boots", go, false);
+            // always hide the boots
+            enableDisableGeo("boots", go, false);
 
-                //this.animationNif = nifJobLoad.animationNif;
+            //this.animationNif = nifJobLoad.animationNif;
             
         }
 

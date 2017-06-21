@@ -169,9 +169,8 @@ namespace Assets
                         string boneName = nifanimation.getStringFromTable(evalObj.m_kAVObjectName);
                         GameObject go;
                         // cache game objects for bones
-                        if (boneMap.ContainsKey(boneName))
-                            go = boneMap[boneName];
-                        else
+                        boneMap.TryGetValue(boneName, out go);
+                        if (go == null)
                         {
                             Transform bone = skeletonRoot.transform.FindDeepChild(boneName);
                             if (bone == null)
