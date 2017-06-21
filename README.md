@@ -9,9 +9,11 @@ Telarafly is a project born out of a [reddit post](https://www.reddit.com/r/Rift
 
 ## What are all these executables/DLLs in the release archive, are they bad for me?
 
-They are needed because the program has been compiled as a 64bit executable, however certain functions (in particular database reads and decompression) requite certain decompression routine that only exist in 32bit assembly form. The 32bit executables are required to process certain information and are only needed to be run once per patch, and are are run by the progresm as needed.
+They are needed because the program has been compiled as a 64bit executable, however certain functions (in particular database reads and decompression) requite certain decompression routine that only exist in 32bit assembly form.
 
-##Configuration
+The 32bit executables are required to process certain information and are only needed to be run once per patch, and are only run by the program as needed.
+
+## Configuration
 
 Read the RUNNINGREADME and edit nif2obj.properties
 
