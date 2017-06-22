@@ -124,8 +124,15 @@ namespace Assets.NIF
                             }
                             else
                             {
-                                Debug.LogWarning("[PERFORMANCE WARNING] using activator for " + typeName);
-                                newObj = (NIFObject)Activator.CreateInstance(Type.GetType(cName));
+                                // Debug.LogWarning("[PERFORMANCE WARNING] using activator for " + typeName);
+                                Type t = Type.GetType(cName);
+                                if (t == null)
+                                {
+                                    notImplementedMap[typeName] = true;
+                                    continue;
+                                }
+                                else
+                                    newObj = (NIFObject)Activator.CreateInstance(t);
                             }
 
                             objects[i] = newObj;

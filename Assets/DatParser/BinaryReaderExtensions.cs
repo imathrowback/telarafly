@@ -14,6 +14,7 @@ namespace Assets.DatParser
             return r.BaseStream.Position == r.BaseStream.Length;
         }
 
+
         /** Read 2 bytes */
         public static int readUnsignedShort(this BinaryReader r)
         {
@@ -41,6 +42,19 @@ namespace Assets.DatParser
         public static byte readUnsignedByte(this BinaryReader r)
         {
             return r.ReadByte();
+        }
+        public static byte readByte(this BinaryReader r)
+        {
+            return r.ReadByte();
+        }
+        public static short readShort(this BinaryReader r)
+        {
+            return r.ReadInt16();
+        }
+        public static void readFully(this BinaryReader r, byte[] data)
+        {
+            byte[] d = r.ReadBytes(data.Length);
+            Array.Copy(d, data, data.Length);
         }
     }
 }

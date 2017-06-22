@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-
+using UnityEngine;
 
 namespace Assets.RiftAssets
 {
@@ -49,7 +49,7 @@ namespace Assets.RiftAssets
             return findAssetFileForID(Util.bytesToHexString(id));
         }
 
-        private AssetFile findAssetFileForID( String id)
+        private AssetFile findAssetFileForID( string id)
         {
             if (id == null)
                 return null;
@@ -59,8 +59,6 @@ namespace Assets.RiftAssets
                     holders.Add(file);
             if (holders.Count == 0)
                 return null;
-            //if (holders.size() > 1)
-            //	System.err.println("WARN: More than one asset file found containing id " + id);
 
             if (holders.Count > 1)
             {
@@ -74,62 +72,110 @@ namespace Assets.RiftAssets
 
             return holders[0];
         }
-
-        public AssetFile getAssetFileContainingFilename( String filename)
+       
+        public bool filenameExists( string filename)
         {
-            String id = Util.findIDAsStrInManifestForFileName(filename, manifest);
-            if (id != null)
-            {
-                AssetFile assetFile = findAssetFileForID(id);
-                return assetFile;
-            }
-            return null;
-
+            return manifest.containsHash(Util.hashFileName(filename));
         }
 
-        public AssetEntry getEntryForFileNameHash( String filenameHash)
+        public enum RequestCategory
         {
-            String id = manifest.filenameHashToID(filenameHash);
-            if (id == null)
-                throw new Exception("Filename hash not found: '" + filenameHash + "'");
-            AssetFile assetFile = findAssetFileForID(id);
-            if (assetFile == null)
-                throw new Exception(
-                        "Filename hash found in manifest but unable to locate ID[" + id + "] in assets: '" + filenameHash
-                                + "'");
-            return assetFile.getEntry(id);
+            NONE,
+            MAP,
+            PHYSICS,
+            TEXTURE,
+            SHADER,
+            SHADER_FORWARD,
+            GEOMETRY,
+            CHARACTER,
+            PARTICLE,
+            VFX,
+            UIFONT,
+            UIFLASH,
+            MOVIE,
+            AUDIO,
+            PROPERTYCLASSDATA,
+            GAMEDATA,
+            ENGLISH,
+            PATCH,
         }
 
-        public bool filenameExists( String filename)
+        public AssetEntry getEntryForFileName( string filename, RequestCategory requestCategory = RequestCategory.NONE)
         {
-            try
-            {
-                String id = Util.findIDAsStrInManifestForFileName(filename, manifest);
-                return id != null;
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
-        }
+            //Debug.Log("get entry for filename:" + filename + " with request category " + requestCategory);
+            List<ManifestEntry> entries = manifest.getEntriesForFilenameHash(Util.hashFileName(filename));
 
-        public AssetEntry getEntryForFileName( String filename)
-        {
-            String id = Util.findIDAsStrInManifestForFileName(filename, manifest);
-            if (id == null)
-                throw new Exception("Filename hash not found: '" + filename + "'");
+            if (entries.Count() == 0)
+                throw new Exception("Filename hash not found in manifest: '" + filename + "'");
+
+            // strip out duplicate patch paks
+            entries.RemoveAll(e => {
+                return manifest.getPAKName(e.pakIndex).Contains("patch") && entries.Any(x => x != e && x.idStr.Equals(e.idStr));
+            });
+
+            //Debug.Log("found " + entries.Count() + " entries in manifest that match");
+            string id = "";
+            if (entries.Count() == 1)
+            {
+                // if there was only one result, then use it
+                id = entries.First().idStr;
+            }
+            else
+            {
+
+                // otherwise, break the tie with a category test
+                if (requestCategory == RequestCategory.NONE)
+                {
+                    Debug.LogError("tie for " + filename + " with no category set");
+                    // we can't break a tie without a request category
+                    String str = "";
+                    foreach (ManifestEntry entry in entries)
+                    {
+                        str += "\t" + entry + " :" + manifest.getPAKName(entry.pakIndex) + "\n";
+                    }
+                        throw new Exception("Multiple ids match the filename [" + filename + "] but no request category was given, unable to determine which to return.\n" + str);
+                }
+                // work out which one we want based on the category
+                string requestStr = requestCategory.ToString().ToLower();
+                Debug.Log("multiple ids found, using request category " + requestStr);
+                ManifestEntry finalEntry = null;
+                foreach (ManifestEntry entry in entries)
+                {
+                    Debug.Log("[" + filename + "]: considering entry:" + entry + " :" + manifest.getPAKName(entry.pakIndex));
+                    ManifestPAKFileEntry pak = manifest.getPAK(entry.pakIndex);
+                    string pakName = pak.name;
+                    if (pakName.Contains(requestStr))
+                    {
+                        finalEntry = entry;
+                        break;
+                    }
+                }
+
+                if (finalEntry == null)
+                {
+                    // if we were still unable to break the tie
+                    Debug.LogError("tiebreak for " + filename + " no id match");
+
+                    throw new Exception("Multiple ids match the filename [" + filename + "] but the request category[" + requestStr + "] did not match any, unable to determine which to return");
+                }
+                id = finalEntry.idStr;
+                Debug.Log("settled on entry:" + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
+
+            }
             AssetFile assetFile = findAssetFileForID(id);
             if (assetFile == null)
                 throw new Exception(
                         "Filename hash found in manifest but unable to locate ID[" + id + "] in assets: '" + filename
                                 + "'");
+            //Debug.Log("found with id:" + id);
             return assetFile.getEntry(id);
+            
         }
 
         /** Attempt to extract the asset with the given filename */
-        public byte[] extractUsingFilename( String filename)
+        public byte[] extractUsingFilename( string filename, RequestCategory requestCategory = RequestCategory.NONE)
         {
-            return extract(getEntryForFileName(filename));
+            return extract(getEntryForFileName(filename, requestCategory));
         }
 
         /** Attempt to extract the asset with the given filename */
@@ -188,14 +234,6 @@ namespace Assets.RiftAssets
             return ae.file;
         }
 
-        public bool containsFilenameHash( String filenameHash)
-        {
-            if (manifest.containsHash(filenameHash))
-            {
-                String id = manifest.filenameHashToID(filenameHash);
-                return findAssetFileForID(id) != null;
-            }
-            return false;
-        }
+       
     }
 }

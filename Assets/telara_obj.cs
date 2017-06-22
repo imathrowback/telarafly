@@ -13,11 +13,17 @@ public class telara_obj : MonoBehaviour {
     public bool loaded = false;
     GameObject mcamera;
     telera_spawner spawner;
-
+    public Assets.RiftAssets.AssetDatabase.RequestCategory cat = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
 
     public void setFile(String str)
     {
         file = str;
+    }
+    public void setProps(telera_spawner spawner, GameObject cam, Assets.RiftAssets.AssetDatabase.RequestCategory cat)
+    {
+        this.cat = cat;
+        this.mcamera = cam;
+        this.spawner = spawner;
     }
     void objectVisible()
     {

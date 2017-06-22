@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 using System.IO;
 using System.Threading;
 using Assets;
@@ -152,27 +153,6 @@ public class telera_spawner : MonoBehaviour
         GameWorld.initialSpawn = GameWorld.getSpawns()[dropdown.value];
         setCameraLoc(GameWorld.initialSpawn);
     }
-    private void processNodeLine(string line)
-    {
-        string[] parts = line.Split(':');
-        string name = parts[0];
-        string poss = parts[1];
-        string rots = parts[2];
-        string pos2 = parts[3];
-        float scale = 1.0f;
-        if (parts.Length == 5)
-            scale = float.Parse(parts[4]);
-
-        if (name.Trim().Length == 0)
-        {
-            return;
-        }
-
-        Vector3 pos = getV3(poss);
-        Vector3 poss2 = getV3(pos2);
-        Vector4 q = getV4(rots);
-        process(new ObjectPosition(name, pos, new Quaternion(q.x, q.y, q.z, q.w), poss2, scale));
-    }
 
     private void process(ObjectPosition op)
     {
@@ -195,6 +175,7 @@ public class telera_spawner : MonoBehaviour
         }
 
         string name = op.nifFile;
+        Assets.RiftAssets.AssetDatabase.RequestCategory category = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
         if (name.Contains("_terrain_") || name.Contains("ocean_chunk"))
         {
             // use a vertical box as our collider for now
@@ -203,6 +184,8 @@ public class telera_spawner : MonoBehaviour
             go.GetComponent<BoxCollider>().size = new Vector3(256 * c, 5000, 256 * c);
             go.GetComponent<BoxCollider>().center = new Vector3(128, 0, 128);
             go.layer = 30;
+            if (name.Contains("_terrain_"))
+                category = Assets.RiftAssets.AssetDatabase.RequestCategory.GEOMETRY;
         }
         else
         {
@@ -215,6 +198,7 @@ public class telera_spawner : MonoBehaviour
             go.layer = 30;
         }
         telara_obj tobj = go.AddComponent<telara_obj>();
+        tobj.setProps(this, mcamera, category);
 
         go.transform.SetParent(meshRoot.transform);
         GameObject.Destroy(go.GetComponent<MeshRenderer>());
@@ -224,7 +208,6 @@ public class telera_spawner : MonoBehaviour
         go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
         go.transform.localPosition = op.min;
         go.transform.localRotation = op.qut;
-        applyLOD(tobj.gameObject);
     }
 
     Vector3 getV3(string str)
@@ -260,6 +243,7 @@ public class telera_spawner : MonoBehaviour
         return hitColliders;
     }
 
+    StreamWriter queDebugStream;
 
     // Update is called once per frame
     void Update()
@@ -267,24 +251,21 @@ public class telera_spawner : MonoBehaviour
         checkHits(this.mcamera.transform.position);
         if (tpuc != null && tpuc.isRotating)
             return;
-        /*
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            GameObject go = new GameObject();
-            go.transform.parent = meshRoot.transform;
-            go.transform.localPosition = this.mcamera.transform.localPosition;
-            go.transform.localRotation = this.mcamera.transform.localRotation;
-            go.AddComponent<ModelView>();
-        }
-        */
+       
         if (Input.GetKeyDown(KeyCode.P) && GameWorld.useColliders && charC != null)
         {
             setCameraLoc(GameWorld.initialSpawn, true);
         }
         int i = 0;
 
-        foreach (NifLoadJob job in ObjJobLoadQueue.ToArray())
+
+
+        Vector3 camPos = mcamera.transform.position;
+        IOrderedEnumerable<NifLoadJob> processQueue = ObjJobLoadQueue.OrderBy(a => !(a.filename.Contains("terrain") || a.filename.Contains("ocean"))).ThenBy(a => Vector3.Distance(a.parent.transform.position, camPos));
+
+        foreach (NifLoadJob job in processQueue)
         {
+
             if (i > MAX_OBJ_PER_FRAME)
             {
                 Debug.Log("spawned " + i + " this frame, thats enough for now");
@@ -313,23 +294,30 @@ public class telera_spawner : MonoBehaviour
                 Transform loadingObj = to.gameObject.transform.Find("Loading");
                 if (loadingObj != null)
                     GameObject.Destroy(loadingObj.gameObject);
-
+                if (to.gameObject != null)
+                {
+                    // reapply the lod to take into account any new meshes created
+                    applyLOD(to.gameObject);
+                }
+                runningThreads--;
+                i++;
                 to.doLoad = false;
                 to.loaded = true;
                 ObjJobLoadQueue.Remove(job);
-                runningThreads--;
-                i++;
             }
         }
     }
 
     private void applyLOD(GameObject go)
     {
-        Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
-        LODGroup group = go.AddComponent<LODGroup>();
+        LODGroup group = go.GetComponent<LODGroup>();
+        if (group == null)
+            group = go.AddComponent<LODGroup>();
+
         group.animateCrossFading = true;
         group.fadeMode = LODFadeMode.SpeedTree;
         LOD[] lods = new LOD[2];
+        Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
         lods[0] = new LOD(0.9f, renderers);
         lods[1] = new LOD(0.1f, renderers);
         group.SetLODs(lods);

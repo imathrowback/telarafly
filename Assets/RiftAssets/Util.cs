@@ -7,7 +7,7 @@ namespace Assets.RiftAssets
 {
     class Util
     {
-        public static String bytesToHexString(byte[] inb)
+        public static string bytesToHexString(byte[] inb)
         {
             return BitConverter.ToString(inb).Replace("-", string.Empty).ToLower();
         }
@@ -21,7 +21,7 @@ namespace Assets.RiftAssets
                              .ToArray();
         }
 
-        public static String findIDAsStrInManifestForFileName( String name,  Manifest manifest)
+        public static IEnumerable<string> findIDsForFilename( string name,  Manifest manifest)
         {
             try
             {
@@ -33,12 +33,12 @@ namespace Assets.RiftAssets
             }
 
         }
-        public static String hashFileName(String name)
+        public static string hashFileName(string name)
         {
-            String lower = name.ToLower();
+            string lower = name.ToLower();
             byte[] bytes = Encoding.ASCII.GetBytes(lower);
             uint hash = FNV.hash32(bytes);
-            String newHash = hash.ToString("X");
+            string newHash = hash.ToString("X");
             return newHash.PadLeft(8, '0').ToLower();
         }
     }

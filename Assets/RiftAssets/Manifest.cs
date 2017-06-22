@@ -3,14 +3,48 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Assets.DatParser;
+using UnityEngine;
 
 namespace Assets.RiftAssets
 {
+    class ManifestTableEntry
+    {
+        public int offset { get; }
+        public int tableSize { get; }
+        public int count { get; }
+        public int stride { get; }
+        public string name { get; }
+
+        public ManifestTableEntry(string name, BinaryReader dis)
+        {
+            this.name = name;
+            offset = dis.readInt();
+            tableSize = dis.readInt();
+            count = dis.readInt();
+            stride = dis.readInt();
+        }
+
+
+        override public string ToString()
+        {
+            int bytes = stride * count;
+            int extra = tableSize - bytes;
+            return (String.Format(
+                "\t[" + name
+                        + "]\n\ttableoffset:{0}\n\ttable size in bytes:{1}(extra: {4})\n\tcount:{2}\n\tstride:{3}\n",
+                offset, tableSize, count, stride, extra));
+        }
+    }
+
     public class Manifest
     {
-        Dictionary<String, String> fileNameHashIDMap;
-        Dictionary<String, String> idToNameNameHashMap;
+        //Dictionary<string, string> fileNameHashIDMap;
+        //Dictionary<string, string> idToNameNameHashMap;
         bool is64;
+
+        public List<ManifestPAKFileEntry> pakFiles = new List<ManifestPAKFileEntry>();
+        public List<ManifestEntry> manifestEntries = new List<ManifestEntry>();
 
         public Manifest(String assetsManifest)
         {
@@ -19,26 +53,39 @@ namespace Assets.RiftAssets
             processTable(manifestData);
         }
 
-        public List<String> getIDs()
+        public IEnumerable<ManifestPAKFileEntry> getPAKs()
         {
-            return idToNameNameHashMap.Keys.ToList();
+            return pakFiles.AsEnumerable();
         }
 
-        public List<String> getFileNameHashes()
+        public ManifestPAKFileEntry getPAK(int index)
         {
-            return fileNameHashIDMap.Keys.ToList();
+            return pakFiles[index];
         }
+
+        public String getPAKName(int index)
+        {
+            return getPAK(index).name;
+        }
+
+     
 
         private void processTable(byte[] manifestData)
         {
+            //Debug.Log("process manifest table");
+            int tableOffset;
+            int count;
+            ManifestTableEntry a, b, c;
+            int _256tableoffset;
+            int _256;
+
             // See http://forum.xentax.com/viewtopic.php?f=17&t=10119
             using (MemoryStream memStream = new MemoryStream(manifestData))
             {
                 using (BinaryReader dis = new BinaryReader(memStream))
                 {
 
-                    int tableOffset;
-                    int count;
+
                     // read the manifest header
 
 
@@ -46,42 +93,98 @@ namespace Assets.RiftAssets
                     // These two are definitely version numbers
                     ushort majorV = dis.ReadUInt16();
                     ushort minorV = dis.ReadUInt16();
-                    // skip the next 24 bytes as we don't know what they are
-                    dis.ReadBytes(24);
-                    tableOffset = dis.ReadInt32();
-                    int unknown = dis.ReadInt32(); // unknown
-                    count = dis.ReadInt32();
 
+                    _256tableoffset = dis.readInt();
+                    _256 = dis.readInt();
 
-                    // each manifest entry is 56 bytes but we only actually read the first 12, we don't know what the rest are
-                    int entrySize = 56;
-                    byte[] id = new byte[8];
-                    byte[] filenamehash = new byte[4];
+                    a = new ManifestTableEntry("pak table", dis);
+                    b = new ManifestTableEntry("asset names", dis);
+                    c = new ManifestTableEntry("unk", dis);
 
-                    fileNameHashIDMap = new Dictionary<String, String>(count);
-                    idToNameNameHashMap = new Dictionary<String, String>(count);
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        int start = tableOffset + (i * entrySize);
-                        memStream.Seek(start, SeekOrigin.Begin);
-                        // read the ID of the entry
-                        dis.Read(id, 0, 8);
-
-                        // read the filename hash of the entry
-                        dis.Read(filenamehash, 0, 4);
-                        reverse(filenamehash);
-
-
-                        // store the ID and filename hash into a map for easy lookup
-                        String idStr = Util.bytesToHexString(id);
-                        String hashStr = Util.bytesToHexString(filenamehash);
-
-                        idToNameNameHashMap[idStr] = hashStr;
-                        fileNameHashIDMap[hashStr] = idStr;
-                    }
                 }
             }
+            tableOffset = b.offset;
+            count = b.count;
+
+           // Debug.Log("read table 0");
+            // why is there a 256 table at the start?
+            /** TABLE 0 - 256 byte table */
+            byte[] table = new byte[256];
+            for (int i = 0; i < _256; i++)
+            {
+                using (BinaryReader dis2 = new BinaryReader(new MemoryStream(manifestData, _256tableoffset + i, 1)))
+                {
+                    table[i] = dis2.readByte();
+                }
+            }
+
+            /** TABLE 1 - PAK files */
+           // Debug.Log("read table 1");
+
+            for (int i = 0; i < a.count; i++)
+            {
+                using (BinaryReader dis2 = new BinaryReader(
+                        new MemoryStream(manifestData, a.offset + (i * a.stride), a.stride)))
+                {
+                    pakFiles.Add(new ManifestPAKFileEntry(manifestData, dis2));
+
+                }
+            }
+
+           // Debug.Log("read table 3");
+
+            /** TABLE 3 - unknown? */
+            using (BinaryReader dis2 = new BinaryReader(
+                    new MemoryStream(manifestData, c.offset, c.tableSize)))
+            {
+                for (int i = 0; i < c.count; i++)
+                {
+                    int ia = dis2.readInt() & 0xFFFFFF;
+                    int ecount = dis2.readInt();
+                    int offset = dis2.readInt();
+                    using (BinaryReader dis3 = new BinaryReader(
+                            new MemoryStream(manifestData, offset, ecount * 4)))
+                    {
+                        for (int j = 0; j < ecount; j++)
+                        {
+                        }
+                    }
+                }
+
+            }
+
+           // Debug.Log("read table 2");
+
+            /** TABLE 2 - Manifest entries */
+            int entrySize = 56;
+            for (int i = 0; i < count; i++)
+            {
+                int start = tableOffset + (i * entrySize);
+
+                using (BinaryReader dis = new BinaryReader(
+                        new MemoryStream(manifestData, start, entrySize)))
+                {
+                    ManifestEntry entry = new ManifestEntry(dis);
+                    manifestEntries.Add(entry);
+                }
+            }
+           // Debug.Log("build cache");
+
+            for (int i = 0; i < manifestEntries.Count; i++)
+            {
+                ManifestEntry e = manifestEntries[i];
+                List<int> indices;
+                filenameEntryIndexDict.TryGetValue(e.filenameHashStr, out indices);
+                if (indices == null)
+                {
+                    indices = new List<int>();
+                    filenameEntryIndexDict[e.filenameHashStr] = indices;
+                }
+
+                indices.Add(i);
+
+            }
+
         }
 
         void reverse(byte[] arr)
@@ -94,6 +197,21 @@ namespace Assets.RiftAssets
             }
         }
 
+        Dictionary<string, List<int>> filenameEntryIndexDict = new Dictionary<string, List<int>>();
+
+        private List<ManifestEntry> getEntries(string filenameHash)
+        {
+            List<int> list = new List<int>();
+            filenameEntryIndexDict.TryGetValue(filenameHash, out list);
+            if (list == null)
+            {
+                list = new List<int>();
+                filenameEntryIndexDict[filenameHash] = list;
+            }
+
+            return list.Select(e => manifestEntries[e]).ToList();
+        }
+
         /**
          * Check if the given filenam name hash exists in the manifest.
          *
@@ -102,19 +220,9 @@ namespace Assets.RiftAssets
          * @param filenameHash The hash to check
          * @return True if the hash exists in the manifest, else false
          */
-        public bool containsHash(String filenameHash)
+        public bool containsHash(string filenameHash)
         {
-            return fileNameHashIDMap.ContainsKey(filenameHash);
-        }
-
-        public bool containsHash(byte[] filenameHash)
-        {
-            return containsHash(Util.bytesToHexString(filenameHash));
-        }
-
-        public String getFilenameHashForID(String id)
-        {
-            return idToNameNameHashMap[id];
+           return getEntries(filenameHash).Any();
         }
 
         /**
@@ -122,32 +230,24 @@ namespace Assets.RiftAssets
          *
          * @param filenameHash The hash to check
          * @return The ID if we know it, else throw an exception
-         * @throws IllegalArgumentException If the filename was not found
          */
-        public String filenameHashToID(String filenameHash)
+        public IEnumerable<string> filenameHashToID(string filenameHash)
         {
-            if (fileNameHashIDMap.ContainsKey(filenameHash))
-                return fileNameHashIDMap[filenameHash];
-            else
-                throw new Exception("filename hash [" + filenameHash + "] not found in manifest");
+            return getEntries(filenameHash).Select(e => e.idStr);
         }
 
-        /**
-         * Get the ID bytes for the given filename if it exists.
-         *
-         * @param filenameHash The hash to check
-         * @return The ID if we know it, else throw an exception
-         * @throws IllegalArgumentException If the filename was not found
-         */
-        public byte[] findID(String filenameHash)
+        public List<ManifestEntry> getEntriesForFilenameHash(string filenameHash)
         {
-            String id = fileNameHashIDMap[filenameHash];
-            if (id != null)
-                return Util.hexStringToBytes(id);
-            else
-                throw new Exception("filename hash [" + filenameHash + "] not found in manifest");
-
+            return getEntries(filenameHash).ToList();
         }
+        /*
+        public List<ManifestEntry> getEntriesForID(string id)
+        {
+            return manifestEntries.Where(e => e.idStr.Equals(id)).ToList();
+        }
+        */
+
+
 
         public bool getIs64()
         {

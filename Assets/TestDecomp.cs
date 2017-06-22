@@ -397,7 +397,7 @@ public class TestDecomp : MonoBehaviour
         }
         catch (Exception ex)
         {
-            UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message);
+            UnityEngine.Debug.LogWarning("Unable to process CDR:" + s + " due to error:" + ex.Message + ":\n" + ex);
         }
     }
 

@@ -40,9 +40,9 @@ public class NIFLoader
 
     }
 
-    public NIFFile getNIF(String fname)
+    public NIFFile getNIF(String fname, AssetDatabase.RequestCategory requestCategory = AssetDatabase.RequestCategory.NONE)
     {
-        byte[] nifData = db.extractUsingFilename(fname);
+        byte[] nifData = db.extractUsingFilename(fname, requestCategory);
         using (MemoryStream nifStream = new MemoryStream(nifData))
         {
             return new NIFFile(nifStream);
@@ -746,7 +746,7 @@ public class NIFLoader
                     //Debug.Log("db was null");
                     return new Texture2D(2, 2);
                 }
-                data = db.extractUsingFilename(name);
+                data = db.extractUsingFilename(name, AssetDatabase.RequestCategory.TEXTURE);
                 //File.WriteAllBytes(testPath, data);
             }
             tex = DDSLoader.DatabaseLoaderTexture_DDS.LoadDDS(data);
@@ -806,7 +806,9 @@ public class NIFLoader
                             if (nied.intExtraData >= 0 && nied.intExtraData < textureType.Length)
                                 textureType[nied.intExtraData] = nied.extraDataString;
                             else
-                                Debug.LogWarning("nied.intExtraData out of range:" + nied.intExtraData + " => " + textureType.Length);
+                            { 
+  //                                Debug.LogWarning("nied.intExtraData out of range:" + nied.intExtraData + " => " + textureType.Length);
+                            }
                         }
                     }
                 }
