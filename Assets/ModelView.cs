@@ -34,7 +34,7 @@ public class ModelView : MonoBehaviour
     Dropdown SZdropdown;
     Dropdown SZZdropdown;
     Dropdown SZZZdropdown;
-    Dictionary<String, AnimatedNif> nifDictionary = new Dictionary<string, AnimatedNif>();
+    Dictionary<String, Model> nifDictionary = new Dictionary<string, Model>();
     DB db;
     volatile string progress = "";
     void Start()
@@ -99,7 +99,8 @@ public class ModelView : MonoBehaviour
                         if (!nifDictionary.ContainsKey(nifFile))
                         {
                             nIFModelEntries.Add(model.displayname);
-                            nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, model.kfmFile, model.kfbFile);
+                            nifDictionary[nifFile] = model;
+                                //new AnimatedNif(adb, nifFile, model.kfmFile, model.kfbFile);
                         }
                     }
                     else
@@ -108,7 +109,7 @@ public class ModelView : MonoBehaviour
                         if (!nifDictionary.ContainsKey(nifFile))
                         {
                             nifsToBucket.Add(nifFile);
-                            nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, null, null);
+                            nifDictionary[nifFile] = model;
                         }
                     }
                 }
@@ -171,11 +172,15 @@ public class ModelView : MonoBehaviour
         string newNif = newNifP;
         if (newNifP.Contains(":"))
             newNif = newNifP.Split(':')[1];
-        AnimatedNif animNif = nifDictionary[newNif];
+        Model animNifModel = nifDictionary[newNif];
+        AnimatedNif animNif = gameObject.GetComponent<AnimatedNif>();
+        if (animNif == null)
+            animNif = gameObject.AddComponent<AnimatedNif>();
+        animNif.setParams(adb, animNifModel.nifFile, animNifModel.kfmFile, animNifModel.kfbFile);
         if (animationNif == animNif)
             return;
 
-            if (nifmodel != null)
+        if (nifmodel != null)
             GameObject.DestroyImmediate(nifmodel);
 
         nifmodel = loader.loadNIF(animNif.nif, true);
@@ -241,7 +246,6 @@ public class ModelView : MonoBehaviour
     }
 
     // Update is called once per frame
-    float tt = 0;
     bool first = false;
     void FixedUpdate()
     {
@@ -254,13 +258,8 @@ public class ModelView : MonoBehaviour
             changeNif("crucia.nif");
             animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
         }
-        tt += animSpeed;
-        if (tt > 1)
-            tt = 0;
         if (animationNif != null)
-            animationNif.doFrame(tt);
-        //doFrame(tt);
-
+            animationNif.animSpeed = this.animSpeed;
     }
 
 
