@@ -264,6 +264,7 @@ public class telera_spawner : MonoBehaviour
             animNif.setSkeletonRoot(mount);
             animNif.setActiveAnimation("mount_dragon_jump_cycle");
             mount.transform.parent = mcamera.transform;
+            mount.transform.localRotation = Quaternion.identity;
             mount.transform.localPosition = new Vector3(0, -5.91f, 7.66f);
             // human_female_mount_dragon_jump_cycle.kf
 
@@ -278,6 +279,9 @@ public class telera_spawner : MonoBehaviour
             mainPaperdoll.animSpeed = 0.02f;
             character.transform.parent = mount.transform;
             character.transform.localPosition = new Vector3(0, 0, 0);
+            character.transform.localRotation = Quaternion.identity;
+            mainPaperdoll.transform.localRotation = Quaternion.identity;
+
             mainPaperdoll.updateRaceGender();
             mainPaperdoll.loadAppearenceSet(-57952362);
 

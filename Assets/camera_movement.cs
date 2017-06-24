@@ -80,12 +80,14 @@ namespace cam
             p = p * Time.deltaTime;
 
             // Angryboy: Removed key-press requirement, now perma-locked to the Y plane
-            Vector3 newPosition = transform.position;//If player wants to move on X and Z axis only
+            Vector3 newPosition = transform.position;
             transform.Translate(p);
             newPosition.x = transform.position.x;
             newPosition.z = transform.position.z;
+            newPosition.y = transform.position.y;
 
             // Angryboy: Manipulate Y plane by using Q/E keys
+            
             if (Input.GetKey(KeyCode.Q))
             {
                 newPosition.y += -speedMultiplier;
@@ -94,6 +96,7 @@ namespace cam
             {
                 newPosition.y += speedMultiplier;
             }
+            
 
             transform.position = newPosition;
 

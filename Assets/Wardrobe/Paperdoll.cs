@@ -113,6 +113,7 @@ namespace Assets.Wardrobe
             GameObject go = loader.loadNIF(file, nif, true);
             go.transform.parent = this.transform;
             go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
             refModel = go;
 
 
