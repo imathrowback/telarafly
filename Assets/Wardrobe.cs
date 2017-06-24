@@ -175,7 +175,7 @@ public class Wardrobe : MonoBehaviour
         int v = appearanceDropdown.value;
         DOption option = (DOption)appearanceDropdown.options[v];
         entry entry =(entry) option.userObject;
-        paperDoll.loadAppearenceSet(entry.key, WardrobeStuff.raceMap[raceString], WardrobeStuff.genderMap[genderString]);
+        paperDoll.loadAppearenceSet(entry.key);
     }
 
   

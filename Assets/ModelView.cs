@@ -60,13 +60,6 @@ public class ModelView : MonoBehaviour
         DBInst.progress += (m) => progress = m;
     }
 
-    private string getStringMember(CObject obj, int member)
-    {
-        foreach (CObject o in obj.members)
-            if (o.datacode == member)
-                return o.convert() + "";
-        return "";
-    }
     private void parse7305(IEnumerable<entry> entries)
     {
         nIFModelDropdown.ClearOptions();
@@ -96,41 +89,25 @@ public class ModelView : MonoBehaviour
         {
             try
             {
-                CObject obj = Parser.processStreamObject(new MemoryStream(e.decompressedData));
-                if (obj.members.Count >= 1)
+                Model model = AnimatedModelLoader.load7305(adb, e.key);
+                if (model != null)
                 {
-                    string nif = getStringMember(obj, 2);
-                    string kfm = getStringMember(obj, 1);
-                    string postfix = getStringMember(obj, 33);
-                    string nifFile = Path.GetFileNameWithoutExtension(nif) + ".nif";
+                    string nifFile = model.nifFile;
 
-                    if (kfm.Length > 0)
+                    if (model.animated)
                     {
-                        string kfmFile = Path.GetFileNameWithoutExtension(kfm) + ".kfm";
-                        string kfbFile = Path.GetFileNameWithoutExtension(kfm) + postfix + ".kfb";
-                        bool nifexists = adb.filenameExists(nifFile);
-                        bool kfbexists = adb.filenameExists(kfbFile);
-                        if (!(!nifexists || !kfbexists))
+                        if (!nifDictionary.ContainsKey(nifFile))
                         {
-                            if (!nifDictionary.ContainsKey(nifFile))
-                            {
-                                string displayName = nifFile;
-                                // special handling for mounts as we want them grouped together
-                                if (postfix.Length > 0 && postfix.Contains("mount"))
-                                    displayName = postfix.Replace("_", "") + ":" + nifFile;
-                                nIFModelEntries.Add(displayName);
-                                nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, kfmFile, kfbFile);
-                            }
+                            nIFModelEntries.Add(model.displayname);
+                            nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, model.kfmFile, model.kfbFile);
                         }
                     }
                     else
                     {
-
                         // normal model
                         if (!nifDictionary.ContainsKey(nifFile))
                         {
                             nifsToBucket.Add(nifFile);
-
                             nifDictionary[nifFile] = new AnimatedNif(adb, nifFile, null, null);
                         }
                     }

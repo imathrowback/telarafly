@@ -82,6 +82,8 @@ namespace Assets.Wardrobe
         {
             return string.Format("{0}_{1}", raceString, genderString);
         }
+        public string kfbOverride = "";
+        public string animOverride = "";
 
         public void updateRaceGender()
         {
@@ -98,9 +100,14 @@ namespace Assets.Wardrobe
             string nif = string.Format("{0}_refbare.nif", getBaseModel());
             string kfm = string.Format("{0}.kfm", getBaseModel());
             string kfb = string.Format("{0}.kfb", getBaseModel());
+            if (!"".Equals(kfbOverride))
+                kfb = kfbOverride;
 
             
-            animationNif = new Assets.AnimatedNif(adb, nif, kfm, kfb);
+            animationNif = this.gameObject.GetComponent<AnimatedNif>();
+            if (animationNif == null)
+                animationNif= this.gameObject.AddComponent<AnimatedNif>();
+            animationNif.setParams(adb, nif, kfm, kfb);
 
             NIFFile file = loader.getNIF(nif);
             GameObject go = loader.loadNIF(file, nif, true);
@@ -110,6 +117,8 @@ namespace Assets.Wardrobe
 
 
             animationNif.setActiveAnimation(string.Format("{0}_unarmed_idle", getBaseModel()));
+            if (!"".Equals(animOverride))
+                animationNif.setActiveAnimation(animOverride);
             animationNif.setSkeletonRoot(refModel);
                 
             costumeParts = new GameObject("CostumeParts");
@@ -140,7 +149,7 @@ namespace Assets.Wardrobe
             // set default gear
             int race = WardrobeStuff.raceMap[raceString];
             int sex = WardrobeStuff.genderMap[genderString];
-            loadAppearenceSet(176073892, race, sex);
+            loadAppearenceSet(176073892);
         }
 
         Dictionary<GearSlot, GameObject> gearSlots = new Dictionary<GearSlot, GameObject>();
@@ -158,7 +167,7 @@ namespace Assets.Wardrobe
 
             gearSlots[slot] = loadNIFForSlot(slot, refModel, costumeParts, Path.GetFileName(nif), "");
         }
-        public void loadAppearenceSet(long setKey, int race, int sex)
+        public void loadAppearenceSet(long setKey)
         {
             // set the ref model to be all visible, overriden parts will be hidden later when parts are added
             SetActiveRecursively(refModel, true);
@@ -246,7 +255,7 @@ namespace Assets.Wardrobe
             this.genderString = gender;
         }
 
-        float tt = 0;
+        //float tt = 0;
        
         public void Update()
         {
@@ -257,6 +266,8 @@ namespace Assets.Wardrobe
 
         public void FixedUpdate()
         {
+            animationNif.animSpeed = animSpeed;
+            /*
             tt += animSpeed;
             if (tt > 1)
                 tt = 0;
@@ -266,6 +277,7 @@ namespace Assets.Wardrobe
                 animationNif.doFrame(tt);
 
             }
+            */
         }
 
 

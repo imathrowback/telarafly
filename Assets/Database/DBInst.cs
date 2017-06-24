@@ -30,6 +30,7 @@ namespace Assets.Database
         static private EnglishLang langdb;
         static private DB db;
         public static DB inst   { get {
+                while (db == null) ;
                 lock (lockObj)
                 {
                     return db;

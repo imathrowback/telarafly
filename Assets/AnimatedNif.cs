@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Assets
 {
-    public class AnimatedNif
+    public class AnimatedNif : MonoBehaviour
     {
         Dictionary<String, GameObject> boneMap = new Dictionary<string, GameObject>();
 
@@ -65,14 +65,20 @@ namespace Assets
 
             return anims;
         }
-
-        public AnimatedNif(AssetDatabase adb, string nif, string kfm, string kfb)
+        public AnimatedNif()
         {
-            //Debug.Log("AnimatedNif:" + nif + ":" + kfm + ":" + kfb);
+
+        }
+        public void setParams(AssetDatabase adb, string nif, string kfm, string kfb)
+        {
             this.adb = adb;
             this.nif = nif;
             this.kfm = kfm;
             this.kfb = kfb;
+        }
+        public AnimatedNif(AssetDatabase adb, string nif, string kfm, string kfb)
+        {
+            setParams(adb, nif, kfm, kfb);
         }
 
         /** Load the KFB data for the selected animation, will return null if the animation does not exist in the KFB */
@@ -117,7 +123,7 @@ namespace Assets
                     setActiveAnimation(kfa.id);
                     return;
                 }
-            //Debug.Log("Unable to find animation " + anim);
+            Debug.Log("Unable to find animation " + anim);
         }
 
         public void setActiveAnimation(int anim)
@@ -175,7 +181,7 @@ namespace Assets
                             Transform bone = skeletonRoot.transform.FindDeepChild(boneName);
                             if (bone == null)
                             {
-                                Debug.LogError("unable to find bone in skeleton for " + boneName);
+                                Debug.LogWarning("unable to find bone in skeleton for " + boneName);
                                 continue;
                             }
                             go = boneMap[boneName] = bone.gameObject;
@@ -227,5 +233,14 @@ namespace Assets
 
         }
 
+        float tt = 0;
+        public float animSpeed = 0.02f;
+        void FixedUpdate()
+        {
+            tt += animSpeed;
+            if (tt > 1)
+                tt = 0;
+            doFrame(tt);
+        }
     }
 }

@@ -137,7 +137,7 @@ namespace Assets.RiftAssets
                 }
                 // work out which one we want based on the category
                 string requestStr = requestCategory.ToString().ToLower();
-                Debug.Log("multiple ids found, using request category " + requestStr);
+                Debug.Log("multiple ids found for " + filename + ", using request category " + requestStr);
                 ManifestEntry finalEntry = null;
                 foreach (ManifestEntry entry in entries)
                 {

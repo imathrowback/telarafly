@@ -7,6 +7,8 @@ using System.Threading;
 using Assets;
 using UnityStandardAssets.Characters.ThirdPerson;
 using UnityEngine.UI;
+using Assets.Database;
+using Assets.Wardrobe;
 
 public class telera_spawner : MonoBehaviour
 {
@@ -243,7 +245,9 @@ public class telera_spawner : MonoBehaviour
         return hitColliders;
     }
 
-    StreamWriter queDebugStream;
+    GameObject mount;
+
+
 
     // Update is called once per frame
     void Update()
@@ -251,7 +255,35 @@ public class telera_spawner : MonoBehaviour
         checkHits(this.mcamera.transform.position);
         if (tpuc != null && tpuc.isRotating)
             return;
-       
+
+        if (Input.GetKeyDown(KeyCode.F) && mount == null)
+        {
+            mount = AnimatedModelLoader.loadNIF(1445235995);
+            AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
+            animNif.animSpeed = 0.02f;
+            animNif.setSkeletonRoot(mount);
+            animNif.setActiveAnimation("mount_dragon_jump_cycle");
+            mount.transform.parent = mcamera.transform;
+            mount.transform.localPosition = new Vector3(0, -5.91f, 7.66f);
+            // human_female_mount_dragon_jump_cycle.kf
+
+            GameObject character = new GameObject();
+            
+            Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
+            mainPaperdoll.animOverride = "mount_dragon_jump_cycle";
+            mainPaperdoll.kfbOverride = "human_female_mount.kfb";
+            mainPaperdoll.setGender("female");
+            mainPaperdoll.setRace("human");
+            //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.02f;
+            mainPaperdoll.animSpeed = 0.02f;
+            character.transform.parent = mount.transform;
+            character.transform.localPosition = new Vector3(0, 0, 0);
+            mainPaperdoll.updateRaceGender();
+            mainPaperdoll.loadAppearenceSet(-57952362);
+
+
+        }
+
         if (Input.GetKeyDown(KeyCode.P) && GameWorld.useColliders && charC != null)
         {
             setCameraLoc(GameWorld.initialSpawn, true);
@@ -272,11 +304,15 @@ public class telera_spawner : MonoBehaviour
                 break;
             }
 
+            /** Add a loading capsule to the location of the job */
             telara_obj obj = job.parent;
             if (obj.gameObject.transform.childCount == 0)
             {
                 GameObject loading = (GameObject)GameObject.Instantiate(Resources.Load("LoadingCapsule"));
                 loading.name = "Loading";
+                SphereCollider sp = obj.GetComponent<SphereCollider>();
+                if (sp != null)
+                    loading.transform.localScale = Vector3.one * sp.radius;
                 loading.transform.parent = obj.gameObject.transform;
                 loading.transform.localPosition = Vector3.zero;
                 loading.transform.localRotation = Quaternion.identity;
