@@ -70,6 +70,17 @@ namespace cam
                 speedMultiplier = totalRun * shiftAdd * Time.deltaTime;
                 speedMultiplier = Mathf.Clamp(speedMultiplier, -maxShift, maxShift);
             }
+            else if (Input.GetKey(KeyCode.LeftAlt))
+            {
+                totalRun += Time.deltaTime;
+                p = p * totalRun;
+                p.x = Mathf.Clamp(p.x, -maxShift, maxShift);
+                p.y = Mathf.Clamp(p.y, -maxShift, maxShift);
+                p.z = Mathf.Clamp(p.z, -maxShift, maxShift);
+                // Angryboy: Use these to ensure that Y-plane is affected by the shift key as well
+                speedMultiplier = totalRun * shiftAdd * Time.deltaTime;
+                speedMultiplier = Mathf.Clamp(speedMultiplier, -maxShift, maxShift);
+            }
             else
             {
                 totalRun = Mathf.Clamp(totalRun * 0.5f, 1f, 1000f);
