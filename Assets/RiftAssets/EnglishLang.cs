@@ -10,6 +10,7 @@ using UnityEngine;
 
 namespace Assets.RiftAssets
 {
+
     public class LangEntry
     {
         public int key;
@@ -20,127 +21,78 @@ namespace Assets.RiftAssets
         {
             get
             {
-                if (str != null)
-                    return str;
+                try
+                {
+                    if (str != null)
+                        return str;
 
-                CObject obj = DatParser.Parser.processStreamObject(cdata);
-                str = "" + obj.get(0).get(1).get(0).convert();
+                    CObject obj = DatParser.Parser.processStreamObject(cdata);
+                    str = "" + obj.get(0).get(1).get(0).convert();
+                }
+                catch (Exception ex)
+                {
+                    str = "";
+                }
                 return str;
             }
         }
     }
-    public class EnglishLang
+    public class DBLang
     {
 
         public Dictionary<int, LangEntry> stringMap = new Dictionary<int, LangEntry>();
 
+        public IEnumerable<int> keys {  get { return stringMap.Keys;  } }
         public string get(int i)
         {
             return stringMap[i].text;
         }
-        public EnglishLang(AssetDatabase adb, Action<String> progress)
+        public DBLang(AssetDatabase adb, string lang, Action<String> progress)
         {
-            byte[] englishData = adb.extractUsingFilename("lang_english.cds");
-            string expectedChecksum = BitConverter.ToString(System.Security.Cryptography.SHA1.Create().ComputeHash(englishData));
-
-            string actualChecksum = "";
-            bool match = false;
-
-            if (File.Exists("cds.xmlz"))
-                actualChecksum = BitConverter.ToString(readHash());
-            match = actualChecksum.Equals(expectedChecksum);
-            Debug.Log("cds.xmlz expected:" + expectedChecksum + " was " + actualChecksum);
-            if (!match)
-            {
-                Debug.Log("no match, recreate");
-                stringMap = create(adb.extractUsingFilename("lang_english.cds"), progress);
-            }
-            else
-            {
-                Debug.Log("matched, reload");
-                stringMap = readData("cds.xmlz", progress);
-            }
+            process(adb.extractUsingFilename("lang_" + lang + ".cds"), progress);
         }
 
-
-        internal static Dictionary<int, LangEntry> create(byte[] data, Action<String> progress)
+        public void process(byte[] cdsData, Action<String> progress)
         {
-            string temp = Path.GetTempFileName();
-            try
-            {
-                progress.Invoke("Decoding lang database, wait a bit..");
-                File.WriteAllBytes(temp, data);
-                System.Diagnostics.Process pr;
-                pr = new System.Diagnostics.Process();
-                pr.StartInfo.FileName = @"decomp\cdsdecomp.exe"; 
-                pr.StartInfo.Arguments = "\"" + temp + "\"";
-                pr.Start();
-                pr.WaitForExit();
+            Debug.Log("process lang");
 
-                return readData("cds.xmlz", progress);
-            }
-            finally
+            using (MemoryStream memStream = new MemoryStream(cdsData))
             {
-                File.Delete(temp);
-            }
-        }
-
-        private static byte[] readHash()
-        {
-            using (FileStream fs = new FileStream("cds.xmlz", FileMode.Open))
-            {
-                using (ProgressStream ps = new ProgressStream(fs))
+                using (BinaryReader dis = new BinaryReader(memStream))
                 {
-                    long total = fs.Length;
+                    int entryCount = dis.ReadInt32();
+                    byte[] freqData = dis.ReadBytes(1024);
+                    HuffmanReader reader = new HuffmanReader(freqData);
 
-                    using (DeflateStream ds = new DeflateStream(ps, CompressionMode.Decompress))
+                    List<int> keys = new List<int>(entryCount);
+                    for (int i = 0; i < entryCount; i++)
                     {
-                        long pos = fs.Position;
-                        using (BinaryReader reader = new BinaryReader(ds))
-                        {
-                            byte[] hash = reader.ReadBytes(20);
-                            return hash;
-                        }
+                        int key = dis.ReadInt32();
+                        int offset = Util.readUnsignedLeb128_X(dis.BaseStream);
+                        keys.Add(key);
                     }
+                    for (int i = 0; i < entryCount; i++)
+                    {
+                        if (progress != null)
+                            progress.Invoke("english " + i + "/" + entryCount);
+                        int compressedSize = Assets.RiftAssets.Util.readUnsignedLeb128_X(dis.BaseStream);
+                        int uncompressedSize = Assets.RiftAssets.Util.readUnsignedLeb128_X(dis.BaseStream);
+                        byte[] data = dis.ReadBytes(compressedSize);
+                        byte[] dataOut = new byte[uncompressedSize];
+
+                        dataOut = reader.read(data, data.Length, dataOut.Length);
+
+                        LangEntry entry = new LangEntry();
+                        entry.key = keys[i];
+                        entry.cdata = dataOut;
+                        stringMap[entry.key] = entry;
+                    }
+                    
                 }
             }
+            Debug.Log("done process lang");
+            progress.Invoke("done");
         }
-        private static Dictionary<int, LangEntry> readData(string cdsZ, Action<String> progress)
-        {
 
-            Dictionary<int, LangEntry> data = new Dictionary<int, LangEntry>();
-            using (FileStream fs = new FileStream("cds.xmlz", FileMode.Open))
-            {
-                using (ProgressStream ps = new ProgressStream(fs))
-                {
-                    long total = fs.Length;
-                    ps.BytesRead += (s, a) => progress.Invoke("Loading English Database: " + (int)(((float)a.StreamPosition / (float)total) * 100.0) + " %");
-
-
-                    using (DeflateStream ds = new DeflateStream(ps, CompressionMode.Decompress))
-                    {
-                        long pos = fs.Position;
-                        using (BinaryReader reader = new BinaryReader(ds))
-                        {
-                            byte[] hash = reader.ReadBytes(20);
-                            int entries = reader.ReadInt32();
-                            for (int i = 0; i < entries; i++)
-                            {
-                                int key = reader.ReadInt32();
-                                int dataSize = reader.ReadInt32();
-                                byte[] cdata = reader.ReadBytes(dataSize);
-                                LangEntry lentry = new LangEntry();
-                                lentry.cdata = cdata;
-                                lentry.key = key;
-                                data[key] = lentry;
-
-
-                            }
-                        }
-                    }
-                }
-                return data;
-            }
-        }
     }
 }

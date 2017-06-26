@@ -561,13 +561,13 @@ public class NIFLoader
                 mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
 
             if (mesh.materialNames.Contains("TwoSided_Alpha_Specular"))
-                mat = new Material(Resources.Load("transmat_fade", typeof(Material)) as Material);
+                mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
 
             // handle some simple animated "scrolling" textures
             if (mesh.materialNames.Contains("Additive_UVScroll_Distort") || 
                 mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") )
                 {
-                    mat = new Material(Resources.Load("transmat_fade", typeof(Material)) as Material);
+                    mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
 
                 UVScroll scroller = go.AddComponent<UVScroll>();
                 scroller.material = mat;
@@ -592,7 +592,7 @@ public class NIFLoader
                     {
                         case "doAlphaTest":
                             if (fExtra.booleanData)
-                                mat = new Material(Resources.Load("transmat", typeof(Material)) as Material);
+                                mat = new Material(Resources.Load("2sidedtransmat", typeof(Material)) as Material);
                             break;
                         default:
                             break;

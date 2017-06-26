@@ -1,10 +1,14 @@
-﻿using System;
+﻿using Assets.DatParser;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace Assets.Database
 {
+    public delegate byte[] GetDataCallback(long id, long key);
+
     [Serializable()]
     public class DB
     {
@@ -59,6 +63,11 @@ namespace Assets.Database
         public long key;
         public long id;
         public string name;
-        public byte[] decompressedData;
+        public GetDataCallback getData;
+
+        public byte[] decompressedData
+        {
+            get { return getData(id, key); }
+        }
     }
 }

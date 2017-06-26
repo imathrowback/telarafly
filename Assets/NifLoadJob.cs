@@ -65,7 +65,7 @@ public class NifLoadJob : ThreadedJob
                 cacheWait[filename] = new Semaphore(1, 1);
         }
     }
-    protected override void ThreadFunction()
+    protected override void ThreadFunctionCDR()
     {
         // Do your threaded task. DON'T use the Unity API here
 

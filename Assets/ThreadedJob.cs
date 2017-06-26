@@ -46,7 +46,7 @@ public class ThreadedJob
         m_Thread.Abort();
     }
 
-    protected virtual void ThreadFunction() { }
+    protected virtual void ThreadFunctionCDR() { }
 
     protected virtual void OnFinished() { }
 
@@ -69,7 +69,7 @@ public class ThreadedJob
     }
     public void Run()
     {
-        ThreadFunction();
+        ThreadFunctionCDR();
         IsDone = true;
     }
 }

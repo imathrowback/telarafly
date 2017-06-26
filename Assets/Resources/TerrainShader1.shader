@@ -47,14 +47,14 @@
 			fixed4 col4 = tex2D(_terrain4, IN.uv_MainTex * 20) * _Color;
 			fixed4 col5 = tex2D(_terrain5, IN.uv_MainTex * 20) * _Color;
 
-			fixed4 c10 = (-2, 3, -0.5, 0);
-			fixed4 c11 = (1, 0.300000012, -0.00105730689, 9.55352688);
-			fixed4 c12 = (0.75, 0.600000024, 0.25, 1);
-			fixed4 c13 = (2, -1, 1, 0.00392156886);
-			fixed4 c14 = (0.0500000007, 0, 0, 0);
-			fixed4 c15 = (0, 1, 0.800000012, 0.100000001);
+			fixed4 c10 = fixed4(-2, 3, -0.5, 0);
+			fixed4 c11 = fixed4(1, 0.300000012, -0.00105730689, 9.55352688);
+			fixed4 c12 = fixed4(0.75, 0.600000024, 0.25, 1);
+			fixed4 c13 = fixed4(2, -1, 1, 0.00392156886);
+			fixed4 c14 = fixed4(0.0500000007, 0, 0, 0);
+			fixed4 c15 = fixed4(0, 1, 0.800000012, 0.100000001);
 
-			half4 t = (0,0,0,0);
+			half4 t = half4(0,0,0,0);
 
 			t = lerp(col1, col2, col0.r);
 			t = lerp(t, col3, col0.g );

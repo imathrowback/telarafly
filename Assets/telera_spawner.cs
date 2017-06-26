@@ -9,6 +9,7 @@ using UnityStandardAssets.Characters.ThirdPerson;
 using UnityEngine.UI;
 using Assets.Database;
 using Assets.Wardrobe;
+using Assets.WorldStuff;
 
 public class telera_spawner : MonoBehaviour
 {
@@ -107,14 +108,17 @@ public class telera_spawner : MonoBehaviour
         this.nifloader = new NIFLoader();
         this.nifloader.loadManifestAndDB();
 
-
+        /*
         Debug.Log("loading " + GameWorld.getObjects().Count + " objects");
         foreach (ObjectPosition op in GameWorld.getObjects())
         {
             process(op);
         }
+        */
 
     }
+
+    HashSet<string> processedTiles = new HashSet<string>();
 
     public void setCameraLoc(WorldSpawn spawn, bool useChar = false)
     {
@@ -248,6 +252,10 @@ public class telera_spawner : MonoBehaviour
     GameObject mount;
 
 
+    private Vector3 getWorldCamPos()
+    {
+        return meshRoot.transform.InverseTransformPoint(mcamera.transform.position);
+    }
 
     // Update is called once per frame
     void Update()
@@ -294,10 +302,30 @@ public class telera_spawner : MonoBehaviour
         }
         int i = 0;
 
-
-
         Vector3 camPos = mcamera.transform.position;
         IOrderedEnumerable<NifLoadJob> processQueue = ObjJobLoadQueue.OrderBy(a => !(a.filename.Contains("terrain") || a.filename.Contains("ocean"))).ThenBy(a => Vector3.Distance(a.parent.transform.position, camPos));
+
+        int tileX = Mathf.FloorToInt(getWorldCamPos().x / 256.0f) ;
+        int tileY = Mathf.FloorToInt(getWorldCamPos().z / 256.0f) ;
+        int[][] v = {
+            new int[]{ -1, 1 },  new int[]{ 0, 1 },   new int[]{ 1, 1 },
+            new int[]{ -1, 0 },  new int[]{ 0, 0 },   new int[]{ 1, 0 },
+            new int[]{ -1, -1 },  new int[]{ 0, -1 },   new int[]{ 1, -1 },
+        };
+        int range = 5;
+        for (int tx = tileX - range; tx < tileX + range; tx++)
+        {
+            for (int ty = tileY - range; ty < tileY + range; ty++)
+            {
+                string tileStr = tx + ":" + ty;
+                if (!processedTiles.Contains(tileStr))
+                {
+                    CDRParse.doWorldTile(AssetDatabaseInst.DB, DBInst.inst, GameWorld.worldName, tx * 256, ty * 256, (p) => process(p));
+                    processedTiles.Add(tileStr);
+                }
+            }
+        }
+
 
         foreach (NifLoadJob job in processQueue)
         {

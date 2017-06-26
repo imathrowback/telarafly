@@ -26,7 +26,7 @@ namespace Assets.Wardrobe
         {
     
         }
-        protected override void ThreadFunction()
+        protected override void ThreadFunctionCDR()
         {
             // Do your threaded task. DON'T use the Unity API here
             

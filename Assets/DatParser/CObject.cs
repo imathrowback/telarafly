@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-
+using UnityEngine;
 
 namespace Assets.DatParser
 {
@@ -24,7 +24,7 @@ namespace Assets.DatParser
             this.convertor = convertor;
         }
 
-        public Object convert()
+        public System.Object convert()
         {
             try
             {
@@ -126,6 +126,36 @@ namespace Assets.DatParser
         internal void hintCapacity(int count)
         {
             this.members.Capacity = count;
+        }
+
+        public Quaternion readQuat()
+        {
+            CObject cObject = this;
+            if (cObject.members.Count != 4)
+                throw new Exception("Not arrary of 4 was ary of :" + cObject.members.Count);
+            CFloatConvertor conv = CFloatConvertor.inst;
+            float a = (float)conv.convert(cObject.members[0]);
+            float b = (float)conv.convert(cObject.members[1]);
+            float c = (float)conv.convert(cObject.members[2]);
+            float d = (float)conv.convert(cObject.members[3]);
+            return new Quaternion(a, b, c, d);
+        }
+
+        public  Vector3 readVec3()
+        {
+            CObject cObject = this;
+            if (cObject.members.Count != 3)
+                throw new Exception("Not arrary of 3 was ary of :" + cObject.members.Count);
+            CFloatConvertor conv = CFloatConvertor.inst;
+            try
+            {
+                return new Vector3((float)conv.convert(cObject.members[0]), (float)conv.convert(cObject.members[1]),
+                       (float)conv.convert(cObject.members[2]));
+            }
+            catch (Exception e)
+            {
+                return new Vector3();
+            }
         }
     }
 }

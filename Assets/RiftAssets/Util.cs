@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace Assets.RiftAssets
 {
-    class Util
+    public class Util
     {
         public static string bytesToHexString(byte[] inb)
         {
@@ -40,6 +41,21 @@ namespace Assets.RiftAssets
             uint hash = FNV.hash32(bytes);
             string newHash = hash.ToString("X");
             return newHash.PadLeft(8, '0').ToLower();
+        }
+
+        public static int readUnsignedLeb128_X(Stream br)
+        {
+            MyBinaryReader diss = new MyBinaryReader(br);
+            return diss.Read7BitEncodedInt();
+        }
+    }
+
+    public class MyBinaryReader : BinaryReader
+    {
+        public MyBinaryReader(Stream stream) : base(stream) { }
+        public new int Read7BitEncodedInt()
+        {
+            return base.Read7BitEncodedInt();
         }
     }
 }
