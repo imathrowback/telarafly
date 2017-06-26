@@ -88,8 +88,14 @@ namespace Assets.Database
                 string compressedSQLDB = namePath + ".db3";
                 string dbHashname = namePath + ".hash";
 
+                AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+                {
+                    if (origc != null)
+                        origc.Close();
+                };
+
                 string foundHash = "";
-                if (File.Exists(dbHashname))
+                if (File.Exists(dbHashname) && File.Exists(compressedSQLDB))
                 {
                     string[] lines = File.ReadAllLines(dbHashname);
                     if (lines.Length == 1)
@@ -124,9 +130,11 @@ namespace Assets.Database
         }
         private static DB readDB(byte[] telaraDBData, string outSQLDb, Action<String> progress)
         {
+            DB db = new DB();
+
             try
             {
-                byte[] key = { 0x22, 0x8A, 0x28, 0x5B, 0x7C, 0xEC, 0x42, 0x09, 0xB6, 0xD9, 0x76, 0x95, 0x43, 0x46, 0x0E, 0x34, 0x02, 0x9E, 0x84, 0xFC, 0x89, 0xA8, 0x4C, 0x9A, 0xA1, 0x0E, 0xEC, 0x12, 0xA7, 0xF5, 0x5C, 0x37 };
+                byte[] key = System.Convert.FromBase64String("IoooW3zsQgm22XaVQ0YONAKehPyJqEyaoQ7sEqf1XDc=");
 
                 BinaryReader reader = new BinaryReader(new MemoryStream(telaraDBData));
                 Debug.Log("get page size");
@@ -159,7 +167,6 @@ namespace Assets.Database
                 decryptedStream.Seek(0, SeekOrigin.Begin);
 
                 File.WriteAllBytes(outSQLDb, decryptedStream.ToArray());
-
                 processSQL(db, outSQLDb,  progress);
                 Debug.Log("finished processing");
             }
