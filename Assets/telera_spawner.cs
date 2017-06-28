@@ -204,7 +204,7 @@ public class telera_spawner : MonoBehaviour
             go.layer = 30;
         }
         telara_obj tobj = go.AddComponent<telara_obj>();
-        tobj.setProps(this, mcamera, category);
+        tobj.setProps(category);
 
         go.transform.SetParent(meshRoot.transform);
         GameObject.Destroy(go.GetComponent<MeshRenderer>());
@@ -376,18 +376,47 @@ public class telera_spawner : MonoBehaviour
         }
     }
 
+    [SerializeField]
+    bool useLOD = true;
+    [SerializeField]
+    float LODCutoff = 0.9f;
+
+    /// <summary>
+    /// Update the LOD on all objects
+    /// </summary>
+    public void updateLOD(bool newLod)
+    {
+        this.useLOD = newLod;
+        telara_obj[] objs = GameObject.FindObjectsOfType<telara_obj>();
+        foreach (telara_obj obj in objs)
+        {
+            if (!useLOD)
+            {
+                LODGroup group = obj.gameObject.GetComponent<LODGroup>();
+                if (group != null)
+                    GameObject.Destroy(group);
+            }
+            else
+            {
+                applyLOD(obj.gameObject);
+            }
+        }
+    }
+
+
     private void applyLOD(GameObject go)
     {
+        if (!useLOD)
+            return;
         LODGroup group = go.GetComponent<LODGroup>();
         if (group == null)
             group = go.AddComponent<LODGroup>();
-
         group.animateCrossFading = true;
         group.fadeMode = LODFadeMode.SpeedTree;
         LOD[] lods = new LOD[2];
         Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
-        lods[0] = new LOD(0.9f, renderers);
-        lods[1] = new LOD(0.1f, renderers);
+        lods[0] = new LOD(LODCutoff, renderers);
+        lods[1] = new LOD(1f - LODCutoff, renderers);
         group.SetLODs(lods);
 
 
