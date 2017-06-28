@@ -9,6 +9,7 @@ namespace Assets.RiftAssets
 {
    public class AssetDatabase
     {
+        
         List<AssetFile> assets = new List<AssetFile>();
         Manifest manifest;
         bool is64;
@@ -218,7 +219,9 @@ namespace Assets.RiftAssets
 
         public void extract( AssetEntry ae,  Stream fos)
         {
-            findAssetFileForID(ae.strID).extract(ae, fos);
+            byte[] data = extract(ae);
+            fos.Write(data, 0, data.Length);
+            fos.Flush();
         }
 
         public AssetEntry getEntryForID( byte[] id)

@@ -44,19 +44,26 @@ namespace Assets.WorldStuff
         public static void doWorldTile(AssetDatabase adb, DB db, string worldName, int x, int y, Action<ObjectPosition> addFunc)
         {
             string s = worldName + "_" + x + "_" + y + ".cdr";
+            //Debug.Log("doWorldTile :" + s);
 
             try
             {
-                processCDR(s, addFunc, adb, db);
                 // also add the terrain nif!
                 String type = "_split";
                 String terrainNif = String.Format("{0}_terrain_{1}_{2}{3}.nif", worldName, x, y, type);
                 if (adb.filenameExists(terrainNif))
                 {
+                   // Debug.Log("add tile nif:" + terrainNif);
+
                     Vector3 pos = new Vector3(x, 0.0f, y);
                     addFunc.Invoke(new ObjectPosition(terrainNif, pos, Quaternion.identity, pos, 1.0f));
                 }
+                else
+                {
+                    Debug.Log("can't add tile nif:" + terrainNif + ", it doesn't exist");
+                }
 
+                processCDR(s, addFunc, adb, db);
             }
             catch (ThreadAbortException ex)
             {
@@ -65,7 +72,7 @@ namespace Assets.WorldStuff
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning("Unable to process CDR:" + s + " due to error:" + ex.Message + ":\n" + ex);
+                UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message + ":\n" + ex);
             }
         }
 

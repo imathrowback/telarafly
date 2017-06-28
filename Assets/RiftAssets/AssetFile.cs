@@ -56,6 +56,7 @@ namespace Assets.RiftAssets
             return getEntry(Util.bytesToHexString(id));
         }
 
+        static AssetCache cache = new AssetCache();
         /**
          * Attempt to extract the given assetentry into a byte array. Because the content may be compressed the returned byte array
          * may be larger than the requested max bytes.
@@ -64,12 +65,21 @@ namespace Assets.RiftAssets
          * @param maxBytesToRead The maximum bytes to read from the source
          * @return The bytes read, may be larger than requested if the data is compressed
          */
-        public  byte[] extractPart( AssetEntry entry,  int maxBytesToRead,  Stream os,
+        public byte[] extractPart(AssetEntry entry, int maxBytesToRead, Stream os,
                  bool nodecomp)
         {
             if (entry.file != this)
                 throw new Exception(
                         "Extract called on wrong asset file[" + file + "] for asset:" + entry);
+
+            byte[] data = cache.GetOrAdd(entry.strID + ":" + maxBytesToRead + ":" + nodecomp, () => extractPart1(entry, maxBytesToRead,  nodecomp));
+            if (os != null)
+                os.Write(data, 0, data.Length);
+            return data;
+        }
+
+         private byte[] extractPart1(AssetEntry entry, int maxBytesToRead,  bool nodecomp)
+        {
 
             try
             {
@@ -85,8 +95,7 @@ namespace Assets.RiftAssets
                         long bytesRead = stream.Read(data, 0, maxBytesToRead);
                         if (entry.size >= maxBytesToRead && bytesRead != maxBytesToRead)
                             throw new Exception("Not enough bytes read, expected [" + maxBytesToRead + "], got: " + bytesRead);
-                        if (os != null)
-                            os.Write(data, 0, data.Length);
+                      
                         return data;
                     }
                 }
@@ -115,8 +124,7 @@ namespace Assets.RiftAssets
                                 if (!readAll && decompressed.Length >= maxBytesToRead)
                                     break;
                                 decompressed.Write(buffer, 0, numRead);
-                                if (os != null)
-                                    os.Write(buffer, 0, numRead);
+                                
                             }
                         }
                         return decompressed.ToArray();

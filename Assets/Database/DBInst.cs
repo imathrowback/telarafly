@@ -192,6 +192,8 @@ namespace Assets.Database
         }
         static SqliteConnection origc;
 
+        static Dictionary<long, HuffmanReader> dsHuffmanreaders = new Dictionary<long, HuffmanReader>();
+
         private static byte[] getEntry(long id, long key)
         {
             string datasetQ = "select * from dataset where datasetId=" + id + " and datasetKey=" + key;
@@ -202,8 +204,15 @@ namespace Assets.Database
                     while (reader.Read())
                     {
                         byte[] compressedData = (byte[])reader.GetValue(5);
-                        byte[] freq = getFreqData(origc, id);
-                        return getData(compressedData, freq);
+
+                        // cache the huffman readers to save having to compute the huffman trees every time and also we don't have to read the frequency tables every time
+                        HuffmanReader huffreader;
+                        if (!dsHuffmanreaders.TryGetValue(id, out huffreader))
+                        {
+                            huffreader = new HuffmanReader(getFreqData(origc, id));
+                            dsHuffmanreaders[id] = huffreader;
+                        }
+                        return getData(compressedData, huffreader);
                     }
                 }
             }
@@ -220,8 +229,12 @@ namespace Assets.Database
                 output.Write(buffer, 0, read);
             }
         }
-
         private static byte[] getData(byte[] compressedData, byte[] freq)
+        {
+            HuffmanReader reader = new HuffmanReader(freq);
+            return getData(compressedData, reader);
+        }
+        private static byte[] getData(byte[] compressedData, HuffmanReader reader)
         {
             MemoryStream mdata = new MemoryStream(compressedData);
             int uncompressedSize = RiftAssets.Util.readUnsignedLeb128_X(mdata);
@@ -233,10 +246,9 @@ namespace Assets.Database
 
             byte[] newCompressed = compressedD.ToArray();
 
-            HuffmanReader reader = new HuffmanReader(freq);
             return reader.read(newCompressed, newCompressed.Length, uncompressedSize);
         }
-
+        
         private static void processSQL(DB db, string compressedSQLDB,  Action<String> progress)
         {
 

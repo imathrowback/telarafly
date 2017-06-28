@@ -122,7 +122,7 @@ public class TestDecomp : MonoBehaviour
                 }
             }
             worlds.Sort();
-            Debug.Log("do box");
+            //Debug.Log("do box");
             dropdown.options.Clear();
             int startIndex = 0;
             int i = 0;

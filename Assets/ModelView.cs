@@ -59,7 +59,10 @@ public class ModelView : MonoBehaviour
         DBInst.loadOrCallback((d) => db = d);
         DBInst.progress += (m) => progress = m;
     }
+    public void mainMenuButton()
+    {
 
+    }
     private void parse7305(IEnumerable<entry> entries)
     {
         nIFModelDropdown.ClearOptions();

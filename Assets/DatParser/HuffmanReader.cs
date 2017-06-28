@@ -63,7 +63,10 @@ namespace Assets.DatParser
         {
             Node current = root;
 
-            MemoryStream outr = new MemoryStream();
+            //MemoryStream outr = new MemoryStream(dstLimit);
+            byte[] output = new byte[dstLimit];
+            int outIndex = 0;
+
             int count = 0;
             while (count++ < srcLimit)
             {
@@ -86,12 +89,11 @@ namespace Assets.DatParser
 
                     if (current.a == null && current.b == null)
                     {
-                        outr.WriteByte((byte)current.value);
+                        output[outIndex++] = ((byte)current.value);
 
-                        if (outr.Length >= dstLimit)
+                        if (outIndex >= dstLimit)
                         {
-                            outr.Seek(0, SeekOrigin.Begin);
-                            return outr.ToArray();
+                            return output;
                         }
 
                         current = root;
@@ -99,8 +101,7 @@ namespace Assets.DatParser
                 } while (o != 0);
             }
 
-            outr.Seek(0, SeekOrigin.Begin);
-            return outr.ToArray();
+            return output;
         }
 
 

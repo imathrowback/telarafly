@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using SCG = System.Collections.Generic;
+using C5;
 using UnityEngine;
 using System.Linq;
 using System.IO;
@@ -10,11 +10,13 @@ using UnityEngine.UI;
 using Assets.Database;
 using Assets.Wardrobe;
 using Assets.WorldStuff;
+using System;
 
 public class telera_spawner : MonoBehaviour
 {
     GameObject meshRoot;
-    List<NifLoadJob> ObjJobLoadQueue = new List<NifLoadJob>();
+    SCG.List<ObjectPosition> objectPositions;
+    SCG.List<NifLoadJob> ObjJobLoadQueue;
     GameObject charC;
     ThirdPersonUserControl tpuc;
     Rigidbody tpucRB;
@@ -29,7 +31,7 @@ public class telera_spawner : MonoBehaviour
 
     public void purgeObjects()
     {
-        if (ObjJobLoadQueue.Count > 0)
+        if (ObjJobLoadQueue.Count() > 0)
             return;
         NifLoadJob.clearCache();
         foreach (telara_obj obj in GameObject.FindObjectsOfType<telara_obj>())
@@ -40,7 +42,10 @@ public class telera_spawner : MonoBehaviour
         }
         // clear the job queue as well
         NifLoadJob[] queue = ObjJobLoadQueue.ToArray();
-        ObjJobLoadQueue.Clear();
+
+        while (ObjJobLoadQueue.Count() > 0)
+            ObjJobLoadQueue.RemoveAt(0);
+
         foreach (NifLoadJob job in queue)
         {
             telara_obj obj = job.parent;
@@ -68,9 +73,56 @@ public class telera_spawner : MonoBehaviour
     {
         return ObjJobLoadQueue.Count;
     }
+
+    class NifLoadJobCompare : SCG.IComparer<NifLoadJob>
+    {
+        public int Compare(NifLoadJob x, NifLoadJob y)
+        {
+            if (x.filename.Contains("terrain") || x.filename.Contains("ocean"))
+                return -1;
+            return 0;
+        }
+    }
+
+    class NifLoadJobCompareDist : SCG.IComparer<NifLoadJob>
+    {
+        Vector3 v;
+        public NifLoadJobCompareDist(Vector3 v)
+        {
+            this.v = v;
+        }
+        public int Compare(NifLoadJob x, NifLoadJob y)
+        {
+            Vector3 a = x.parent.transform.position;
+            Vector3 b = x.parent.transform.position;
+            float distA = Vector3.Distance(a, v);
+            float distB = Vector3.Distance(a, v);
+            if (distA < distB)
+                return -1;
+            if (distB < distA)
+                return 1;
+            return 0;
+        }
+    }
+
+    class ObjectPositionCompare : SCG.IComparer<ObjectPosition>
+    {
+        public int Compare(ObjectPosition x, ObjectPosition y)
+        {
+            if (x.nifFile.Contains("terrain") || x.nifFile.Contains("ocean"))
+                return -1;
+            return 0;
+        }
+    }
+
     // Use this for initialization
     void Start()
     {
+
+
+         objectPositions = new SCG.List<ObjectPosition>();
+        ObjJobLoadQueue = new SCG.List<NifLoadJob>();
+
         charC = GameObject.Find("ThirdPersonController");
         if (charC != null)
         {
@@ -160,7 +212,7 @@ public class telera_spawner : MonoBehaviour
         setCameraLoc(GameWorld.initialSpawn);
     }
 
-    private void process(ObjectPosition op)
+    private GameObject process(ObjectPosition op)
     {
         GameObject go;
         if (op is LightPosition)
@@ -177,7 +229,7 @@ public class telera_spawner : MonoBehaviour
             light.color = new Color(lp.r, lp.g, lp.b);
             light.intensity = lp.range;
             light.shadows = LightShadows.Hard;
-            return;
+            return go;
         }
 
         string name = op.nifFile;
@@ -204,7 +256,7 @@ public class telera_spawner : MonoBehaviour
             go.layer = 30;
         }
         telara_obj tobj = go.AddComponent<telara_obj>();
-        tobj.setProps(category);
+        tobj.setProps(category, this);
 
         go.transform.SetParent(meshRoot.transform);
         GameObject.Destroy(go.GetComponent<MeshRenderer>());
@@ -214,6 +266,7 @@ public class telera_spawner : MonoBehaviour
         go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
         go.transform.localPosition = op.min;
         go.transform.localRotation = op.qut;
+        return go;
     }
 
     Vector3 getV3(string str)
@@ -251,12 +304,11 @@ public class telera_spawner : MonoBehaviour
 
     GameObject mount;
 
-
     private Vector3 getWorldCamPos()
     {
         return meshRoot.transform.InverseTransformPoint(mcamera.transform.position);
     }
-
+    
     // Update is called once per frame
     void Update()
     {
@@ -302,9 +354,9 @@ public class telera_spawner : MonoBehaviour
         }
         int i = 0;
 
-        Vector3 camPos = mcamera.transform.position;
-        IOrderedEnumerable<NifLoadJob> processQueue = ObjJobLoadQueue.OrderBy(a => !(a.filename.Contains("terrain") || a.filename.Contains("ocean"))).ThenBy(a => Vector3.Distance(a.parent.transform.position, camPos));
-
+        /**
+         * Load the world tiles around the camera and their objects 
+         */
         int tileX = Mathf.FloorToInt(getWorldCamPos().x / 256.0f) ;
         int tileY = Mathf.FloorToInt(getWorldCamPos().z / 256.0f) ;
         int[][] v = {
@@ -313,30 +365,60 @@ public class telera_spawner : MonoBehaviour
             new int[]{ -1, -1 },  new int[]{ 0, -1 },   new int[]{ 1, -1 },
         };
         int range = 5;
-        for (int tx = tileX - range; tx < tileX + range; tx++)
+        for (int txx = tileX - range; txx <= tileX + range; txx++)
         {
-            for (int ty = tileY - range; ty < tileY + range; ty++)
+            for (int txy = tileY - range; txy <= tileY + range; txy++)
             {
+                int tx = txx;
+                int ty = txy;
                 string tileStr = tx + ":" + ty;
                 if (!processedTiles.Contains(tileStr))
                 {
-                    CDRParse.doWorldTile(AssetDatabaseInst.DB, DBInst.inst, GameWorld.worldName, tx * 256, ty * 256, (p) => process(p));
+                    System.Threading.Thread m_Thread = new System.Threading.Thread(() =>
+                    {
+                        SCG.List<ObjectPosition> objs = new SCG.List<ObjectPosition>();
+                        CDRParse.doWorldTile(AssetDatabaseInst.DB, DBInst.inst, GameWorld.worldName, tx * 256, ty * 256, (p) =>
+                        {
+                            objs.Add(p);
+                        });
+                        lock(objectPositions)
+                        {
+                            objectPositions.AddRange(objs);
+                        }
+                    });
+                    m_Thread.Priority = System.Threading.ThreadPriority.Lowest;
+                    m_Thread.Start();
                     processedTiles.Add(tileStr);
                 }
             }
         }
+        
 
-
-        foreach (NifLoadJob job in processQueue)
+        lock (objectPositions)
         {
+            while (objectPositions.Count() > 0)
+            {
+                ObjectPosition p = objectPositions[0];
+                objectPositions.RemoveAt(0);
+                GameObject go = process(p);
+            }
+        }
 
+        Vector3 camPos = this.mcamera.transform.position;
+        checkHits(camPos);
+
+
+        IOrderedEnumerable<NifLoadJob> jobs = ObjJobLoadQueue.OrderBy(a => !(a.filename.Contains("terrain") || a.filename.Contains("ocean"))).ThenBy(a => Vector3.Distance(a.parent.transform.position, camPos));
+
+        foreach (NifLoadJob job in jobs)
+        {
             if (i > MAX_OBJ_PER_FRAME)
             {
                 Debug.Log("spawned " + i + " this frame, thats enough for now");
                 break;
             }
 
-            /** Add a loading capsule to the location of the job */
+            // Add a loading capsule to the location of the job 
             telara_obj obj = job.parent;
             if (obj.gameObject.transform.childCount == 0)
             {
