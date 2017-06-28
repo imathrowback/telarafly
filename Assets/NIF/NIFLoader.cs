@@ -495,7 +495,7 @@ public class NIFLoader
             //Debug.Log("load:" + name);
             String testPath = @"d:\rift_stuff\dds\" + name;
             byte[] data;
-            if (File.Exists(testPath) && false)
+            if (File.Exists(testPath))
             {
                 data = File.ReadAllBytes(testPath);
             }

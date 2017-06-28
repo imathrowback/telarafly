@@ -34,6 +34,15 @@ namespace Assets
             nif.setSkeletonRoot(nifmodel);
             return nifmodel;
         }
+        static public GameObject loadNIFFromFile(string nifFile, string kfm, string kfb)
+        {
+            NIFLoader loader = new NIFLoader();
+            GameObject nifmodel = loader.loadNIFFromFile(nifFile, true);
+            AnimatedNif nif = nifmodel.AddComponent<AnimatedNif>();
+            nif.setParams(AssetDatabaseInst.DB, nifFile, kfm, kfb);
+            nif.setSkeletonRoot(nifmodel);
+            return nifmodel;
+        }
         static public string getStringMember(CObject obj, int member)
         {
             foreach (CObject o in obj.members)

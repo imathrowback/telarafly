@@ -56,8 +56,15 @@ namespace Assets.NIF
                 if (obj is NiSourceTexture)
                 {
                     NiSourceTexture tex = (NiSourceTexture)obj;
-                    // preload texture
-                    AssetDatabaseInst.DB.extractUsingFilename(tex.texFilename, RiftAssets.AssetDatabase.RequestCategory.TEXTURE);
+                    try
+                    {
+                        // preload texture
+                        AssetDatabaseInst.DB.extractUsingFilename(tex.texFilename, RiftAssets.AssetDatabase.RequestCategory.TEXTURE);
+                    }
+                    catch (Exception ex)
+                    {
+
+                    }
                 }
             }
         }
