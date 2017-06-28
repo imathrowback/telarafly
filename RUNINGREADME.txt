@@ -21,16 +21,14 @@ Mouse to look around
 WSAD to move around
 Q/E to move up and down
 HOLD SHIFT to move faster
-
-Step 3
-------
-It will be ready once you see the main menu.
+HOLD ALT to move slower
+F10 for screenshots
 
 == 
 PURGE
 ==
 
-When viewing the world, use the PURGE OBJECTS button to remove all objects loaded so far. 
-NOTE: It will not work while meshes are queued for loading.
+When viewing the world, use the PURGE OBJECTS button to remove all objects (except terrain) loaded so far. 
+NOTE: It will not work while meshes are queued for loading (look at the bottom right)
 
 
