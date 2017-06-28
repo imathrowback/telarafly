@@ -9,7 +9,7 @@ public class ShowCamLoc : MonoBehaviour
 {
     GameObject mcamera;
     //camera_movement camMov;
-    telera_spawner spawner;
+    public telera_spawner spawner;
     Text text;
     RectTransform rt;
     RectTransform background;
@@ -20,7 +20,7 @@ public class ShowCamLoc : MonoBehaviour
         mcamera = GameObject.Find("Main Camera");
         meshRoot = GameObject.Find("NIFRotationRoot");
         //camMov = mcamera.GetComponent<camera_movement>();
-        spawner = mcamera.GetComponent<telera_spawner>();
+        //spawner = mcamera.GetComponent<telera_spawner>();
         rt = GetComponent<RectTransform>();
         text = GetComponent<Text>();
         background = GetComponentInChildren<RectTransform>();

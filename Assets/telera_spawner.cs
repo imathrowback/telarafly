@@ -18,7 +18,7 @@ public class telera_spawner : MonoBehaviour
     GameObject charC;
     ThirdPersonUserControl tpuc;
     Rigidbody tpucRB;
-    GameObject mcamera;
+    public GameObject mcamera;
     //camera_movement camMove;
     System.IO.StreamReader fileStream;
 
