@@ -20,7 +20,7 @@ public class Wardrobe : MonoBehaviour
     public Text text;
    
     string progress;
-
+    WardrobePreviewPanelUpdater panelUpdater;
     public Paperdoll paperDoll;
     public Dropdown slotChangeDropdown;
     public Dropdown appearanceDropdown;
@@ -31,15 +31,14 @@ public class Wardrobe : MonoBehaviour
     string genderString;
     Text pageText;
     
-    List<ClothingItemRenderer> clothingPanels = new List<ClothingItemRenderer>();
+    //List<ClothingItemRenderer> clothingPanels = new List<ClothingItemRenderer>();
     int previewIndex = 0;
   
     // Use this for initialization
     void Start()
     {
-        GameObject previewPanel = GameObject.Find("PreviewPanel");
+        panelUpdater = this.GetComponent<WardrobePreviewPanelUpdater>();
         pageText = GameObject.Find("PageText").GetComponent<Text>();
-        clothingPanels.AddRange(previewPanel.GetComponentsInChildren<ClothingItemRenderer>());
 
 
         raceString = "human";
@@ -66,18 +65,19 @@ public class Wardrobe : MonoBehaviour
         DBInst.progress += (m) => progress = m;
         DBInst.loadOrCallback((d) => db = d);
     }
+    
     public void clickLeft()
     {
-        previewIndex-= clothingPanels.Count();
+        previewIndex -= panelUpdater.getVisiblePanels();
         if (previewIndex < 0)
             previewIndex = 0;
         updatePreview();
     }
     public void clickRight()
     {
-        previewIndex += clothingPanels.Count();
-        if (previewIndex > clothingItems.Count()- clothingPanels.Count())
-            previewIndex = clothingItems.Count() - clothingPanels.Count();
+        previewIndex += panelUpdater.getVisiblePanels();
+        if (previewIndex > clothingItems.Count()- panelUpdater.getVisiblePanels())
+            previewIndex = clothingItems.Count() - panelUpdater.getVisiblePanels();
         updatePreview();
     }
     public void changeSlot()
@@ -86,12 +86,13 @@ public class Wardrobe : MonoBehaviour
         GearSlot slot = (GearSlot)option.userObject;
         clothingItems = db.getClothing().Where(c => c.allowedSlots.Contains(slot)).ToArray();
         previewIndex = 0;
+        updatePageText();
         updatePreview();
     }
 
-    void updatePage()
+    void updatePageText()
     {
-        pageText.text = "Items " + previewIndex + "-" + (previewIndex+clothingPanels.Count()) + " of " + clothingItems.Length;
+        pageText.text = "Items " + previewIndex + "-" + (previewIndex + panelUpdater.getVisiblePanels()) + " of " + clothingItems.Length;
     }
     public void mainMenu()
     {
@@ -100,13 +101,15 @@ public class Wardrobe : MonoBehaviour
     }
     void updatePreview()
     {
-        updatePage();
-        for (int i = 0; i < clothingPanels.Count(); i++)
+        updatePageText();
+        ClothingItemRenderer[] renderers = panelUpdater.getPanelRenderers();
+        for (int i = 0; i < renderers.Length; i++)
         {
             ClothingItem item = clothingItems[previewIndex + i];
             Debug.Log("set panel[" + i + "] to " + item);
-            clothingPanels[i].setItem(item);
+            renderers[i].setItem(item);
         }
+        lastVisible = panelUpdater.getVisiblePanels();
     }
 
     public void updateRaceGender()
@@ -117,26 +120,27 @@ public class Wardrobe : MonoBehaviour
         paperDoll.setGender(genderString);
         paperDoll.setRace(raceString);
         paperDoll.updateRaceGender();
-        if (clothingPanels != null)
-            foreach (ClothingItemRenderer r in clothingPanels)
+
+        ClothingItemRenderer[] renderers = panelUpdater.getPanelRenderers();
+        foreach (ClothingItemRenderer r in renderers)
+        {
+            if (r.previewPaperdoll != null)
             {
-                if (r.previewPaperdoll != null)
-                {
-                    r.previewPaperdoll.updateRaceGender();
-                    r.refresh();
-                }
+                r.previewPaperdoll.updateRaceGender();
+                r.refresh();
             }
+        }
         // reapply the costume
         changeAppearance();
     }
 
     bool first = false;
+    int lastVisible = 0;
     // Update is called once per frame
     void Update()
     {
         if (text != null)
             text.text = progress;
-
         if (db != null && !first)
         {
             first = true;
@@ -166,6 +170,14 @@ public class Wardrobe : MonoBehaviour
                 Debug.Log("failed to load appearence set: " + ex);
             }
         }
+        if (db != null && lastVisible != this.panelUpdater.getVisiblePanels())
+        {
+            updatePreview();
+            lastVisible = panelUpdater.getVisiblePanels();
+        }
+
+
+
     }
 
     public void changeAppearance()

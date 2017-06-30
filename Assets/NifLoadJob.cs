@@ -1,19 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using Assets.NIF;
 using System.Threading;
 
 public class NifLoadJob : ThreadedJob
 {
     public volatile static int count = 0;
-
+    public Guid uid = Guid.NewGuid();
     static Dictionary<String, GameObject> originals = new Dictionary<string, GameObject>();
     static Dictionary<String, Semaphore> cacheWait = new Dictionary<string, Semaphore>();
 
@@ -81,7 +76,7 @@ public class NifLoadJob : ThreadedJob
         }
         try
         {
-            niffile = loader.getNIF(filename, parent.cat);
+            niffile = NIFLoader.getNIF(filename, parent.cat);
 
             // extra check for terrain
             if (filename.Contains("_terrain_"))
@@ -89,7 +84,7 @@ public class NifLoadJob : ThreadedJob
                 string lodname = filename.Replace("_split", "_lod_split");
                 try
                 {
-                    lodfile = loader.getNIF(lodname, parent.cat);
+                    lodfile = NIFLoader.getNIF(lodname, parent.cat);
                 }
                 catch (Exception ex)
                 {

@@ -16,7 +16,7 @@ public class NIFTester : MonoBehaviour {
         //Debug.Log(transmat.color);
         string file = @"D:\rift_stuff\nif\A_C_keep_stillmoor_south_entry_01.nif";
         NIFLoader loader = new NIFLoader();
-        loader.loadManifestAndDB();
+      
         GameObject obj = loader.loadNIFFromFile(file);
         obj.transform.parent = this.gameObject.transform;
     }

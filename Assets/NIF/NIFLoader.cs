@@ -13,20 +13,11 @@ using Assets;
 public class NIFLoader
 {
 
-
-    public AssetDatabase db;
-    
-
     // Use this for initialization
     public NIFLoader()
     {
-        db = AssetDatabaseInst.DB;
     }
 
-    public void loadManifestAndDB()
-    {
-        //db = ;
-    }
 
 
 
@@ -40,12 +31,25 @@ public class NIFLoader
 
     }
 
-    public NIFFile getNIF(String fname, AssetDatabase.RequestCategory requestCategory = AssetDatabase.RequestCategory.NONE)
+    static Dictionary<string, NIFFile> nifCache = new Dictionary<string, NIFFile>();
+
+    public static NIFFile getNIF(String fname, AssetDatabase.RequestCategory requestCategory = AssetDatabase.RequestCategory.NONE)
     {
-        byte[] nifData = db.extractUsingFilename(fname, requestCategory);
-        using (MemoryStream nifStream = new MemoryStream(nifData))
+        lock (nifCache)
         {
-            return new NIFFile(nifStream);
+            string key = fname + ":" + requestCategory.ToString();
+            NIFFile niffile;
+
+            if (!nifCache.TryGetValue(key, out niffile))
+            {
+                byte[] nifData = AssetDatabaseInst.DB.extractUsingFilename(fname, requestCategory);
+                using (MemoryStream nifStream = new MemoryStream(nifData))
+                {
+                    niffile = new NIFFile(nifStream);
+                    nifCache[key] = niffile;
+                }
+            }
+            return niffile;
         }
     }
 
@@ -130,7 +134,7 @@ public class NIFLoader
 
     static private NiMesh getMeshForMod(NIFFile nf, NiSkinningMeshModifier skinMod)
     {
-        foreach (NIFObject o in nf.objects)
+        foreach (NIFObject o in nf.getObjects())
         {
             if (o is NiMesh)
             {
@@ -147,7 +151,7 @@ public class NIFLoader
     static public List<NiSkinningMeshModifier> getSkinMods(NIFFile nf)
     {
         List<NiSkinningMeshModifier> mods = new List<NiSkinningMeshModifier>();
-        foreach (NIFObject o in nf.objects)
+        foreach (NIFObject o in nf.getObjects())
         {
             if (o is NiSkinningMeshModifier)
                 mods.Add((NiSkinningMeshModifier)o);
@@ -414,7 +418,7 @@ public class NIFLoader
                                 {
                                     string param = "_terrain" + i;
                                     //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
-                                    mat.SetTexture(param, loadTexture(db, texName));
+                                    mat.SetTexture(param, loadTexture(texName));
                                 }
                                 else
                                 {
@@ -422,25 +426,25 @@ public class NIFLoader
                                     {
                                         case "diffuseTexture":
                                         case "diffuseTextureXZ":
-                                            mat.SetTexture("_MainTex", loadTexture(db, texName));
+                                            mat.SetTexture("_MainTex", loadTexture( texName));
                                             break;
                                         case "decalNormalTexture":
-                                            mat.SetTexture("_DetailNormalMap", loadTexture(db, texName));
+                                            mat.SetTexture("_DetailNormalMap", loadTexture( texName));
                                             break;
                                         case "normalTexture":
-                                            mat.SetTexture("_BumpMap", loadTexture(db, texName));
+                                            mat.SetTexture("_BumpMap", loadTexture( texName));
                                             break;
                                         case "glowTexture":
                                             mat.EnableKeyword("_EMISSION");
                                             
                                             mat.SetColor("_EmissionColor", Color.white*0.5f);
-                                            mat.SetTexture("_EmissionMap", loadTexture(db, texName));
+                                            mat.SetTexture("_EmissionMap", loadTexture( texName));
                                             break;
                                         case "glossTexture":
-                                            mat.SetTexture("_MetallicGlossMap", loadTexture(db, texName));
+                                            mat.SetTexture("_MetallicGlossMap", loadTexture( texName));
                                             break;
                                         case "decalTexture":
-                                            mat.SetTexture("_DetailAlbedoMap", loadTexture(db, texName));
+                                            mat.SetTexture("_DetailAlbedoMap", loadTexture(texName));
                                             break;
                                         default:
                                             //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
@@ -484,7 +488,7 @@ public class NIFLoader
         return null;
     }
 
-    static private Texture loadTexture(AssetDatabase db, String name)
+    static private Texture loadTexture(String name)
     {
 
         Texture tex = getCachedTObject(name);
@@ -501,6 +505,7 @@ public class NIFLoader
             }
             else
             {
+                AssetDatabase db = AssetDatabaseInst.DB;
                 if (db == null)
                 {
                     //Debug.Log("db was null");

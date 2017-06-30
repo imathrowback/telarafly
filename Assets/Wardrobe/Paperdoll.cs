@@ -50,7 +50,6 @@ namespace Assets.Wardrobe
         string genderString = "male";
         public float animSpeed = 0.01f;
         NIFLoader loader;
-        AssetDatabase adb;
         DB db;
         WardrobeNIFLoadJob nifJobLoad;
 
@@ -69,13 +68,11 @@ namespace Assets.Wardrobe
 
         public void init()
         {
-            if (loader != null)
-                return;
-            loader = new NIFLoader();
-            loader.loadManifestAndDB();
-            adb = loader.db;
-            DBInst.loadOrCallback((d) => db = d);
-            updateRaceGender();
+            if (loader == null)
+                loader = new NIFLoader();
+            if (db == null)
+                DBInst.loadOrCallback((d) => db = d);
+            
         }
 
         string getBaseModel()
@@ -92,9 +89,9 @@ namespace Assets.Wardrobe
 
             
             if (refModel != null)
-                GameObject.DestroyImmediate(refModel);
+                GameObject.Destroy(refModel);
             if (costumeParts != null)
-                GameObject.DestroyImmediate(costumeParts);
+                GameObject.Destroy(costumeParts);
 
             // defines the base model
             string nif = string.Format("{0}_refbare.nif", getBaseModel());
@@ -107,9 +104,9 @@ namespace Assets.Wardrobe
             animationNif = this.gameObject.GetComponent<AnimatedNif>();
             if (animationNif == null)
                 animationNif= this.gameObject.AddComponent<AnimatedNif>();
-            animationNif.setParams(adb, nif, kfm, kfb);
+            animationNif.setParams(AssetDatabaseInst.DB, nif, kfm, kfb);
 
-            NIFFile file = loader.getNIF(nif);
+            NIFFile file = NIFLoader.getNIF(nif);
             GameObject go = loader.loadNIF(file, nif, true);
             go.transform.parent = this.transform;
             go.transform.localPosition = Vector3.zero;
@@ -193,7 +190,7 @@ namespace Assets.Wardrobe
             GameObject meshes = new GameObject(slot.ToString());
             try
             {
-                NIFFile file = loader.getNIF(nifFile);
+                NIFFile file = NIFLoader.getNIF(nifFile);
                 GameObject newNifRoot = loader.loadNIF(file, nifFile, true);
 
                 meshes.transform.parent = meshHolder.transform;
@@ -267,18 +264,8 @@ namespace Assets.Wardrobe
 
         public void FixedUpdate()
         {
-            animationNif.animSpeed = animSpeed;
-            /*
-            tt += animSpeed;
-            if (tt > 1)
-                tt = 0;
-            if (animationNif != null)
-            {
-                //Debug.Log("animate[" + this.GetInstanceID() + "] nif:" + animationNif);
-                animationNif.doFrame(tt);
-
-            }
-            */
+            if(this.animationNif != null)
+                animationNif.animSpeed = animSpeed;
         }
 
 

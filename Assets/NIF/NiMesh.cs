@@ -46,7 +46,7 @@ namespace Assets.NIF
                     {
                         if (elemCheckName.StartsWith(elementName))
                         {
-                            NiDataStream dataStream = (NiDataStream)file.getObjects()[streamRef.streamLinkID];
+                            NiDataStream dataStream = (NiDataStream)file.getObject(streamRef.streamLinkID);
                             if (dataStream == null)
                                 Debug.Log("null dataStream");
                             if (dataStream.streamElems == null)

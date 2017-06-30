@@ -53,7 +53,7 @@ public class ModelView : MonoBehaviour
         speedSlider = GameObject.Find("SpeedSlider").GetComponent<Slider>();
         speedSlider.value = this.animSpeed;
         loader = new NIFLoader();
-        loader.loadManifestAndDB();
+      
         adb = AssetDatabaseInst.DB;
 
         DBInst.loadOrCallback((d) => db = d);

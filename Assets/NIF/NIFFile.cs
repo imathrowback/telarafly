@@ -14,7 +14,7 @@ namespace Assets.NIF
         public uint userVersion;
         public int numObjects;
         public String header;
-        public List<NIFObject> objects;
+        public Dictionary<int, NIFObject> objects;
         public List<String> stringTable;
         public List<int> groupSizes;
         public List<NiMesh> nifMeshes = new List<NiMesh>();
@@ -70,18 +70,23 @@ namespace Assets.NIF
         }
 
         private void prepMeshes()
-        { 
-
-            foreach (NiMesh mesh in getMeshes())
+        {
+            lock (meshDataDict)
             {
-                MeshData md = prepareMesh(this, mesh);
-                meshDataDict[mesh.index] = md;
+                foreach (NiMesh mesh in getMeshes())
+                {
+                    MeshData md = prepareMesh(this, mesh);
+                    meshDataDict[mesh.index] = md;
+                }
             }
         }
 
         public MeshData getMeshData(NiMesh ni)
         {
-            return meshDataDict[ni.index];
+            lock (meshDataDict)
+            {
+                return meshDataDict[ni.index];
+            }
         }
 
         Dictionary<int, MeshData> meshDataDict = new Dictionary<int, MeshData>();
@@ -93,7 +98,7 @@ namespace Assets.NIF
 
         public List<NIFObject> getObjects()
         {
-            return objects;
+            return objects.Values.ToList();
         }
 
         public List<String> getStringTable()
@@ -115,9 +120,9 @@ namespace Assets.NIF
                 }
                 else
                 {
-                    objects = new List<NIFObject>(numObjects);
+                    objects = new Dictionary<int, NIFObject>();
                     for (int i = 0; i < numObjects; i++)
-                        objects.Add(new NIFObject());
+                        objects.Add(i, new NIFObject());
                     //Debug.Log("start loadTypeNames pos:" + dis.BaseStream.Position);
                     loadTypeNames(dis);
                     //Debug.Log("start loadObjectSizes pos:" + dis.BaseStream.Position);
@@ -143,8 +148,6 @@ namespace Assets.NIF
                 int size = obj.nifSize;
                 byte[] data;
                 String cName = "Assets.NIF." + typeName;
-
-                
 
                 try
                 {
@@ -214,7 +217,7 @@ namespace Assets.NIF
         void setParents()
         {              
             // set parents!
-            foreach (NIFObject obj  in objects)
+            foreach (NIFObject obj  in objects.Values)
             {
                 if (obj is NiNode)
                 {
@@ -402,7 +405,7 @@ namespace Assets.NIF
         public List<NIFObject> getChildren(NIFObject obj)
         {
             List<NIFObject> children = new List<NIFObject>();
-            foreach (NIFObject ni in objects)
+            foreach (NIFObject ni in objects.Values)
             {
                 if (ni.parentIndex == obj.index)
                     children.Add(ni);

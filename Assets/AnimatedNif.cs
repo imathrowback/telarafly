@@ -16,7 +16,7 @@ namespace Assets
         public string nif;
         string kfm;
         string kfb;
-        AssetDatabase adb;
+        AssetDatabase adb = AssetDatabaseInst.DB;
 
         KFMFile kfmfile;
         NIFFile kfbfile;
@@ -88,7 +88,7 @@ namespace Assets
                 return null;
             if (kfbfile == null)
             {
-                kfbfile = new NIFFile(new MemoryStream(adb.extractUsingFilename(this.kfb)));
+                kfbfile = NIFLoader.getNIF(this.kfb);
                 Debug.Log("getting KFB: " + this.kfb);
             }
             /** Choose the right animation to load from the KFB file. Ideally we should use the KFM to know what index to use */

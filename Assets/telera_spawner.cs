@@ -1,4 +1,5 @@
 ﻿using SCG = System.Collections.Generic;
+using KdTree;
 using C5;
 using UnityEngine;
 using System.Linq;
@@ -16,7 +17,7 @@ public class telera_spawner : MonoBehaviour
 {
     GameObject meshRoot;
     SCG.List<ObjectPosition> objectPositions;
-    SCG.List<NifLoadJob> ObjJobLoadQueue;
+//    TreeDictionary<Guid, NifLoadJob> objsToCreateList;
     GameObject charC;
     ThirdPersonUserControl tpuc;
     Rigidbody tpucRB;
@@ -24,15 +25,13 @@ public class telera_spawner : MonoBehaviour
     //camera_movement camMove;
     System.IO.StreamReader fileStream;
 
-    int MAX_RUNNING_THREADS = 4;
-    int MAX_OBJ_PER_FRAME = 150;
+    int MAX_RUNNING_THREADS = 6;
     int MAX_NODE_PER_FRAME = 15025;
     NIFLoader nifloader;
 
     public void purgeObjects()
     {
-        if (ObjJobLoadQueue.Count() > 0)
-            return;
+        
         NifLoadJob.clearCache();
         foreach (telara_obj obj in GameObject.FindObjectsOfType<telara_obj>())
         {
@@ -40,38 +39,45 @@ public class telera_spawner : MonoBehaviour
             if (obj.gameObject.GetComponent<TerrainObj>() == null)
                 obj.unload();
         }
-        // clear the job queue as well
-        NifLoadJob[] queue = ObjJobLoadQueue.ToArray();
-
-        while (ObjJobLoadQueue.Count() > 0)
-            ObjJobLoadQueue.RemoveAt(0);
-
-        foreach (NifLoadJob job in queue)
-        {
-            telara_obj obj = job.parent;
-            if (obj.gameObject.GetComponent<TerrainObj>() != null)
-                ObjJobLoadQueue.Add(job);
-        }
+       
     }
 
-    bool firstLoad = true;
+
     public void addJob(telara_obj parent, string filename)
     {
         NifLoadJob job = new NifLoadJob(nifloader, filename);
         job.parent = parent;
-        addJob(job);
-    }
-    public void addJob(NifLoadJob job)
-    {
-        // prioritize terrain, otherwise add the job to the end of the list
-        if (job.filename.Contains("terrain") || job.filename.Contains("ocean_chunk"))
-            ObjJobLoadQueue.Insert(0, job);
+        Vector3 pos = parent.transform.position;
+        float[] floatf = new float[] { pos.x, pos.z };
+        SCG.List<NifLoadJob> nList;
+        if (job.filename.Contains("terrain") || job.filename.Contains("ocean"))
+        {
+            if (!this.terraintree.TryFindValueAt(floatf, out nList))
+            {
+                nList = new SCG.List<NifLoadJob>();
+                nList.Add(job);
+                this.terraintree.Add(floatf, nList);
+            }
+            else
+                nList.Add(job);
+        }
         else
-            ObjJobLoadQueue.Add(job);
+        {
+            if (!this.postree.TryFindValueAt(floatf, out nList))
+            {
+                nList = new SCG.List<NifLoadJob>();
+                nList.Add(job);
+                this.postree.Add(floatf, nList);
+            }
+            else
+                nList.Add(job);
+        }
+        addLoading(job);
     }
+   
     public int ObjJobLoadQueueSize()
     {
-        return ObjJobLoadQueue.Count;
+        return terraintree.Count + postree.Count;
     }
 
     class NifLoadJobCompare : SCG.IComparer<NifLoadJob>
@@ -118,10 +124,7 @@ public class telera_spawner : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-
-
-         objectPositions = new SCG.List<ObjectPosition>();
-        ObjJobLoadQueue = new SCG.List<NifLoadJob>();
+        objectPositions = new SCG.List<ObjectPosition>();
 
         charC = GameObject.Find("ThirdPersonController");
         if (charC != null)
@@ -134,7 +137,6 @@ public class telera_spawner : MonoBehaviour
         mcamera = GameObject.Find("Main Camera");
         meshRoot = GameObject.Find("NIFRotationRoot");
 
-        MAX_OBJ_PER_FRAME = ProgramSettings.get("MAX_OBJ_PER_FRAME", 100);
         MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 4);
         MAX_NODE_PER_FRAME = ProgramSettings.get("MAX_NODE_PER_FRAME", 15000);
 
@@ -158,7 +160,7 @@ public class telera_spawner : MonoBehaviour
 
         Debug.Log("begin loading database");
         this.nifloader = new NIFLoader();
-        this.nifloader.loadManifestAndDB();
+        
 
         /*
         Debug.Log("loading " + GameWorld.getObjects().Count + " objects");
@@ -266,7 +268,28 @@ public class telera_spawner : MonoBehaviour
         go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
         go.transform.localPosition = op.min;
         go.transform.localRotation = op.qut;
+
+        
         return go;
+    }
+
+    private void addLoading(NifLoadJob job)
+    {
+        // Add a loading capsule to the location of the job 
+        //if (job.parent.gameObject.transform.childCount == 0)
+        {
+            telara_obj obj = job.parent;
+            GameObject loading = (GameObject)GameObject.Instantiate(Resources.Load("LoadingCapsule"));
+            loading.name = "Loading";
+            SphereCollider sp = obj.GetComponent<SphereCollider>();
+            if (sp != null)
+                loading.transform.localScale = Vector3.one*3;
+            loading.transform.parent = obj.gameObject.transform;
+            loading.transform.localPosition = Vector3.zero;
+            loading.transform.localRotation = Quaternion.identity;
+            applyLOD(loading);
+        }
+
     }
 
     Vector3 getV3(string str)
@@ -282,7 +305,6 @@ public class telera_spawner : MonoBehaviour
         return new Vector4(float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2]), float.Parse(parts[3]));
     }
 
-    int runningThreads = 0;
     private Dropdown dropdown;
 
     public Collider[] checkHits(Vector3 position)
@@ -308,7 +330,12 @@ public class telera_spawner : MonoBehaviour
     {
         return meshRoot.transform.InverseTransformPoint(mcamera.transform.position);
     }
-    
+
+
+    KdTree.KdTree<float, SCG.List<NifLoadJob>> postree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
+    KdTree.KdTree<float, SCG.List<NifLoadJob>> terraintree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
+
+    TreeDictionary<Guid, NifLoadJob> runningList;
     // Update is called once per frame
     void Update()
     {
@@ -352,7 +379,7 @@ public class telera_spawner : MonoBehaviour
         {
             setCameraLoc(GameWorld.initialSpawn, true);
         }
-        int i = 0;
+       
 
         /**
          * Load the world tiles around the camera and their objects 
@@ -364,7 +391,7 @@ public class telera_spawner : MonoBehaviour
             new int[]{ -1, 0 },  new int[]{ 0, 0 },   new int[]{ 1, 0 },
             new int[]{ -1, -1 },  new int[]{ 0, -1 },   new int[]{ 1, -1 },
         };
-        int range = 5;
+        int range = ProgramSettings.get("TERRAIN_VIS", 10);
         for (int txx = tileX - range; txx <= tileX + range; txx++)
         {
             for (int txy = tileY - range; txy <= tileY + range; txy++)
@@ -392,7 +419,6 @@ public class telera_spawner : MonoBehaviour
                 }
             }
         }
-        
 
         lock (objectPositions)
         {
@@ -407,55 +433,81 @@ public class telera_spawner : MonoBehaviour
         Vector3 camPos = this.mcamera.transform.position;
         checkHits(camPos);
 
+        if (runningList == null)
+            runningList = new TreeDictionary<Guid, NifLoadJob>();
 
-        IOrderedEnumerable<NifLoadJob> jobs = ObjJobLoadQueue.OrderBy(a => !(a.filename.Contains("terrain") || a.filename.Contains("ocean"))).ThenBy(a => Vector3.Distance(a.parent.transform.position, camPos));
-
-        foreach (NifLoadJob job in jobs)
+        foreach (NifLoadJob job in runningList.Values.ToArray())
         {
-            if (i > MAX_OBJ_PER_FRAME)
-            {
-                Debug.Log("spawned " + i + " this frame, thats enough for now");
-                break;
-            }
-
-            // Add a loading capsule to the location of the job 
-            telara_obj obj = job.parent;
-            if (obj.gameObject.transform.childCount == 0)
-            {
-                GameObject loading = (GameObject)GameObject.Instantiate(Resources.Load("LoadingCapsule"));
-                loading.name = "Loading";
-                SphereCollider sp = obj.GetComponent<SphereCollider>();
-                if (sp != null)
-                    loading.transform.localScale = Vector3.one * sp.radius;
-                loading.transform.parent = obj.gameObject.transform;
-                loading.transform.localPosition = Vector3.zero;
-                loading.transform.localRotation = Quaternion.identity;
-            }
-
-
-            if (runningThreads < MAX_RUNNING_THREADS && !job.IsStarted)
-            {
-                job.Start(System.Threading.ThreadPriority.Lowest);
-                runningThreads++;
-            }
             if (job.Update())
             {
-                telara_obj to = job.parent;
-                Transform loadingObj = to.gameObject.transform.Find("Loading");
-                if (loadingObj != null)
-                    GameObject.Destroy(loadingObj.gameObject);
-                if (to.gameObject != null)
-                {
-                    // reapply the lod to take into account any new meshes created
-                    applyLOD(to.gameObject);
-                }
-                runningThreads--;
-                i++;
-                to.doLoad = false;
-                to.loaded = true;
-                ObjJobLoadQueue.Remove(job);
+                finalizeJob(job);
+                runningList.Remove(job.uid);
+                //postree.RemoveAt()
             }
         }
+        if (runningList.Count < MAX_RUNNING_THREADS)
+        {
+            float[] camPosF = new float[] { camPos.x, camPos.z };
+            KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
+            KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = postree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
+            SCG.IEnumerable<NifLoadJob> jobs;
+            if (tercandidates.Length > 0)
+            {
+                jobs = tercandidates.SelectMany(e => e.Value);
+                //Debug.Log("found terrain jobs:" + jobs.Count());
+            }
+            else
+            {
+                //Debug.Log("found candidates jobs:" + candidates.Count());
+                jobs = candidates.SelectMany(e => e.Value);
+            }
+
+            //SCG.IEnumerable<NifLoadJob> jobs = objsToCreateList.Select(e => e.Value).OrderBy(a => !(a.filename.Contains("terrain") || a.filename.Contains("ocean"))).ThenBy(a => Vector3.Distance(a.parent.transform.position, camPos)).Take(MAX_RUNNING_THREADS);
+
+            foreach (NifLoadJob job in jobs.ToArray())
+            {
+                if (runningList.Count < MAX_RUNNING_THREADS)
+                {
+                    job.Start(System.Threading.ThreadPriority.Lowest);
+                    runningList.Add(job.uid, job);
+
+                    Vector3 pos = job.parent.transform.position;
+                    float[] floatf = new float[] { pos.x, pos.z };
+
+                    foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
+                        n.Value.Remove(job);
+                    foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
+                        n.Value.Remove(job);
+                }
+                // we already reached max threads, break out
+                //else
+                //break;
+            }
+            foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
+                if (n.Value.Count == 0)
+                    terraintree.RemoveAt(n.Point);
+            foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
+                if (n.Value.Count == 0)
+                    postree.RemoveAt(n.Point);
+
+        }
+    }
+
+    private bool finalizeJob(NifLoadJob job)
+    {
+        telara_obj to = job.parent;
+        Transform loadingObj = to.gameObject.transform.Find("Loading");
+        if (loadingObj != null)
+            GameObject.Destroy(loadingObj.gameObject);
+        if (to.gameObject != null)
+        {
+            // reapply the lod to take into account any new meshes created
+            applyLOD(to.gameObject);
+        }
+
+        to.doLoad = false;
+        to.loaded = true;
+        return true;
     }
 
     [SerializeField]

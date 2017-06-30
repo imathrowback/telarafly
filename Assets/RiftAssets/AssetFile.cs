@@ -68,6 +68,7 @@ namespace Assets.RiftAssets
         public byte[] extractPart(AssetEntry entry, int maxBytesToRead, Stream os,
                  bool nodecomp)
         {
+
             if (entry.file != this)
                 throw new Exception(
                         "Extract called on wrong asset file[" + file + "] for asset:" + entry);

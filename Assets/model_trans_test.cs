@@ -11,7 +11,7 @@ public class model_trans_test : MonoBehaviour {
 
 
         NIFLoader load = new NIFLoader();
-        load.loadManifestAndDB();
+      
 
         GameObject go = load.loadNIF("N_SF_rock_water_rapids_01.nif");
         go.transform.parent = this.transform;

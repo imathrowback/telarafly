@@ -41,7 +41,7 @@ namespace Assets.WorldStuff
 
        
 
-        public static void doWorldTile(AssetDatabase adb, DB db, string worldName, int x, int y, Action<ObjectPosition> addFunc)
+        public static void doWorldTile(AssetDatabase adb, DB db, string worldName, int x, int y, Action<ObjectPosition> addFunc, bool terrainOnly = false)
         {
             string s = worldName + "_" + x + "_" + y + ".cdr";
             //Debug.Log("doWorldTile :" + s);
@@ -57,6 +57,8 @@ namespace Assets.WorldStuff
 
                     Vector3 pos = new Vector3(x, 0.0f, y);
                     addFunc.Invoke(new ObjectPosition(terrainNif, pos, Quaternion.identity, pos, 1.0f));
+                    if (terrainOnly)
+                        return;
                 }
                 else
                 {

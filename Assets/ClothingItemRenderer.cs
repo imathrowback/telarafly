@@ -11,7 +11,7 @@ using UnityEngine.UI;
 
 public class ClothingItemRenderer : MonoBehaviour {
     DB db;
-    AssetDatabase adb;
+    
     NIFLoader loader;
     public GameObject previewsRoot;
     GameObject ourPreview;
@@ -22,10 +22,16 @@ public class ClothingItemRenderer : MonoBehaviour {
     Text itemText;
 
     // Use this for initialization
-    void Start () {
+    void Start() {
+    }
+    public void OnDestroy()
+    {
+        GameObject.Destroy(ourPreview);
+    }
+    public void init()
+    { 
         loader = new NIFLoader();
-        loader.loadManifestAndDB();
-        adb = loader.db;
+       
         itemText = GameObject.Find("ItemNameText").GetComponent<Text>();
         previewsRoot = GameObject.Find("PreviewsRoot");
         DBInst.loadOrCallback((d) => db = d);
@@ -62,19 +68,24 @@ public class ClothingItemRenderer : MonoBehaviour {
     }
     public void refresh()
     {
+        this.item = null;
         setItem(item);
     }
     public void setItem(ClothingItem item)
     {
+        if (this.item == item)
+            return;
         this.item = item;
         ourPreview.transform.Clear();
-        if (previewPaperdoll != null)
-            GameObject.Destroy(previewPaperdoll);
-        previewPaperdoll = ourPreview.AddComponent<Paperdoll>();
+        if (previewPaperdoll == null)
+            previewPaperdoll = ourPreview.AddComponent<Paperdoll>();
+        Debug.Log("set item [" + item + "] on paperdoll:" + previewPaperdoll);
+        //GameObject.Destroy(previewPaperdoll);
         previewPaperdoll.setGender(mainPaperdoll.getGenderString());
         previewPaperdoll.setRace(mainPaperdoll.getRaceString());
         // start isn't called until the next "update" so we need to start it manually
         previewPaperdoll.init();
+        previewPaperdoll.updateRaceGender();
         string nifstr = Path.GetFileName(item.nifRef.getNif(1, 0));
         ourPreview.name = item.name;
 

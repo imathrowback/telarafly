@@ -31,6 +31,7 @@ namespace Assets.NIF
         public byte[] getDecompressed()
         {
             loadThread.Join();
+            loadThread = null;
             return decompressedData;
         }
 
@@ -45,6 +46,7 @@ namespace Assets.NIF
                 extraData = ds.ReadBytes(binaryDataSize);
 
                 loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(tryDecompress));
+                loadThread.Priority = System.Threading.ThreadPriority.Lowest;
                 loadThread.Start();
 
             }
