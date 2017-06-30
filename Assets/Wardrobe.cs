@@ -55,15 +55,17 @@ public class Wardrobe : MonoBehaviour
         List<DOption> slotOptions = new List<DOption>();
         foreach (GearSlot slot in Enum.GetValues(typeof(GearSlot)))
         {
-            DOption option = new DOption();
-            option.text = slot.ToString();
+            DOption option = new DOption(slot.ToString(), slot);
             option.userObject = slot;
             slotOptions.Add(option);
         }
         slotChangeDropdown.AddOptions(slotOptions.Cast<Dropdown.OptionData>().ToList());
 
         DBInst.progress += (m) => progress = m;
-        DBInst.loadOrCallback((d) => db = d);
+        DBInst.loadOrCallback((d) => {
+            db = d;
+            
+            });
     }
     
     public void clickLeft()
@@ -101,12 +103,14 @@ public class Wardrobe : MonoBehaviour
     }
     void updatePreview()
     {
+       // Debug.Log("update preview");
         updatePageText();
         ClothingItemRenderer[] renderers = panelUpdater.getPanelRenderers();
+        //Debug.Log("update preview: renderers[" + renderers.Count() + "]");
         for (int i = 0; i < renderers.Length; i++)
         {
             ClothingItem item = clothingItems[previewIndex + i];
-            Debug.Log("set panel[" + i + "] to " + item);
+            //Debug.Log("set panel[" + i + "] to " + item);
             renderers[i].setItem(item);
         }
         lastVisible = panelUpdater.getVisiblePanels();
@@ -119,14 +123,15 @@ public class Wardrobe : MonoBehaviour
 
         paperDoll.setGender(genderString);
         paperDoll.setRace(raceString);
-        paperDoll.updateRaceGender();
+        //paperDoll.updateRaceGender();
 
         ClothingItemRenderer[] renderers = panelUpdater.getPanelRenderers();
         foreach (ClothingItemRenderer r in renderers)
         {
             if (r.previewPaperdoll != null)
             {
-                r.previewPaperdoll.updateRaceGender();
+                r.previewPaperdoll.setGender(genderString);
+                r.previewPaperdoll.setRace(raceString);
                 r.refresh();
             }
         }
@@ -148,19 +153,20 @@ public class Wardrobe : MonoBehaviour
             try
             {
                 List<DOption> options = new List<DOption>();
+                options.Add(new DOption("", null));
+
                 foreach (entry e in db.getEntriesForID(7638))
                 {
                     CObject _7637 = db.toObj(e.id, e.key);
                     string str = _7637.getMember(0).convert().ToString();
-                    DOption option = new DOption();
-                    option.text = str;
-                    option.userObject = e;
+                    DOption option = new DOption(str, e);
                     options.Add(option);
                 }
 
                 options.Sort((a, b) => string.Compare(a.text, b.text));
                 appearanceDropdown.AddOptions(options.Cast<Dropdown.OptionData>().ToList());
                 changeSlot();
+
 
                 updatePreview();
             }
@@ -170,7 +176,7 @@ public class Wardrobe : MonoBehaviour
                 Debug.Log("failed to load appearence set: " + ex);
             }
         }
-        if (db != null && lastVisible != this.panelUpdater.getVisiblePanels())
+        if (db != null && lastVisible != this.panelUpdater.getVisiblePanels() || this.panelUpdater.changed)
         {
             updatePreview();
             lastVisible = panelUpdater.getVisiblePanels();
@@ -186,14 +192,26 @@ public class Wardrobe : MonoBehaviour
             return;
         int v = appearanceDropdown.value;
         DOption option = (DOption)appearanceDropdown.options[v];
-        entry entry =(entry) option.userObject;
-        paperDoll.loadAppearenceSet(entry.key);
+        if (option.userObject == null)
+        {
+            paperDoll.clearAppearence();
+        }
+        else
+        {
+            entry entry = (entry)option.userObject;
+            paperDoll.setAppearenceSet(entry.key);
+        }
     }
 
   
 
     class DOption : Dropdown.OptionData
     {
+        public DOption(string str, object usrObj)
+        {
+            base.text = str;
+            this.userObject = usrObj;
+        }
         public object userObject { get; set; }
     }
 }

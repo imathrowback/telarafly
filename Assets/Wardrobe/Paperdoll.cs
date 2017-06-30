@@ -15,43 +15,25 @@ namespace Assets.Wardrobe
     public delegate void OnFinished();
     public delegate void ThreadedCall();
 
-    public class WardrobeNIFLoadJob : ThreadedJob
-    {
-        NIFLoader loader;
-        public NIFFile niffile;
-        public event OnFinished onFinished = delegate { };
-        public event ThreadedCall onThreadFunc = delegate { };
-        public AnimatedNif animationNif;
-        public WardrobeNIFLoadJob()
-        {
-    
-        }
-        protected override void ThreadFunctionCDR()
-        {
-            // Do your threaded task. DON'T use the Unity API here
-            
-            onThreadFunc.Invoke();
-        }
-
-        protected override void OnFinished()
-        {
-            // This is executed by the Unity main thread when the job is finished
-            onFinished.Invoke();
-        }
-    }
-    
-
     public class Paperdoll : MonoBehaviour
     {
+        enum ClassState
+        {
+            DB_LOADING,
+            IDLE,
+            UPDATE,
+        }
+        ClassState state = ClassState.DB_LOADING;
+
         GameObject refModel;
         GameObject costumeParts;
         AnimatedNif animationNif;
         string raceString = "human";
         string genderString = "male";
         public float animSpeed = 0.01f;
-        NIFLoader loader;
-        DB db;
-        WardrobeNIFLoadJob nifJobLoad;
+        Dictionary<GearSlot, GameObject> gearSlotObjects = new Dictionary<GearSlot, GameObject>();
+        Dictionary<GearSlot, long> gearSlotKeys = new Dictionary<GearSlot, long>();
+        long appearenceSet = long.MinValue;
 
         public string getGenderString()
         {
@@ -63,31 +45,45 @@ namespace Assets.Wardrobe
         }
         void Start()
         {
-            init();
-        }
-
-        public void init()
-        {
-            if (loader == null)
-                loader = new NIFLoader();
-            if (db == null)
-                DBInst.loadOrCallback((d) => db = d);
-            
+            DBInst.loadOrCallback((d) => state = ClassState.UPDATE);
         }
 
         string getBaseModel()
         {
             return string.Format("{0}_{1}", raceString, genderString);
         }
+
         public string kfbOverride = "";
         public string animOverride = "";
 
-        public void updateRaceGender()
+        public void clearAppearence()
         {
-            // ensure the paperDoll is initialized
-            init();
+            this.appearenceSet = long.MinValue;
 
-            
+            if (state == ClassState.IDLE)
+                state = ClassState.UPDATE;
+        }
+        private void checkFemaleModesty()
+        {
+            // for some reason all female models except bahmi are "nude"
+            // so if the model is female, give it some clothes for "modesty" because some people/cultures may be offended
+            if (genderString.Equals("female"))
+            {
+                if (!gearSlotKeys.ContainsKey(GearSlot.TORSO))
+                    setGearSlotKey(GearSlot.TORSO, 1127855431);
+                if (!gearSlotKeys.ContainsKey(GearSlot.LEGS))
+                    setGearSlotKey(GearSlot.LEGS, 1300181064);
+            }
+        }
+        private void updateRaceGender()
+        {
+            if (state != ClassState.UPDATE)
+            {
+                Debug.LogError("Cannot update race/gender without being update mode");
+                return;
+            }
+
+
             if (refModel != null)
                 GameObject.Destroy(refModel);
             if (costumeParts != null)
@@ -107,7 +103,7 @@ namespace Assets.Wardrobe
             animationNif.setParams(AssetDatabaseInst.DB, nif, kfm, kfb);
 
             NIFFile file = NIFLoader.getNIF(nif);
-            GameObject go = loader.loadNIF(file, nif, true);
+            GameObject go = NIFLoader.loadNIF(file, nif, true);
             go.transform.parent = this.transform;
             go.transform.localPosition = Vector3.zero;
             go.transform.localRotation = Quaternion.identity;
@@ -125,64 +121,85 @@ namespace Assets.Wardrobe
             // always hide the boots
             enableDisableGeo("boots", go, false);
 
-            // if the model is female, give it some clothes for "modesty" because for some reason all female models except bahmi are "nude"
-            if (genderString.Equals("female"))
+        }
+
+   
+
+
+        public void setGearSlotKey(GearSlot slot, long key)
+        {
+            Debug.Log("set gear slot[" + slot + "] to  key " + key);
+            gearSlotKeys[slot] = key;
+            if (state == ClassState.IDLE)
+                state = ClassState.UPDATE;
+        }
+
+        private void updateGearSlotObject(GearSlot slot)
+        {
+            Debug.Log("update gear slot [" + slot + "]");
+            if (state != ClassState.UPDATE)
             {
-                if (db != null)
-                {
-                    if (!gearSlots.ContainsKey(GearSlot.TORSO))
-                        setGear(GearSlot.TORSO, 1127855431);
-                    if (!gearSlots.ContainsKey(GearSlot.LEGS))
-                        setGear(GearSlot.LEGS, 1300181064);
-                }
+                Debug.LogError("Cannot update gear slot[" + slot + "] without being update mode");
+                return;
             }
 
-            //this.animationNif = nifJobLoad.animationNif;
+            // destroy any existing gear slot
+            Debug.Log("try destroy update gear slot object");
+            if (gearSlotObjects.ContainsKey(slot))
+                GameObject.Destroy(gearSlotObjects[slot]);
 
+            Debug.Log("try create update gear slot object if key for slot: " + gearSlotKeys.ContainsKey(slot));
+            if (gearSlotKeys.ContainsKey(slot))
+            {
+                int race = WardrobeStuff.raceMap[raceString];
+                int sex = WardrobeStuff.genderMap[genderString];
+                long key = gearSlotKeys[slot];
+                ClothingItem item = new ClothingItem(DBInst.inst, key);
+                string nif = item.nifRef.getNif(race, sex);
+                Debug.Log("load nif[" + nif + "] for slot:" + slot);
+                gearSlotObjects[slot] = loadNIFForSlot(slot, refModel, costumeParts, Path.GetFileName(nif), "");
+            }
+        }
+
+
+        public void setAppearenceSet(long setKey)
+        {
+            this.appearenceSet = setKey;
+            if (this.appearenceSet == long.MinValue)
+                gearSlotKeys.Clear();
+            if (state == ClassState.IDLE)
+                state = ClassState.UPDATE;
 
         }
 
-        void loadDefault()
+        private void loadAppearenceSet()
         {
-            // set default gear
-            int race = WardrobeStuff.raceMap[raceString];
-            int sex = WardrobeStuff.genderMap[genderString];
-            loadAppearenceSet(176073892);
-        }
+            if (this.appearenceSet == long.MinValue)
+                return;
+          
+            long setKey = this.appearenceSet;
+            if (state != ClassState.UPDATE)
+            {
+                Debug.LogError("Cannot load appearence [" + setKey + "] without being update mode");
+                return;
+            }
 
-        Dictionary<GearSlot, GameObject> gearSlots = new Dictionary<GearSlot, GameObject>();
-        public void setGear(GearSlot slot, long key)
-        {
-            if (nifJobLoad != null)
-                while (!nifJobLoad.IsDone) ;
-            int race = WardrobeStuff.raceMap[raceString];
-            int sex = WardrobeStuff.genderMap[genderString];
-            ClothingItem item = new ClothingItem(db, key);
-            string nif = item.nifRef.getNif(race, sex);
 
-            if (gearSlots.ContainsKey(slot))
-                GameObject.DestroyImmediate(gearSlots[slot]);
-
-            gearSlots[slot] = loadNIFForSlot(slot, refModel, costumeParts, Path.GetFileName(nif), "");
-        }
-        public void loadAppearenceSet(long setKey)
-        {
             // set the ref model to be all visible, overriden parts will be hidden later when parts are added
             SetActiveRecursively(refModel, true);
             // remove all the existing parts
             costumeParts.transform.Clear();
 
-            CObject obj = db.toObj(7638, setKey);
+            CObject obj = DBInst.inst.toObj(7638, setKey);
             CObject setParts = obj.getMember(2);
 
             foreach (CObject part in setParts.members)
             {
-                ClothingItem item = new ClothingItem(db, int.Parse(part.convert().ToString()));
-                setGear(item.allowedSlots.First(), item.key);
+                ClothingItem item = new ClothingItem(DBInst.inst, int.Parse(part.convert().ToString()));
+                setGearSlotKey(item.allowedSlots.First(), item.key);
             }
+            appearenceSet = long.MinValue;
         }
-
-      
 
         private GameObject loadNIFForSlot(GearSlot slot, GameObject skeleton, GameObject meshHolder, string nifFile, string geo)
         {
@@ -191,7 +208,7 @@ namespace Assets.Wardrobe
             try
             {
                 NIFFile file = NIFLoader.getNIF(nifFile);
-                GameObject newNifRoot = loader.loadNIF(file, nifFile, true);
+                GameObject newNifRoot = NIFLoader.loadNIF(file, nifFile, true);
 
                 meshes.transform.parent = meshHolder.transform;
 
@@ -246,24 +263,41 @@ namespace Assets.Wardrobe
         public void setRace(string race)
         {
             this.raceString = race;
+            if (state == ClassState.IDLE)
+                state = ClassState.UPDATE;
+
         }
 
         public void setGender(string gender)
         {
             this.genderString = gender;
+            if (state == ClassState.IDLE)
+                state = ClassState.UPDATE;
+
         }
 
-        //float tt = 0;
-       
         public void Update()
         {
-            if (nifJobLoad != null)
-                nifJobLoad.Update();
            
         }
 
         public void FixedUpdate()
         {
+            if (state == ClassState.UPDATE)
+            {
+                updateRaceGender();
+                loadAppearenceSet();
+
+                checkFemaleModesty();
+
+                foreach (GearSlot g in Enum.GetValues(typeof(GearSlot)))
+                    updateGearSlotObject(g);
+
+
+                state = ClassState.IDLE;
+            }
+
+
             if(this.animationNif != null)
                 animationNif.animSpeed = animSpeed;
         }
@@ -279,7 +313,7 @@ namespace Assets.Wardrobe
             }
         }
 
-        static void findChildrenContaining(Transform t, String str, List<Transform> list)
+        private static void findChildrenContaining(Transform t, String str, List<Transform> list)
         {
             if (t.name.Contains(str))
                 list.Add(t);

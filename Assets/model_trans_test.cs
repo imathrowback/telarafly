@@ -10,10 +10,8 @@ public class model_trans_test : MonoBehaviour {
     void Start () {
 
 
-        NIFLoader load = new NIFLoader();
-      
 
-        GameObject go = load.loadNIF("N_SF_rock_water_rapids_01.nif");
+        GameObject go = NIFLoader.loadNIF("N_SF_rock_water_rapids_01.nif");
         go.transform.parent = this.transform;
         /*
         string x = "A_TNB_embassy_01.nif";

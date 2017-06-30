@@ -16,7 +16,10 @@ namespace Assets.NIF
         private byte[] decompressedData;
         private static System.Threading.Thread loadThread;
 
-
+        /// <summary>
+        /// Get the data associated with this binary object. If it was compressed it will be automatically decompressed and returned.
+        /// </summary>
+        /// <returns></returns>
         public byte[] getData()
         {
             if (getDecompressed() != null)
@@ -28,10 +31,13 @@ namespace Assets.NIF
 
         }
 
-        public byte[] getDecompressed()
+        private byte[] getDecompressed()
         {
-            loadThread.Join();
-            loadThread = null;
+            if (loadThread != null)
+            {
+                loadThread.Join();
+                loadThread = null;
+            }
             return decompressedData;
         }
 

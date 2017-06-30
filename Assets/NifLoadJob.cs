@@ -45,14 +45,12 @@ public class NifLoadJob : ThreadedJob
     public string filename;
 
     public telara_obj parent;
-    NIFLoader loader;
     NIFFile niffile;
     NIFFile lodfile;
 
 
-    public NifLoadJob(NIFLoader loader, string file)
+    public NifLoadJob( string file)
     {
-        this.loader = loader;
         this.filename = file;
         lock (cacheWait)
         {
@@ -110,7 +108,7 @@ public class NifLoadJob : ThreadedJob
             // This is executed by the Unity main thread when the job is finished
             if (niffile != null)
             {
-                go = loader.loadNIF(niffile, filename);
+                go = NIFLoader.loadNIF(niffile, filename);
                 lock (originals)
                 {
                     originals[filename] = go;

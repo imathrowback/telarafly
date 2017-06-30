@@ -14,7 +14,7 @@ public class WardrobePreviewPanelUpdater : MonoBehaviour {
     public GameObject previewTemplatePrefab;
 
     GameObject[] panels = new GameObject[9];
-
+    public bool changed = false;
     public int getVisiblePanels()
     {
         RectTransform rtPanel = this.GetComponent<RectTransform>();
@@ -60,10 +60,12 @@ public class WardrobePreviewPanelUpdater : MonoBehaviour {
     int lastVisible = 0;
 	// Update is called once per frame
 	void Update () {
+        changed = false;
         if (DBInst.loaded && loadingText.enabled)
         {
             loadingText.enabled = false;
             buildPanels();
+            changed = true;
         }
 
         if (DBInst.loaded && lastVisible != getVisiblePanels())
@@ -89,6 +91,7 @@ public class WardrobePreviewPanelUpdater : MonoBehaviour {
                 }
             }
             lastVisible = getVisiblePanels();
+            changed = true;
         }
     }
 }

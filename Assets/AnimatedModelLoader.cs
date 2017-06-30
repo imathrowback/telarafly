@@ -27,8 +27,7 @@ namespace Assets
         static public GameObject loadNIF(long key)
         {
             Model model = load7305(AssetDatabaseInst.DB, key);
-            NIFLoader loader = new NIFLoader();
-            GameObject nifmodel = loader.loadNIF(model.nifFile, true);
+            GameObject nifmodel = NIFLoader.loadNIF(model.nifFile, true);
             AnimatedNif nif = nifmodel.AddComponent<AnimatedNif>();
             nif.setParams(AssetDatabaseInst.DB, model.nifFile, model.kfmFile, model.kfbFile);
             nif.setSkeletonRoot(nifmodel);
@@ -36,8 +35,7 @@ namespace Assets
         }
         static public GameObject loadNIFFromFile(string nifFile, string kfm, string kfb)
         {
-            NIFLoader loader = new NIFLoader();
-            GameObject nifmodel = loader.loadNIFFromFile(nifFile, true);
+            GameObject nifmodel = NIFLoader.loadNIFFromFile(nifFile, true);
             AnimatedNif nif = nifmodel.AddComponent<AnimatedNif>();
             nif.setParams(AssetDatabaseInst.DB, nifFile, kfm, kfb);
             nif.setSkeletonRoot(nifmodel);

@@ -43,8 +43,8 @@ public class TestNifLoader : MonoBehaviour {
             character.transform.localRotation = Quaternion.identity;
             mainPaperdoll.transform.localRotation = Quaternion.identity;
 
-            mainPaperdoll.updateRaceGender();
-            mainPaperdoll.loadAppearenceSet(623293935);
+            //mainPaperdoll.updateRaceGender();
+            //mainPaperdoll.loadAppearenceSet(623293935);
         }
 	}
 }

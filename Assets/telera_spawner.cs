@@ -27,7 +27,6 @@ public class telera_spawner : MonoBehaviour
 
     int MAX_RUNNING_THREADS = 6;
     int MAX_NODE_PER_FRAME = 15025;
-    NIFLoader nifloader;
 
     public void purgeObjects()
     {
@@ -45,7 +44,7 @@ public class telera_spawner : MonoBehaviour
 
     public void addJob(telara_obj parent, string filename)
     {
-        NifLoadJob job = new NifLoadJob(nifloader, filename);
+        NifLoadJob job = new NifLoadJob( filename);
         job.parent = parent;
         Vector3 pos = parent.transform.position;
         float[] floatf = new float[] { pos.x, pos.z };
@@ -159,7 +158,6 @@ public class telera_spawner : MonoBehaviour
         dropdown.RefreshShownValue();
 
         Debug.Log("begin loading database");
-        this.nifloader = new NIFLoader();
         
 
         /*
@@ -369,10 +367,7 @@ public class telera_spawner : MonoBehaviour
             character.transform.localRotation = Quaternion.identity;
             mainPaperdoll.transform.localRotation = Quaternion.identity;
 
-            mainPaperdoll.updateRaceGender();
-            mainPaperdoll.loadAppearenceSet(-57952362);
-
-
+            mainPaperdoll.setAppearenceSet(-57952362);
         }
 
         if (Input.GetKeyDown(KeyCode.P) && GameWorld.useColliders && charC != null)

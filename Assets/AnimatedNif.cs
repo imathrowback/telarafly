@@ -89,7 +89,7 @@ namespace Assets
             if (kfbfile == null)
             {
                 kfbfile = NIFLoader.getNIF(this.kfb);
-                Debug.Log("getting KFB: " + this.kfb);
+                //Debug.Log("getting KFB: " + this.kfb);
             }
             /** Choose the right animation to load from the KFB file. Ideally we should use the KFM to know what index to use */
             for (int i = 0; i < kfbfile.numObjects; i += 4)
@@ -101,16 +101,21 @@ namespace Assets
 
                 int animIdx = indexData.intExtraData;
                 if (animIdx == animToUse)
-                    return binData.getDecompressed();
+                    return binData.getData();
             }
+            //Debug.LogError("[" + this.kfb + "] can't find data for anim[" + animToUse + "]");
             return null;
         }
 
-        public NIFFile loadKFB(int animToUse)
+        private NIFFile loadKFB(int animToUse)
         {
             byte[] data = getKFBData(animToUse);
             if (data != null)
+            {
+                //Debug.Log("load KFB data[" + data.Length + "] for anim[" + animToUse + "], from " + this.kfb);
+                //File.WriteAllBytes("kfb.data", data);
                 return new NIFFile(new MemoryStream(data));
+            }
             //Debug.Log("unable to load KFB for anim:" + animToUse);
             return null;
         }
@@ -123,7 +128,7 @@ namespace Assets
                     setActiveAnimation(kfa.id);
                     return;
                 }
-            Debug.Log("Unable to find animation " + anim);
+            //Debug.Log("Unable to find animation " + anim);
         }
 
         public void setActiveAnimation(int anim)

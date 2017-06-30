@@ -12,7 +12,6 @@ using UnityEngine.UI;
 public class ClothingItemRenderer : MonoBehaviour {
     DB db;
     
-    NIFLoader loader;
     public GameObject previewsRoot;
     GameObject ourPreview;
     Paperdoll mainPaperdoll;
@@ -30,7 +29,6 @@ public class ClothingItemRenderer : MonoBehaviour {
     }
     public void init()
     { 
-        loader = new NIFLoader();
        
         itemText = GameObject.Find("ItemNameText").GetComponent<Text>();
         previewsRoot = GameObject.Find("PreviewsRoot");
@@ -64,32 +62,34 @@ public class ClothingItemRenderer : MonoBehaviour {
     }
     public void itemClicked()
     {
-        mainPaperdoll.setGear(item.allowedSlots.First(), item.key);
+        if (item != null)
+        mainPaperdoll.setGearSlotKey(item.allowedSlots.First(), item.key);
     }
     public void refresh()
     {
+        ClothingItem t = this.item;
         this.item = null;
-        setItem(item);
+        setItem(t);
     }
     public void setItem(ClothingItem item)
     {
         if (this.item == item)
             return;
+        Debug.Log("set item on paper doll:" + item);
         this.item = item;
         ourPreview.transform.Clear();
         if (previewPaperdoll == null)
             previewPaperdoll = ourPreview.AddComponent<Paperdoll>();
+        ourPreview.name = "PaperDoll" + previewIndex;
         Debug.Log("set item [" + item + "] on paperdoll:" + previewPaperdoll);
         //GameObject.Destroy(previewPaperdoll);
         previewPaperdoll.setGender(mainPaperdoll.getGenderString());
         previewPaperdoll.setRace(mainPaperdoll.getRaceString());
         // start isn't called until the next "update" so we need to start it manually
-        previewPaperdoll.init();
-        previewPaperdoll.updateRaceGender();
         string nifstr = Path.GetFileName(item.nifRef.getNif(1, 0));
         ourPreview.name = item.name;
 
-        previewPaperdoll.setGear(item.allowedSlots.First(), item.key);
+        previewPaperdoll.setGearSlotKey(item.allowedSlots.First(), item.key);
         SetLayerRecursively(ourPreview, LayerMask.NameToLayer("Preview" + previewIndex));
     }
     // Update is called once per frame
@@ -106,7 +106,8 @@ public class ClothingItemRenderer : MonoBehaviour {
             }
             //setItem(item);
         }
-	}
+        SetLayerRecursively(ourPreview, LayerMask.NameToLayer("Preview" + previewIndex));
+    }
 
     public static void SetLayerRecursively(GameObject go, int layerNumber)
     {

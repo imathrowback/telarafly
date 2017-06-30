@@ -13,15 +13,14 @@ using Assets;
 public class NIFLoader
 {
 
-    // Use this for initialization
-    public NIFLoader()
+    private NIFLoader()
     {
     }
 
 
 
 
-    public GameObject loadNIFFromFile(String fname, bool skinMesh = false)
+    static public GameObject loadNIFFromFile(String fname, bool skinMesh = false)
     {
         using (FileStream nifStream = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
@@ -53,7 +52,7 @@ public class NIFLoader
         }
     }
 
-    public GameObject loadNIF(String fname, bool skinMesh = false)
+    public static GameObject loadNIF(String fname, bool skinMesh = false)
     {
 
         try
@@ -67,7 +66,7 @@ public class NIFLoader
         }
     }
 
-    public GameObject loadNIF(NIFFile nf, string fname,  bool skinMesh = false)
+    public static GameObject loadNIF(NIFFile nf, string fname,  bool skinMesh = false)
     {
         GameObject root = new GameObject();
         root.name = Path.GetFileNameWithoutExtension(fname);
@@ -159,7 +158,7 @@ public class NIFLoader
         return mods;
     }
 
-    List<NIFObject> getChildren(NIFFile nf, int parentIndex)
+    static List<NIFObject> getChildren(NIFFile nf, int parentIndex)
     {
         List<NIFObject> list = new List<NIFObject>();
         foreach (NIFObject obj in nf.getObjects())
@@ -168,7 +167,7 @@ public class NIFLoader
         return list;
     }
 
-    GameObject processNodeAndLinkToParent(NIFFile nf, NiNode niNode, GameObject parent, bool skinMesh)
+    static GameObject processNodeAndLinkToParent(NIFFile nf, NiNode niNode, GameObject parent, bool skinMesh)
     {
         GameObject goM = new GameObject();
         goM.name = niNode.name;
@@ -266,7 +265,7 @@ public class NIFLoader
     /// <param name="meshData"></param>
     /// <param name="skinMesh"></param>
     /// <returns></returns>
-    GameObject processMesh(NIFFile nf, NiMesh mesh, NIFFile.MeshData meshData, bool skinMesh)
+    static GameObject processMesh(NIFFile nf, NiMesh mesh, NIFFile.MeshData meshData, bool skinMesh)
     {
         bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
 
@@ -323,13 +322,17 @@ public class NIFLoader
 
             if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water"))
                 mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
+            //foreach(var matN in mesh.materialNames)
+                //if (matN.Contains("water_"))
+                if (mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
+                    mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
 
             if (mesh.materialNames.Contains("TwoSided_Alpha_Specular"))
                 mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
 
             // handle some simple animated "scrolling" textures
             if (mesh.materialNames.Contains("Additive_UVScroll_Distort") || 
-                mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") )
+                mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") || mesh.materialNames.Contains("Fat_spike12_m") || mesh.materialNames.Contains("pPlane1_m"))
                 {
                     mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
 
@@ -462,7 +465,7 @@ public class NIFLoader
         return go;
     }
 
-    private NiFloatsExtraData getFloatsExtraData(NIFFile nf, NiMesh mesh, string v)
+   static private NiFloatsExtraData getFloatsExtraData(NIFFile nf, NiMesh mesh, string v)
     {
         foreach (int eid in mesh.extraDataIDs)
         {
@@ -550,7 +553,7 @@ public class NIFLoader
         return (texture);
     }
 
-    private String[] getTextureIds(NIFFile nf, NiMesh mesh)
+   static private String[] getTextureIds(NIFFile nf, NiMesh mesh)
     {
         String[] textureType;
         NiTexturingProperty texturingProperty = mesh.getTexturingProperty(nf);

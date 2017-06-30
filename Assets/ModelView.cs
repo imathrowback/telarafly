@@ -16,7 +16,6 @@ public class ModelView : MonoBehaviour
 {
     public float animSpeed = 0.02f;
     public int animToUse = 0;
-    NIFLoader loader;
     int lastAnimToUse = -1;
     GameObject root;
     GameObject nifmodel;
@@ -52,7 +51,6 @@ public class ModelView : MonoBehaviour
         SZZZdropdown = GameObject.Find("SZZZdropdown").GetComponent<Dropdown>();
         speedSlider = GameObject.Find("SpeedSlider").GetComponent<Slider>();
         speedSlider.value = this.animSpeed;
-        loader = new NIFLoader();
       
         adb = AssetDatabaseInst.DB;
 
@@ -186,7 +184,7 @@ public class ModelView : MonoBehaviour
         if (nifmodel != null)
             GameObject.DestroyImmediate(nifmodel);
 
-        nifmodel = loader.loadNIF(animNif.nif, true);
+        nifmodel = NIFLoader.loadNIF(animNif.nif, true);
         nifmodel.transform.parent = root.transform;
 
         this.animationDropdown.ClearOptions();
