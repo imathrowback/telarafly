@@ -94,7 +94,8 @@ public class Wardrobe : MonoBehaviour
 
     void updatePageText()
     {
-        pageText.text = "Items " + previewIndex + "-" + (previewIndex + panelUpdater.getVisiblePanels()) + " of " + clothingItems.Length;
+        if (panelUpdater != null && clothingItems != null)
+            pageText.text = "Items " + previewIndex + "-" + (previewIndex + panelUpdater.getVisiblePanels()) + " of " + clothingItems.Length;
     }
     public void mainMenu()
     {
@@ -158,7 +159,8 @@ public class Wardrobe : MonoBehaviour
                 foreach (entry e in db.getEntriesForID(7638))
                 {
                     CObject _7637 = db.toObj(e.id, e.key);
-                    string str = _7637.getMember(0).convert().ToString();
+                    int textKey = _7637.getMember(1).getIntMember(0);
+                    string str = DBInst.lang_inst.getOrDefault(textKey, _7637.getMember(0).convert().ToString());
                     DOption option = new DOption(str, e);
                     options.Add(option);
                 }
@@ -174,7 +176,7 @@ public class Wardrobe : MonoBehaviour
             catch (Exception ex)
             {
                 
-                Debug.Log("failed to load appearence set: " + ex);
+                Debug.LogError("failed to load appearence set: " + ex);
             }
         }
         if (db != null && lastVisible != this.panelUpdater.getVisiblePanels() || this.panelUpdater.changed)

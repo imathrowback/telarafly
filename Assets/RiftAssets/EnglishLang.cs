@@ -47,6 +47,12 @@ namespace Assets.RiftAssets
         {
             return stringMap[i].text;
         }
+        public string getOrDefault(int i, string txt)
+        {
+            if (stringMap.ContainsKey(i))
+                return stringMap[i].text;
+            return txt;
+        }
         public DBLang(AssetDatabase adb, string lang, Action<String> progress)
         {
             process(adb.extractUsingFilename("lang_" + lang + ".cds"), progress);
