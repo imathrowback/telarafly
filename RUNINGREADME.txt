@@ -29,6 +29,6 @@ PURGE
 ==
 
 When viewing the world, use the PURGE OBJECTS button to remove all objects (except terrain) loaded so far. 
-NOTE: It will not work while meshes are queued for loading (look at the bottom right)
+NOTE: It will not work while meshes are queued for loading (look at the bottom left)
 
 
