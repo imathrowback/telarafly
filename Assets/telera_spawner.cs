@@ -122,6 +122,12 @@ public class telera_spawner : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        Slider lodslider = GameObject.Find("LODSlider").GetComponent<Slider>();
+        this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.9f);
+        lodslider.value = this.LODCutoff;
+
+
+
         objectPositions = new SCG.List<ObjectPosition>();
 
         charC = GameObject.Find("ThirdPersonController");
@@ -552,6 +558,17 @@ public class telera_spawner : MonoBehaviour
         }
     }
 
+    GameObject lodObj;
+    public void lodSliderChange()
+    {
+        if (lodObj == null)
+            lodObj = GameObject.Find("LODSlider");
+        Slider lodslider = lodObj.GetComponent<Slider>();
+        this.LODCutoff = lodslider.value;
+        PlayerPrefs.SetFloat("worldLodSlider", this.LODCutoff);
+        PlayerPrefs.Save();
+        updateLOD(useLOD);
+    }
 
     private void applyLOD(GameObject go)
     {

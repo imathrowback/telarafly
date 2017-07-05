@@ -20,7 +20,7 @@ public class ModelView : MonoBehaviour
     int lastAnimToUse = -1;
     GameObject root;
     GameObject nifmodel;
-    AnimatedNif animationNif;
+    private AnimatedNif animationNif;
     Text progressText;
     Slider speedSlider;
     AssetDatabase adb;
@@ -173,16 +173,19 @@ public class ModelView : MonoBehaviour
 
     public void changeNif(string newNifP)
     {
+        Debug.Log("Change nif:" + newNifP);
         string newNif = newNifP;
         if (newNifP.Contains(":"))
             newNif = newNifP.Split(':')[1];
         Model animNifModel = nifDictionary[newNif];
+        Debug.Log("found animNifModel:" + animNifModel.nifFile);
         AnimatedNif animNif = gameObject.GetComponent<AnimatedNif>();
         if (animNif == null)
             animNif = gameObject.AddComponent<AnimatedNif>();
         animNif.setParams(adb, animNifModel.nifFile, animNifModel.kfmFile, animNifModel.kfbFile);
-        if (animationNif == animNif)
-            return;
+        Debug.Log("found animNif:" + animNif.nif);
+        if (animationNif != null)
+            Debug.Log("found animationNif:" + animationNif.nif);
 
         if (nifmodel != null)
             GameObject.DestroyImmediate(nifmodel);
