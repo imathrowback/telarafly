@@ -259,10 +259,10 @@ public class ModelView : MonoBehaviour
         if (DBInst.loaded && !first)
         {
             first = true;
-            IEnumerable<entry> entries = db.getEntriesForID(7305).Where(x=> x.key >828178166);
+            IEnumerable<entry> entries = db.getEntriesForID(7305);
             parse7305(entries);
-            //changeNif("crucia.nif");
-            //animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
+            changeNif("crucia.nif");
+            animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
         }
         if (animationNif != null)
             animationNif.animSpeed = this.animSpeed;
