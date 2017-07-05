@@ -69,6 +69,31 @@ namespace Assets.DatParser
             }
             return dict;
         }
+        internal float getFloatMember(int i, float defaultVal)
+        {
+            CObject member = getMember(i);
+            if (member == null)
+                return defaultVal;
+            object o = member.convert();
+            if (o is float)
+                return (float)o;
+
+            return (float)CFloatConvertor.inst.convert(getMember(i));
+        }
+        internal Vector3 getVector3Member(int i)
+        {
+            return getMember(i).readVec3();
+        }
+
+        internal string getStringMember(int i)
+        {
+            CObject member = getMember(i);
+            object o = member.convert();
+            if (o is string)
+                return (string)o;
+            return (string)CStringConvertor.inst.convert(getMember(i));
+        }
+
         public int getIntMember(int i)
         {
             CObject member = getMember(i);
@@ -141,6 +166,8 @@ namespace Assets.DatParser
             return new Quaternion(a, b, c, d);
         }
 
+        
+
         public  Vector3 readVec3()
         {
             CObject cObject = this;
@@ -157,5 +184,7 @@ namespace Assets.DatParser
                 return new Vector3();
             }
         }
+
+        
     }
 }

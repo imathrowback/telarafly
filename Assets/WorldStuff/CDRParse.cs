@@ -102,7 +102,7 @@ namespace Assets.WorldStuff
                 if (obj.type != 107)
                     throw new Exception("CDR file was not class 107");
 
-                String oname = "";
+                
 
                 List<CObject> members = obj.members;
                 if (members.Count > 0)
@@ -114,32 +114,12 @@ namespace Assets.WorldStuff
                         {
                             if (child.type == 600)
                             {
-                                List<CObject> cMembers = child.members;
 
-                                CObject index = cMembers[0];
-                                if (cMembers.Count > 1)
+                                if (child.members.Count > 1)
                                 {
-                                    CObject nameObj = cMembers[1];
-                                    CStringConvertor sconv = (CStringConvertor)nameObj.getConvertor();
-                                    oname = (string)sconv.convert(nameObj);
-                                    CObject ary = null;
-                                    if (cMembers.Count == 3)
-                                        ary = cMembers[2];
-                                    else if (cMembers.Count == 4)
-                                    {
-                                        String setdec = cMembers[2].get(0).get(0).convert() + "";
-                                        // System.out.println(setdec);
-                                        ary = cMembers[3];
-                                    }
-                                    else
-                                    {
-                                        // dunno, guess?
-                                        foreach (CObject o in cMembers)
-                                            if (o.members.Count == 4)
-                                                ary = o;
-                                    }
-                                    if (null == ary)
-                                        throw new Exception("Unable to handle cMembers size:" + cMembers.Count);
+                                    string oname = child.getStringMember(1);
+                                    CObject ary = child.getMember(4);
+                                    
                                     // child members in ary 602 and 603 contain references into the database under id 623
                                     // they point to object 628 which contains references to the actual NIF/HKX files
                                     long nif_hkx_ref = long.MaxValue;
@@ -156,28 +136,14 @@ namespace Assets.WorldStuff
                                             nif_hkx_ref = Convert.ToInt64(_602.get(0).convert());
                                             CObject _603 = findFirstType(ary, 603);
 
-                                            Vector3 min = _603.members[1].readVec3();
-                                            Quaternion qut = _603.members[2].readQuat();
+                                            Quaternion qut = _603.getMember(4).readQuat();
+                                            float scale = _603.getFloatMember(5, 1.0f);
+                                            Vector3 translation = _603.getVector3Member(3);
+                                            Vector3 centroid = _603.getVector3Member(9);
 
-                                            float unkValue = 0;
-                                            int _3index = 3;
-                                            Vector3 max = new Vector3();
-                                            float scale = 1.0f;
-                                            if (_603.members.Count >= 4)
-                                            {
-                                                if (_603.members[3].type == 11)
-                                                    max = _603.members[3].readVec3();
-                                                else
-                                                {
-                                                    //System.out.println(_603.members.get(3).convert());
-                                                    if (_603.members.Count >= 5
-                                                            && _603.members[4].type == 11)
-                                                    {
-                                                        scale = (float)(CFloatConvertor.inst.convert(_603.members[3]));
-                                                        max = _603.members[4].readVec3();
-                                                    }
-                                                }
-                                            }
+                                            Vector3 min = translation;
+                                            Vector3 max = centroid;
+
                                             if (nif_hkx_ref != long.MaxValue)
                                             {
                                                 CObject dbObj = getDBObj(db, 623, nif_hkx_ref);

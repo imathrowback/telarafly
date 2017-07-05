@@ -74,6 +74,15 @@ public class TestDecomp : MonoBehaviour
         SceneManager.LoadScene("wardrobe");
     }
 
+    private string getLocalized(CObject obj, string defaultText)
+    {
+        if (obj == null)
+            return defaultText;
+        if (obj.type != 7703)
+            throw new Exception("Not a localizable entry");
+        int textID = obj.getIntMember(0);
+        return DBInst.lang_inst.getOrDefault(textID, defaultText);
+    }
     bool first = false;
     // Update is called once per frame
     void Update()
@@ -97,20 +106,16 @@ public class TestDecomp : MonoBehaviour
                 using (MemoryStream ms = new MemoryStream(data))
                 {
                     CObject obj = Parser.processStreamObject(ms);
-                    String worldName = "" + obj.members[0].convert();
-                    String spawnName = "" + obj.members[1].convert();
+                    string worldName =  obj.getStringMember(0);
+                    string internalSpawnName =  obj.getStringMember(1);
+                    string spawnName = getLocalized(obj.getMember(10), internalSpawnName);
+
+
                     try
                     {
-                        Vector3 pos = obj.members[2].readVec3();
-                        float angle = 0;
+                        Vector3 pos = obj.getVector3Member(2);
+                        float angle = angle = obj.getFloatMember(3, 0);
                         pos.y += 2;
-
-                        if (obj.members.Count >= 3)
-                        {
-                            CObject o = obj.members[3];
-                            if (o.getConvertor() is CFloatConvertor)
-                                angle = (float)o.convert();
-                        }
 
                         if (adb.filenameExists(worldName + "_map.cdr"))
                         {

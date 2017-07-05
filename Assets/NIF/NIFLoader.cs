@@ -461,7 +461,6 @@ public class NIFLoader
                 }
             }
         }
-
         return go;
     }
 
