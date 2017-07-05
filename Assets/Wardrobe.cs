@@ -165,6 +165,7 @@ public class Wardrobe : MonoBehaviour
 
                 options.Sort((a, b) => string.Compare(a.text, b.text));
                 appearanceDropdown.AddOptions(options.Cast<Dropdown.OptionData>().ToList());
+                appearanceDropdown.GetComponent<FavDropDown>().doOptions();
                 changeSlot();
 
 
@@ -202,16 +203,5 @@ public class Wardrobe : MonoBehaviour
             paperDoll.setAppearenceSet(entry.key);
         }
     }
-
-  
-
-    class DOption : Dropdown.OptionData
-    {
-        public DOption(string str, object usrObj)
-        {
-            base.text = str;
-            this.userObject = usrObj;
-        }
-        public object userObject { get; set; }
-    }
+   
 }

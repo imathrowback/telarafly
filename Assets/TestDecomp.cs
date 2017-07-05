@@ -1,6 +1,7 @@
 ﻿
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using System.IO;
 using Assets.RiftAssets;
@@ -121,27 +122,30 @@ public class TestDecomp : MonoBehaviour
                     }
                 }
             }
-            worlds.Sort();
-            //Debug.Log("do box");
-            dropdown.options.Clear();
-            int startIndex = 0;
-            int i = 0;
+
+            favs.Add("tm_Meridian_EpochPlaza");
+
+
+            worlds = worlds.OrderBy(w => !favs.Contains(w.spawnName)).ThenBy(w => w.worldName).ThenBy(w => w.spawnName).ToList();
+
+            // do favs first
+            List<DOption> options = new List<DOption>();
             foreach (WorldSpawn spawn in worlds)
             {
-                //if (spawn.worldName.Equals("world") && spawn.spawnName.Equals("tm_exodus_exit"))
-                if (spawn.spawnName.Equals("tm_Meridian_EpochPlaza"))
-                    startIndex = i;
-                Dropdown.OptionData option = new Dropdown.OptionData(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos);
-                dropdown.options.Add(option);
-                i++;
+                DOption option = new DOption(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos, spawn);
+                options.Add(option);
             }
-            dropdown.value = startIndex;
+            dropdown.options.Clear();
+            dropdown.AddOptions(options.Cast< Dropdown.OptionData>().ToList());
+            dropdown.GetComponent<FavDropDown>().readFavs();
+
+            //dropdown.value = startIndex;
             dropdown.RefreshShownValue();
             dropdownbox.SetActive(true);
             loadbutton.SetActive(true);
             loadModelViewerbutton.SetActive(true);
             loadWardrobebutton.SetActive(true);
-                thirdPersonToggle.SetActive(true);
+            thirdPersonToggle.SetActive(true);
         }
         if (tex != null && img != null)
         {
@@ -149,6 +153,8 @@ public class TestDecomp : MonoBehaviour
             img.color = color;
         }
     }
+
+    HashSet<string> favs = new HashSet<string>();
 
     public static bool abortThread = false;
     public void loadMap()
@@ -192,7 +198,7 @@ public class TestDecomp : MonoBehaviour
     public void doLoadMap()
     {
         Assets.GameWorld.Clear();
-        WorldSpawn spawn = worlds[dropdown.value];
+        WorldSpawn spawn = (WorldSpawn)((DOption)dropdown.options[dropdown.value]).userObject;
 
         string worldName = spawn.worldName;
         string worldCDR = worldName + "_map.cdr";
@@ -204,170 +210,17 @@ public class TestDecomp : MonoBehaviour
             if (s.worldName.Equals(spawn.worldName))
                 Assets.GameWorld.AddSpawns(s);
         doMapChange = true;
-        /*
-        try
-        {
-            Debug.Log("Load map");
-            error = "Load map";
-            Assets.GameWorld.Clear();
-
-            WorldSpawn spawn = worlds[dropdown.value];
-
-            string worldName = spawn.worldName;
-            string worldCDR = worldName + "_map.cdr";
-            int maxX = 0;
-            int maxY = 0;
-            error = "get min max";
-            Debug.Log("get min/max");
-            Assets.WorldStuff.CDRParse.getMinMax(worldCDR, ref maxX, ref maxY);
-
-            Debug.Log("got min/max: [" + maxX + "][" + maxY + "]");
-
-
-            error = "build spawns";
-           
-
-            int total = ((maxX+256) / 256) * ((maxY+256) / 256);
-         
-            int i = 0;
-
-            Action<ObjectPosition> addFunc = (o) => Assets.GameWorld.Add(o);
-
-            Queue<CDRJob> cdrJobs = new Queue<CDRJob>();
-
-            error = "Enqueing jobs";
-            Debug.Log(error);
-            for (int x = 0; x <= maxX; x += 256)
-            {
-                for (int y = 0; y <= maxY; y += 256)
-                {
-                    CDRJob job = new CDRJob(adb, db, spawn, x, y, addFunc);
-                    job.doneFunc = (v) => { i++;
-                        error = "Loading " + spawn.worldName + "  -  " + (int)(((float)i / (float)total) * 100.0) + " %";
-                    };
-                    cdrJobs.Enqueue(job);
-                }
-            }
-
-            error = "Doing CDRs";
-            //Debug.Log("do cdrs");
-            int currentThreads = 0;
-
-            List<CDRJob> runningJobs = new List<CDRJob>();
-            while (cdrJobs.Count > 0 || runningJobs.Count > 0)
-            {
-                while (currentThreads < 4 && cdrJobs.Count > 0)
-                {
-                    Interlocked.Increment(ref currentThreads);
-                    CDRJob job = cdrJobs.Dequeue();
-                    //Debug.Log("job [" + job.x + "," + job.y + "], starting");
-                    if (threaded)
-                        job.Start(System.Threading.ThreadPriority.Normal);
-                    else
-                        job.Run();
-                    runningJobs.Add(job);
-                }
-                foreach (CDRJob j in runningJobs.ToArray())
-                {
-                    if (j.Update())
-                    {
-                        Interlocked.Decrement(ref currentThreads);
-                        //Debug.Log("job [" + j.x + "," + j.y + "], finished");
-                        runningJobs.Remove(j);
-                    }
-                }
-                if (threaded)
-                    Thread.Sleep(10);
-            }
-
-            Debug.Log("scene change");
-            doMapChange = true;
-        }
-        catch (ThreadAbortException ex)
-        {
-            return;
-        }
-        catch (Exception ex)
-        {
-            error = ex.Message;
-            Debug.Log(ex);
-            throw ex;
-        }
-        */
     }
 
-    /*
-    class CDRJob : ThreadedJob
-    {
-        WorldSpawn spawn;
-        public int x;
-        public int y;
-        Action<ObjectPosition> addFunc;
-        AssetDatabase adb;
-        DB db;
-        public Action<int> doneFunc;
-
-        public CDRJob(AssetDatabase adb, DB db, WorldSpawn spawn, int x, int y, Action<ObjectPosition> addFunc)
-        {
-            this.adb = adb;
-            this.db = db;
-            this.spawn = spawn;
-            this.x = x;
-            this.y = y;
-            this.addFunc = addFunc;
-        }
-
-        protected override void ThreadFunctionCDR()
-        {
-            try
-            {
-                Assets.WorldStuff.CDRParse.doCDR(adb, db, spawn.worldName, x, y, addFunc);
-            }
-            catch (Exception ex)
-            {
-                //Debug.Log("Exception trying to do job[" + x + "," + y + "]");
-                //Debug.Log(ex);
-                //IsDone = true;
-            }
-        }
-        protected override void OnFinished()
-        {
-            if (doneFunc != null)
-                doneFunc.Invoke(0);
-        }
-    }
-    */
-   
 
     public void OnDestroy()
     {
         if (loadThread != null && loadThread.IsAlive)
             loadThread.Abort();
     }
-   
 
-
-
-
-   
-
-    sealed class PreMergeToMergedDeserializationBinder : SerializationBinder
+    public DOption[] getOptions()
     {
-        public override Type BindToType(string assemblyName, string typeName)
-        {
-            Type typeToDeserialize = null;
-
-            // For each assemblyName/typeName that you want to deserialize to
-            // a different type, set typeToDeserialize to the desired type.
-            String exeAssembly = Assembly.GetExecutingAssembly().FullName;
-
-
-            // The following line of code returns the type.
-            typeToDeserialize = Type.GetType(String.Format("{0}, {1}", typeName, exeAssembly));
-
-            return typeToDeserialize;
-        }
+        throw new NotImplementedException();
     }
-
-
 }

@@ -71,12 +71,11 @@ public class telera_spawner : MonoBehaviour
             else
                 nList.Add(job);
         }
-        addLoading(job);
     }
-   
+
     public int ObjJobLoadQueueSize()
     {
-        return terraintree.Count + postree.Count;
+        return candidateMeshesToLoad + runningList.Count();
     }
 
     class NifLoadJobCompare : SCG.IComparer<NifLoadJob>
@@ -149,12 +148,13 @@ public class telera_spawner : MonoBehaviour
         {
             if (spawn.spawnName.Equals(GameWorld.initialSpawn.spawnName))
                 startIndex = i;
-            Dropdown.OptionData option = new Dropdown.OptionData(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos);
+           DOption option = new DOption(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos, false);
             dropdown.options.Add(option);
             i++;
         }
         dropdown.value = startIndex;
         dropdown.gameObject.SetActive(true);
+        dropdown.GetComponent<FavDropDown>().doOptions();
         dropdown.RefreshShownValue();
 
         Debug.Log("begin loading database");
@@ -285,7 +285,7 @@ public class telera_spawner : MonoBehaviour
             loading.transform.parent = obj.gameObject.transform;
             loading.transform.localPosition = Vector3.zero;
             loading.transform.localRotation = Quaternion.identity;
-            applyLOD(loading);
+            //applyLOD(loading);
         }
 
     }
@@ -332,6 +332,14 @@ public class telera_spawner : MonoBehaviour
 
     KdTree.KdTree<float, SCG.List<NifLoadJob>> postree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
     KdTree.KdTree<float, SCG.List<NifLoadJob>> terraintree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
+    int candidateMeshesToLoad = 0;
+
+    public bool IsVisibleFrom(Vector3 v, Camera camera)
+    {
+        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(camera);
+        return GeometryUtility.TestPlanesAABB(planes, new Bounds(v, Vector3.one));
+    }
+
 
     TreeDictionary<Guid, NifLoadJob> runningList;
     // Update is called once per frame
@@ -407,8 +415,10 @@ public class telera_spawner : MonoBehaviour
                         {
                             objectPositions.AddRange(objs);
                         }
+                        
                     });
-                    m_Thread.Priority = System.Threading.ThreadPriority.Lowest;
+                    //m_Thread.Priority = System.Threading.ThreadPriority.Lowest;
+                    m_Thread.Priority = (System.Threading.ThreadPriority)ProgramSettings.get("MAP_LOAD_THREAD_PRIORITY",(int)System.Threading.ThreadPriority.Normal);
                     m_Thread.Start();
                     processedTiles.Add(tileStr);
                 }
@@ -417,7 +427,9 @@ public class telera_spawner : MonoBehaviour
 
         lock (objectPositions)
         {
-            while (objectPositions.Count() > 0)
+            // don't spend more than 100ms in here
+            DateTime end = DateTime.Now.AddMilliseconds(100);
+            while (objectPositions.Count() > 0 && DateTime.Now < end)
             {
                 ObjectPosition p = objectPositions[0];
                 objectPositions.RemoveAt(0);
@@ -440,31 +452,38 @@ public class telera_spawner : MonoBehaviour
                 //postree.RemoveAt()
             }
         }
+
         if (runningList.Count < MAX_RUNNING_THREADS)
         {
             float[] camPosF = new float[] { camPos.x, camPos.z };
-            KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
-            KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = postree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
-            SCG.IEnumerable<NifLoadJob> jobs;
-            if (tercandidates.Length > 0)
-            {
-                jobs = tercandidates.SelectMany(e => e.Value);
-                //Debug.Log("found terrain jobs:" + jobs.Count());
-            }
-            else
-            {
-                //Debug.Log("found candidates jobs:" + candidates.Count());
-                jobs = candidates.SelectMany(e => e.Value);
-            }
+            KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates =// this.terraintree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
+                this.terraintree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
+            KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
+            //postree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
 
-            //SCG.IEnumerable<NifLoadJob> jobs = objsToCreateList.Select(e => e.Value).OrderBy(a => !(a.filename.Contains("terrain") || a.filename.Contains("ocean"))).ThenBy(a => Vector3.Distance(a.parent.transform.position, camPos)).Take(MAX_RUNNING_THREADS);
+            SCG.IEnumerable<NifLoadJob> terjobs = tercandidates.SelectMany(e => e.Value);
+            SCG.IEnumerable<NifLoadJob> otherjobs = candidates.SelectMany(e => e.Value);
+            // objects in camera view should be visible first
+            Camera cam = mcamera.GetComponent<Camera>();
+            terjobs = terjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam));
+            otherjobs = otherjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam));
 
+            SCG.List<NifLoadJob> jobs = new SCG.List<NifLoadJob>();
+            if (terjobs.Count() > 0)
+                jobs.Add(terjobs.First());
+            jobs.AddRange(otherjobs);
+
+            candidateMeshesToLoad = jobs.Count();
+
+            // take items from the KDTree and move them to a render queue
             foreach (NifLoadJob job in jobs.ToArray())
             {
                 if (runningList.Count < MAX_RUNNING_THREADS)
                 {
-                    job.Start(System.Threading.ThreadPriority.Lowest);
+                    job.Start((System.Threading.ThreadPriority)ProgramSettings.get("OBJECT_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal));
                     runningList.Add(job.uid, job);
+                    addLoading(job);
+
 
                     Vector3 pos = job.parent.transform.position;
                     float[] floatf = new float[] { pos.x, pos.z };
@@ -475,9 +494,10 @@ public class telera_spawner : MonoBehaviour
                         n.Value.Remove(job);
                 }
                 // we already reached max threads, break out
-                //else
-                //break;
+                else
+                    break;
             }
+            // cleanup empty kdtree nodes
             foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
                 if (n.Value.Count == 0)
                     terraintree.RemoveAt(n.Point);

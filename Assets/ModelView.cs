@@ -1,5 +1,6 @@
 ﻿using Assets.NIF;
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -149,7 +150,9 @@ public class ModelView : MonoBehaviour
         SZZdropdown.AddOptions(SZZdropdownE);
         SZZZdropdown.AddOptions(SZZZdropdownE);
 
-        nIFModelDropdown.AddOptions(nIFModelEntries);
+        nIFModelDropdown.AddOptions(nIFModelEntries.Select(x => new DOption(x, null, false)).Cast<Dropdown.OptionData>().ToList());
+        nIFModelDropdown.GetComponent<FavDropDown>().doOptions();
+
     }
     public void toggleGround()
     {

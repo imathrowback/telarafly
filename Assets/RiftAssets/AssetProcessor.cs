@@ -24,7 +24,7 @@ namespace Assets.RiftAssets
         {
             AssetFile assetFile = new AssetFile(file);
 
-            using (BinaryReader dis = new BinaryReader(new FileStream(file, FileMode.Open)))
+            using (BinaryReader dis = new BinaryReader(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
                 byte[] magic = dis.ReadBytes(4);
                 //System.out.println(new String(magic));
