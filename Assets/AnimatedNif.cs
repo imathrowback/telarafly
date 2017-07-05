@@ -25,6 +25,20 @@ namespace Assets
         List<KFAnimation> anims;
         GameObject skeletonRoot;
 
+        public void setParams(AssetDatabase adb, string nif, string kfm, string kfb)
+        {
+            this.adb = adb;
+            this.nif = nif;
+            this.kfm = kfm;
+            this.kfb = kfb;
+            kfmfile = null;
+            kfbfile = null;
+            nifanimation = null;
+            activeAnimation = -1;
+            skeletonRoot = null;
+            anims = null;
+            boneMap.Clear();
+        }
 
         public void clearBoneMap()
         {
@@ -69,13 +83,7 @@ namespace Assets
         {
 
         }
-        public void setParams(AssetDatabase adb, string nif, string kfm, string kfb)
-        {
-            this.adb = adb;
-            this.nif = nif;
-            this.kfm = kfm;
-            this.kfb = kfb;
-        }
+       
         public AnimatedNif(AssetDatabase adb, string nif, string kfm, string kfb)
         {
             setParams(adb, nif, kfm, kfb);
@@ -163,10 +171,10 @@ namespace Assets
                 setActiveAnimation(getIdleAnimIndex());
                 if (nifanimation == null)
                 {
-                   
                     return;
                 }
             }
+            //Debug.Log("using anim :" + this.nifanimation.)
 
             /** For each sequence, evaluate it with the current time and apply the result to the related bone */
             foreach (NiSequenceData data in nifanimation.nifSequences)
@@ -186,7 +194,7 @@ namespace Assets
                             Transform bone = skeletonRoot.transform.FindDeepChild(boneName);
                             if (bone == null)
                             {
-                                Debug.LogWarning("unable to find bone in skeleton for " + boneName);
+                                //Debug.LogWarning("unable to find bone in skeleton for " + boneName);
                                 continue;
                             }
                             go = boneMap[boneName] = bone.gameObject;

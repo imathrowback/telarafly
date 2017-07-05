@@ -62,6 +62,7 @@ public class ModelView : MonoBehaviour
     {
 
     }
+
     private void parse7305(IEnumerable<entry> entries)
     {
         nIFModelDropdown.ClearOptions();
@@ -136,7 +137,7 @@ public class ModelView : MonoBehaviour
         }
 
 
-        nIFModelEntries.Sort();
+        //nIFModelEntries.Sort();
         AFdropdownE.Sort();
         GLdropdownE.Sort();
         MRdropdownE.Sort();
@@ -150,8 +151,9 @@ public class ModelView : MonoBehaviour
         SZZdropdown.AddOptions(SZZdropdownE);
         SZZZdropdown.AddOptions(SZZZdropdownE);
 
+        nIFModelDropdown.ClearOptions();
         nIFModelDropdown.AddOptions(nIFModelEntries.Select(x => new DOption(x, null, false)).Cast<Dropdown.OptionData>().ToList());
-        nIFModelDropdown.GetComponent<FavDropDown>().doOptions();
+        nIFModelDropdown.GetComponent<FavDropDown>().readFavs();
 
     }
     public void toggleGround()
@@ -178,14 +180,10 @@ public class ModelView : MonoBehaviour
         if (newNifP.Contains(":"))
             newNif = newNifP.Split(':')[1];
         Model animNifModel = nifDictionary[newNif];
-        Debug.Log("found animNifModel:" + animNifModel.nifFile);
         AnimatedNif animNif = gameObject.GetComponent<AnimatedNif>();
         if (animNif == null)
             animNif = gameObject.AddComponent<AnimatedNif>();
         animNif.setParams(adb, animNifModel.nifFile, animNifModel.kfmFile, animNifModel.kfbFile);
-        Debug.Log("found animNif:" + animNif.nif);
-        if (animationNif != null)
-            Debug.Log("found animationNif:" + animationNif.nif);
 
         if (nifmodel != null)
             GameObject.DestroyImmediate(nifmodel);
@@ -202,7 +200,8 @@ public class ModelView : MonoBehaviour
         anims.Sort();
         animNif.setSkeletonRoot(nifmodel);
         animationNif = animNif;
-        
+        animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
+
         this.animationDropdown.AddOptions(anims);
         
     }
@@ -260,10 +259,10 @@ public class ModelView : MonoBehaviour
         if (DBInst.loaded && !first)
         {
             first = true;
-            IEnumerable<entry> entries = db.getEntriesForID(7305);
+            IEnumerable<entry> entries = db.getEntriesForID(7305).Where(x=> x.key >828178166);
             parse7305(entries);
-            changeNif("crucia.nif");
-            animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
+            //changeNif("crucia.nif");
+            //animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
         }
         if (animationNif != null)
             animationNif.animSpeed = this.animSpeed;

@@ -50,6 +50,7 @@ namespace Assets
         }
         static public Model load7305(AssetDatabase adb, long key)
         {
+            //Debug.Log("load 7305:" + key);
             entry e = DBInst.inst.getEntry(7305, key);
             Model model = null;
             CObject obj = Parser.processStreamObject(new MemoryStream(e.decompressedData));
