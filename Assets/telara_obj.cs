@@ -23,7 +23,7 @@ public class telara_obj : MonoBehaviour {
         this.spawner = spawner;
         this.cat = cat;
     }
-    void objectVisible()
+    public void objectVisible()
     {
         if (doLoad || loaded)
             return;

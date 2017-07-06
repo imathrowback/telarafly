@@ -18,6 +18,26 @@ public class NIFLoader
     }
 
 
+    static private void prepTextures(NIFFile file)
+    {
+        for (int i = 0; i < file.getObjects().Count; i++)
+        {
+            NIFObject obj = file.getObjects()[i];
+            if (obj is NiSourceTexture)
+            {
+                NiSourceTexture tex = (NiSourceTexture)obj;
+                try
+                {
+                    // preload texture
+                    AssetDatabaseInst.DB.extractUsingFilename(tex.texFilename, Assets.RiftAssets.AssetDatabase.RequestCategory.TEXTURE);
+                }
+                catch (Exception ex)
+                {
+
+                }
+            }
+        }
+    }
 
 
     static public GameObject loadNIFFromFile(String fname, bool skinMesh = false)
@@ -25,6 +45,7 @@ public class NIFLoader
         using (FileStream nifStream = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             NIFFile nf = new NIFFile(nifStream);
+            prepTextures(nf);
             return loadNIF(nf, fname, skinMesh);
         }
 
@@ -45,6 +66,8 @@ public class NIFLoader
                 using (MemoryStream nifStream = new MemoryStream(nifData))
                 {
                     niffile = new NIFFile(nifStream);
+                    prepTextures(niffile);
+
                     nifCache[key] = niffile;
                 }
             }

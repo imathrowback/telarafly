@@ -4,11 +4,21 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using UnityEngine;
 
 namespace Assets.RiftAssets
 {
     class AssetCache
     {
+        static AssetCache _inst;
+
+        public static AssetCache inst { get
+            {
+                if (_inst == null)
+                    _inst = new AssetCache();
+                return _inst;
+            }
+        }
         class Entry
         {
             internal string id;
@@ -20,7 +30,7 @@ namespace Assets.RiftAssets
 
         int EXPIRE_MINUTES = 3;
         Timer timer;
-        public AssetCache()
+        private AssetCache()
         {
            timer = new Timer(purgeExpired, null, 5000, Timeout.Infinite);
             stats["miss"] = 0;
@@ -41,9 +51,13 @@ namespace Assets.RiftAssets
                     entry.id = strID;
                     entry.data = getFunc.Invoke();
                     entries.Add(strID, entry);
+                    Debug.Log("[" + strID + "] cache miss");
                 }
                 else
+                {
+                    Debug.Log("[" + strID + "] cache hit");
                     addStat("hit", 1);
+                }
                 entry.expires = DateTime.Now.AddMinutes(EXPIRE_MINUTES);
                 return entry.data;
             }
@@ -51,18 +65,23 @@ namespace Assets.RiftAssets
 
         void writeStats()
         {
-            using (StreamWriter fs = File.CreateText("asset-cache.txt"))
+            if (false)
             {
-                foreach (string str in stats.Keys)
+                Debug.Log("write cache stats");
+
+                using (StreamWriter fs = File.CreateText("asset-cache.txt"))
                 {
-                    fs.WriteLine(str + ":" + stats[str]);
+                    foreach (string str in stats.Keys)
+                    {
+                        fs.WriteLine(str + ":" + stats[str]);
+                    }
                 }
             }
         }
         /// <summary>
         ///  Purge expired entries
         /// </summary>
-        void purgeExpired(Object state)
+        void purgeExpired(System.Object state)
         {
             lock (entries)
             {
@@ -70,6 +89,7 @@ namespace Assets.RiftAssets
                 {
                     if (DateTime.Now > entry.expires)
                     {
+                        Debug.Log("purge " + entry.id);
                         entries.Remove(entry.id);
                         addStat("purged", 1);
                     }
@@ -81,9 +101,11 @@ namespace Assets.RiftAssets
         void addStat(string str, int count)
         {
             int value = 0;
+            Debug.Log("add stat [" + str + "] + " + count);
             if (!stats.TryGetValue(str, out value))
                 stats[str] = 0;
             stats[str] = stats[str] + count;
+            Debug.Log("-- final stat [" + str + "] = " + stats[str]);
         }
     }
 }

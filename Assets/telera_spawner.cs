@@ -122,6 +122,9 @@ public class telera_spawner : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        // prime the GUID random number generator
+        Guid.NewGuid();
+
         Slider lodslider = GameObject.Find("LODSlider").GetComponent<Slider>();
         this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.9f);
         lodslider.value = this.LODCutoff;
@@ -176,7 +179,7 @@ public class telera_spawner : MonoBehaviour
 
     }
 
-    HashSet<string> processedTiles = new HashSet<string>();
+    HashSet<long> processedTiles = new HashSet<long>();
 
     public void setCameraLoc(WorldSpawn spawn, bool useChar = false)
     {
@@ -316,14 +319,20 @@ public class telera_spawner : MonoBehaviour
         //Debug.Log("camera moved, update colliders");
         Collider[] hitColliders = Physics.OverlapSphere(position, ProgramSettings.get("OBJECT_VISIBLE", 500), 1 << 30);
 
-        System.Array.Sort(hitColliders, (b, a) => Vector3.Distance(position, a.gameObject.transform.position).CompareTo(Vector3.Distance(position, b.gameObject.transform.position)));
+        //System.Array.Sort(hitColliders, (b, a) => Vector3.Distance(position, a.gameObject.transform.position).CompareTo(Vector3.Distance(position, b.gameObject.transform.position)));
 
 
         int i = 0;
         while (i < hitColliders.Length)
         {
             Collider c = hitColliders[i++];
-            c.SendMessage("objectVisible", SendMessageOptions.DontRequireReceiver);
+            telara_obj obj = c.GetComponent<telara_obj>();
+            if (obj!= null)
+            {
+                obj.objectVisible();                
+            }
+            else
+                c.SendMessage("objectVisible", SendMessageOptions.DontRequireReceiver);
         }
         return hitColliders;
     }
@@ -346,6 +355,11 @@ public class telera_spawner : MonoBehaviour
         return GeometryUtility.TestPlanesAABB(planes, new Bounds(v, Vector3.one));
     }
 
+
+    private static long Combine(int x, int y)
+    {
+        return (long)(((ulong)x) | ((ulong)y) << 32);
+    }
 
     TreeDictionary<Guid, NifLoadJob> runningList;
     // Update is called once per frame
@@ -407,8 +421,9 @@ public class telera_spawner : MonoBehaviour
             {
                 int tx = txx;
                 int ty = txy;
-                string tileStr = tx + ":" + ty;
-                if (!processedTiles.Contains(tileStr))
+                //string tileStr = tx + ":" + ty;
+                long key = Combine(tx, ty);
+                if (!processedTiles.Contains(key))
                 {
                     System.Threading.Thread m_Thread = new System.Threading.Thread(() =>
                     {
@@ -426,15 +441,15 @@ public class telera_spawner : MonoBehaviour
                     //m_Thread.Priority = System.Threading.ThreadPriority.Lowest;
                     m_Thread.Priority = (System.Threading.ThreadPriority)ProgramSettings.get("MAP_LOAD_THREAD_PRIORITY",(int)System.Threading.ThreadPriority.Normal);
                     m_Thread.Start();
-                    processedTiles.Add(tileStr);
+                    processedTiles.Add(key);
                 }
             }
         }
 
         lock (objectPositions)
         {
-            // don't spend more than 100ms in here
-            DateTime end = DateTime.Now.AddMilliseconds(100);
+            // don't spend more than a certain amount of milliseconds in here
+            DateTime end = DateTime.Now.AddMilliseconds(10);
             while (objectPositions.Count() > 0 && DateTime.Now < end)
             {
                 ObjectPosition p = objectPositions[0];
@@ -482,7 +497,7 @@ public class telera_spawner : MonoBehaviour
             candidateMeshesToLoad = jobs.Count();
 
             // take items from the KDTree and move them to a render queue
-            foreach (NifLoadJob job in jobs.ToArray())
+            foreach (NifLoadJob job in jobs)
             {
                 if (runningList.Count < MAX_RUNNING_THREADS)
                 {

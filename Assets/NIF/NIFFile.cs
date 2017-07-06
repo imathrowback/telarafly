@@ -45,29 +45,8 @@ namespace Assets.NIF
         {
             parseFile(stream);
             prepMeshes();
-            prepTextures();
         }
 
-        private void prepTextures()
-        {
-            for (int i = 0; i < objects.Count; i++)
-            {
-                NIFObject obj = objects[i];
-                if (obj is NiSourceTexture)
-                {
-                    NiSourceTexture tex = (NiSourceTexture)obj;
-                    try
-                    {
-                        // preload texture
-                        AssetDatabaseInst.DB.extractUsingFilename(tex.texFilename, RiftAssets.AssetDatabase.RequestCategory.TEXTURE);
-                    }
-                    catch (Exception ex)
-                    {
-
-                    }
-                }
-            }
-        }
 
         private void prepMeshes()
         {

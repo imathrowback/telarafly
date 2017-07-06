@@ -56,7 +56,7 @@ namespace Assets.RiftAssets
             return getEntry(Util.bytesToHexString(id));
         }
 
-        static AssetCache cache = new AssetCache();
+        static AssetCache cache = AssetCache.inst;
         /**
          * Attempt to extract the given assetentry into a byte array. Because the content may be compressed the returned byte array
          * may be larger than the requested max bytes.
