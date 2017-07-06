@@ -51,11 +51,11 @@ namespace Assets.RiftAssets
                     entry.id = strID;
                     entry.data = getFunc.Invoke();
                     entries.Add(strID, entry);
-                    Debug.Log("[" + strID + "] cache miss");
+                    //Debug.Log("[" + strID + "] cache miss");
                 }
                 else
                 {
-                    Debug.Log("[" + strID + "] cache hit");
+                    //Debug.Log("[" + strID + "] cache hit");
                     addStat("hit", 1);
                 }
                 entry.expires = DateTime.Now.AddMinutes(EXPIRE_MINUTES);
@@ -67,7 +67,7 @@ namespace Assets.RiftAssets
         {
             if (false)
             {
-                Debug.Log("write cache stats");
+               // Debug.Log("write cache stats");
 
                 using (StreamWriter fs = File.CreateText("asset-cache.txt"))
                 {
@@ -89,7 +89,7 @@ namespace Assets.RiftAssets
                 {
                     if (DateTime.Now > entry.expires)
                     {
-                        Debug.Log("purge " + entry.id);
+                        //Debug.Log("purge " + entry.id);
                         entries.Remove(entry.id);
                         addStat("purged", 1);
                     }
@@ -101,11 +101,11 @@ namespace Assets.RiftAssets
         void addStat(string str, int count)
         {
             int value = 0;
-            Debug.Log("add stat [" + str + "] + " + count);
+           // Debug.Log("add stat [" + str + "] + " + count);
             if (!stats.TryGetValue(str, out value))
                 stats[str] = 0;
             stats[str] = stats[str] + count;
-            Debug.Log("-- final stat [" + str + "] = " + stats[str]);
+            //Debug.Log("-- final stat [" + str + "] = " + stats[str]);
         }
     }
 }
