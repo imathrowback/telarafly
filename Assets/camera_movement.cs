@@ -97,18 +97,6 @@ namespace cam
             newPosition.z = transform.position.z;
             newPosition.y = transform.position.y;
 
-            // Angryboy: Manipulate Y plane by using Q/E keys
-            
-            if (Input.GetKey(KeyCode.Q))
-            {
-                newPosition.y += -speedMultiplier;
-            }
-            if (Input.GetKey(KeyCode.E))
-            {
-                newPosition.y += speedMultiplier;
-            }
-            
-
             transform.position = newPosition;
 
             if (newPosition != lastPos && !isRotating)
@@ -144,6 +132,14 @@ namespace cam
             if (Input.GetKey(KeyCode.D))
             {
                 p_Velocity += new Vector3(1, 0, 0);
+            }
+            if (Input.GetKey(KeyCode.E))
+            {
+                p_Velocity += new Vector3(0,1, 0);
+            }
+            if (Input.GetKey(KeyCode.Q))
+            {
+                p_Velocity += new Vector3(0, -1, 0);
             }
             return p_Velocity;
         }
