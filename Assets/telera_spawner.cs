@@ -75,48 +75,7 @@ public class telera_spawner : MonoBehaviour
 
     public int ObjJobLoadQueueSize()
     {
-        return candidateMeshesToLoad + runningList.Count();
-    }
-
-    class NifLoadJobCompare : SCG.IComparer<NifLoadJob>
-    {
-        public int Compare(NifLoadJob x, NifLoadJob y)
-        {
-            if (x.filename.Contains("terrain") || x.filename.Contains("ocean"))
-                return -1;
-            return 0;
-        }
-    }
-
-    class NifLoadJobCompareDist : SCG.IComparer<NifLoadJob>
-    {
-        Vector3 v;
-        public NifLoadJobCompareDist(Vector3 v)
-        {
-            this.v = v;
-        }
-        public int Compare(NifLoadJob x, NifLoadJob y)
-        {
-            Vector3 a = x.parent.transform.position;
-            Vector3 b = x.parent.transform.position;
-            float distA = Vector3.Distance(a, v);
-            float distB = Vector3.Distance(a, v);
-            if (distA < distB)
-                return -1;
-            if (distB < distA)
-                return 1;
-            return 0;
-        }
-    }
-
-    class ObjectPositionCompare : SCG.IComparer<ObjectPosition>
-    {
-        public int Compare(ObjectPosition x, ObjectPosition y)
-        {
-            if (x.nifFile.Contains("terrain") || x.nifFile.Contains("ocean"))
-                return -1;
-            return 0;
-        }
+        return  objectRunningList.Count() + terrainRunningList.Count();
     }
 
     // Use this for initialization
@@ -128,8 +87,6 @@ public class telera_spawner : MonoBehaviour
         Slider lodslider = GameObject.Find("LODSlider").GetComponent<Slider>();
         this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.9f);
         lodslider.value = this.LODCutoff;
-
-
 
         objectPositions = new SCG.List<ObjectPosition>();
 
@@ -144,7 +101,7 @@ public class telera_spawner : MonoBehaviour
         mcamera = GameObject.Find("Main Camera");
         meshRoot = GameObject.Find("NIFRotationRoot");
 
-        MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 4);
+        MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 10);
         MAX_NODE_PER_FRAME = ProgramSettings.get("MAX_NODE_PER_FRAME", 15000);
 
         setCameraLoc(GameWorld.initialSpawn);
@@ -165,18 +122,6 @@ public class telera_spawner : MonoBehaviour
         dropdown.gameObject.SetActive(true);
         dropdown.GetComponent<FavDropDown>().doOptions();
         dropdown.RefreshShownValue();
-
-        Debug.Log("begin loading database");
-        
-
-        /*
-        Debug.Log("loading " + GameWorld.getObjects().Count + " objects");
-        foreach (ObjectPosition op in GameWorld.getObjects())
-        {
-            process(op);
-        }
-        */
-
     }
 
     HashSet<long> processedTiles = new HashSet<long>();
@@ -245,30 +190,18 @@ public class telera_spawner : MonoBehaviour
         Assets.RiftAssets.AssetDatabase.RequestCategory category = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
         if (name.Contains("_terrain_") || name.Contains("ocean_chunk"))
         {
-            // use a vertical box as our collider for now
-            go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            float c = ProgramSettings.get("TERRAIN_VIS", 15.0f);
-            go.GetComponent<BoxCollider>().size = new Vector3(256 * c, 5000, 256 * c);
-            go.GetComponent<BoxCollider>().center = new Vector3(128, 0, 128);
-            go.layer = 30;
+            go = new GameObject();
             if (name.Contains("_terrain_"))
                 category = Assets.RiftAssets.AssetDatabase.RequestCategory.GEOMETRY;
         }
         else
         {
-            go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            Bounds b = new Bounds(op.min, Vector3.one);
-            b.Encapsulate(op.max);
-            
-            
-            go.GetComponent<SphereCollider>().radius = b.size.magnitude;
-            go.layer = 30;
+            go = new GameObject();
         }
         telara_obj tobj = go.AddComponent<telara_obj>();
         tobj.setProps(category, this);
 
         go.transform.SetParent(meshRoot.transform);
-        GameObject.Destroy(go.GetComponent<MeshRenderer>());
 
         tobj.setFile(name);
         go.name = name;
@@ -277,6 +210,7 @@ public class telera_spawner : MonoBehaviour
         go.transform.localRotation = op.qut;
 
         
+        triggerLoad(tobj);
         return go;
     }
 
@@ -299,43 +233,19 @@ public class telera_spawner : MonoBehaviour
 
     }
 
-    Vector3 getV3(string str)
-    {
-        string fstr = str.Replace("(", "").Replace(")", "");
-        string[] parts = fstr.Split(',');
-        return new Vector3(float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2]));
-    }
-    Vector4 getV4(string str)
-    {
-        string fstr = str.Replace("(", "").Replace(")", "");
-        string[] parts = fstr.Split(',');
-        return new Vector4(float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2]), float.Parse(parts[3]));
-    }
-
     private Dropdown dropdown;
-
-    public Collider[] checkHits(Vector3 position)
+    void triggerLoad(telara_obj obj)
     {
-        //Debug.Log("camera moved, update colliders");
-        Collider[] hitColliders = Physics.OverlapSphere(position, ProgramSettings.get("OBJECT_VISIBLE", 500), 1 << 30);
-
-        //System.Array.Sort(hitColliders, (b, a) => Vector3.Distance(position, a.gameObject.transform.position).CompareTo(Vector3.Distance(position, b.gameObject.transform.position)));
-
-
-        int i = 0;
-        while (i < hitColliders.Length)
+        if (obj != null)
         {
-            Collider c = hitColliders[i++];
-            telara_obj obj = c.GetComponent<telara_obj>();
-            if (obj!= null)
+            if (!(obj.doLoad || obj.loaded))
             {
-                obj.objectVisible();                
+                obj.doLoad = true;
+                addJob(obj, obj.file);
             }
-            else
-                c.SendMessage("objectVisible", SendMessageOptions.DontRequireReceiver);
         }
-        return hitColliders;
     }
+   
 
     GameObject mount;
 
@@ -347,7 +257,6 @@ public class telera_spawner : MonoBehaviour
 
     KdTree.KdTree<float, SCG.List<NifLoadJob>> postree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
     KdTree.KdTree<float, SCG.List<NifLoadJob>> terraintree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
-    int candidateMeshesToLoad = 0;
 
     public bool IsVisibleFrom(Vector3 v, Camera camera)
     {
@@ -361,11 +270,68 @@ public class telera_spawner : MonoBehaviour
         return (long)(((ulong)x) | ((ulong)y) << 32);
     }
 
-    TreeDictionary<Guid, NifLoadJob> runningList;
+    TreeDictionary<Guid, NifLoadJob> terrainRunningList;
+    TreeDictionary<Guid, NifLoadJob> objectRunningList;
+
+    int availThreads()
+    {
+        return MAX_RUNNING_THREADS - (terrainRunningList.Count + objectRunningList.Count);
+    }
+
+    SCG.List<KeyValuePair<int, int>> cdrJobQueue = new SCG.List<KeyValuePair<int, int>>();
+    int MAX_TERRAIN_THREADS = 2;
+    volatile int runningTerrainThreads = 0;
+    
+    void processCDRQueue()
+    {
+
+        int tileX = Mathf.FloorToInt(getWorldCamPos().x / 256.0f);
+        int tileY = Mathf.FloorToInt(getWorldCamPos().z / 256.0f);
+        cdrJobQueue = cdrJobQueue.OrderBy(x => Vector2.Distance(new Vector2(tileX, tileY), new Vector2(x.Key, x.Value))).ToList();
+        while (runningTerrainThreads < MAX_TERRAIN_THREADS && cdrJobQueue.Count() > 0)
+        {
+            KeyValuePair<int, int> job = cdrJobQueue[0];
+            cdrJobQueue.RemoveAt(0);
+            int tx = job.Key;
+            int ty = job.Value;
+            runningTerrainThreads++;
+            System.Threading.Thread m_Thread = new System.Threading.Thread(() =>
+            {
+                try
+                {
+                    SCG.List<ObjectPosition> objs = new SCG.List<ObjectPosition>();
+                    CDRParse.doWorldTile(AssetDatabaseInst.DB, DBInst.inst, GameWorld.worldName, tx * 256, ty * 256, (p) =>
+                    {
+                        objs.Add(p);
+                    });
+                    lock (objectPositions)
+                    {
+                        objectPositions.AddRange(objs);
+                    }
+                }
+                finally
+                {
+                    runningTerrainThreads--;
+                }
+            });
+            m_Thread.Priority = (System.Threading.ThreadPriority)ProgramSettings.get("MAP_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal);
+            m_Thread.Start();
+        }
+    }
+    void submitCDRJob(int tx, int ty)
+    {
+        long key = Combine(tx, ty);
+        if (!processedTiles.Contains(key))
+        {
+            cdrJobQueue.Add(new KeyValuePair<int, int>(tx, ty));
+            processedTiles.Add(key);
+        }
+
+    }
+
     // Update is called once per frame
     void Update()
     {
-        checkHits(this.mcamera.transform.position);
         if (tpuc != null && tpuc.isRotating)
             return;
 
@@ -415,119 +381,114 @@ public class telera_spawner : MonoBehaviour
             new int[]{ -1, -1 },  new int[]{ 0, -1 },   new int[]{ 1, -1 },
         };
         int range = ProgramSettings.get("TERRAIN_VIS", 10);
+        submitCDRJob(tileX, tileY);
         for (int txx = tileX - range; txx <= tileX + range; txx++)
-        {
             for (int txy = tileY - range; txy <= tileY + range; txy++)
-            {
-                int tx = txx;
-                int ty = txy;
-                //string tileStr = tx + ":" + ty;
-                long key = Combine(tx, ty);
-                if (!processedTiles.Contains(key))
-                {
-                    System.Threading.Thread m_Thread = new System.Threading.Thread(() =>
-                    {
-                        SCG.List<ObjectPosition> objs = new SCG.List<ObjectPosition>();
-                        CDRParse.doWorldTile(AssetDatabaseInst.DB, DBInst.inst, GameWorld.worldName, tx * 256, ty * 256, (p) =>
-                        {
-                            objs.Add(p);
-                        });
-                        lock(objectPositions)
-                        {
-                            objectPositions.AddRange(objs);
-                        }
-                        
-                    });
-                    //m_Thread.Priority = System.Threading.ThreadPriority.Lowest;
-                    m_Thread.Priority = (System.Threading.ThreadPriority)ProgramSettings.get("MAP_LOAD_THREAD_PRIORITY",(int)System.Threading.ThreadPriority.Normal);
-                    m_Thread.Start();
-                    processedTiles.Add(key);
-                }
-            }
-        }
-
+                submitCDRJob(txx, txy);
+        processCDRQueue();
         lock (objectPositions)
         {
-            // don't spend more than a certain amount of milliseconds in here
-            DateTime end = DateTime.Now.AddMilliseconds(10);
-            while (objectPositions.Count() > 0 && DateTime.Now < end)
+            DateTime end = DateTime.Now.AddMilliseconds(20);
+            while (objectPositions.Count() > 0) 
             {
                 ObjectPosition p = objectPositions[0];
                 objectPositions.RemoveAt(0);
                 GameObject go = process(p);
+                // don't spend more than a certain amount of milliseconds in here
+                //if (DateTime.Now < end)
+                 //   break;
             }
         }
 
-        Vector3 camPos = this.mcamera.transform.position;
-        checkHits(camPos);
+        if (objectRunningList == null)
+        {
+            objectRunningList = new TreeDictionary<Guid, NifLoadJob>();
+            terrainRunningList = new TreeDictionary<Guid, NifLoadJob>();
+        }
 
-        if (runningList == null)
-            runningList = new TreeDictionary<Guid, NifLoadJob>();
+        if (availThreads() != MAX_RUNNING_THREADS)
+        {
+            processRunningList(objectRunningList);
+            processRunningList(terrainRunningList);
+        }
 
+        //Debug.Log("avail threads:" + availThreads());
+        if (availThreads() > 0)
+        {
+            Camera cam = mcamera.GetComponent<Camera>();
+            Vector3 camPos = cam.transform.position;
+                //getWorldCamPos();
+            float[] camPosF = new float[] { camPos.x, camPos.z };
+            KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.RadialSearch(camPosF, ProgramSettings.get("TERRAIN_VIS", 10)*256, MAX_RUNNING_THREADS);
+            //this.terraintree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
+            SCG.IEnumerable<NifLoadJob> terjobs = tercandidates.SelectMany(e => e.Value);
+            // always have at least two terrain job running 
+            //Debug.Log("terrain found:" + terjobs.Count() + " in tree:" + this.terraintree.Count());
+            if (terjobs.Count() > 0)
+            {
+                //terjobs = terjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam)).ThenByDescending(n => Vector3.Distance(n.parent.transform.position, camPos));
+                terjobs = terjobs.OrderBy(n => Vector3.Distance(n.parent.transform.position, camPos));
+
+                SCG.List<NifLoadJob> jobs = terjobs.ToList();
+                startJob(jobs[0], terrainRunningList, tercandidates);
+                if (availThreads() > 0 && terjobs.Count() > 1)
+                    startJob(jobs[1], terrainRunningList, tercandidates);
+
+                foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
+                    if (n.Value.Count == 0)
+                        terraintree.RemoveAt(n.Point);
+            }
+
+            if (availThreads() > 0)
+            {
+                KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
+                    //postree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
+
+                SCG.IEnumerable<NifLoadJob> otherjobs = candidates.SelectMany(e => e.Value);
+//                otherjobs = otherjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam)).ThenByDescending(n => Vector3.Distance(n.parent.transform.position, camPos)); ;
+                otherjobs = otherjobs.OrderBy(n => Vector3.Distance(n.parent.transform.position, camPos));
+                foreach (NifLoadJob job in otherjobs)
+                {
+                    if (availThreads() > 0)
+                    {
+                        startJob(job, objectRunningList, candidates);
+                    }
+                    else
+                        break;
+                }
+
+                foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
+                    if (n.Value.Count == 0)
+                        postree.RemoveAt(n.Point);
+
+            }
+        }
+    }
+    void processRunningList(TreeDictionary<Guid, NifLoadJob> runningList)
+    {
         foreach (NifLoadJob job in runningList.Values.ToArray())
         {
             if (job.Update())
             {
                 finalizeJob(job);
                 runningList.Remove(job.uid);
-                //postree.RemoveAt()
             }
-        }
-
-        if (runningList.Count < MAX_RUNNING_THREADS)
-        {
-            float[] camPosF = new float[] { camPos.x, camPos.z };
-            KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates =// this.terraintree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
-                this.terraintree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
-            KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
-            //postree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
-
-            SCG.IEnumerable<NifLoadJob> terjobs = tercandidates.SelectMany(e => e.Value);
-            SCG.IEnumerable<NifLoadJob> otherjobs = candidates.SelectMany(e => e.Value);
-            // objects in camera view should be visible first
-            Camera cam = mcamera.GetComponent<Camera>();
-            terjobs = terjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam));
-            otherjobs = otherjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam));
-
-            SCG.List<NifLoadJob> jobs = new SCG.List<NifLoadJob>();
-            if (terjobs.Count() > 0)
-                jobs.Add(terjobs.First());
-            jobs.AddRange(otherjobs);
-
-            candidateMeshesToLoad = jobs.Count();
-
-            // take items from the KDTree and move them to a render queue
-            foreach (NifLoadJob job in jobs)
-            {
-                if (runningList.Count < MAX_RUNNING_THREADS)
-                {
-                    job.Start((System.Threading.ThreadPriority)ProgramSettings.get("OBJECT_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal));
-                    runningList.Add(job.uid, job);
-                    addLoading(job);
-
-
-                    Vector3 pos = job.parent.transform.position;
-                    float[] floatf = new float[] { pos.x, pos.z };
-
-                    foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
-                        n.Value.Remove(job);
-                    foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
-                        n.Value.Remove(job);
-                }
-                // we already reached max threads, break out
-                else
-                    break;
-            }
-            // cleanup empty kdtree nodes
-            foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
-                if (n.Value.Count == 0)
-                    terraintree.RemoveAt(n.Point);
-            foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
-                if (n.Value.Count == 0)
-                    postree.RemoveAt(n.Point);
-
         }
     }
+    void startJob(NifLoadJob job, TreeDictionary<Guid, NifLoadJob> runningList, KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates)
+    {
+        //Debug.Log("Start job:" + job.filename);
+        job.Start((System.Threading.ThreadPriority)ProgramSettings.get("OBJECT_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal));
+        runningList.Add(job.uid, job);
+        addLoading(job);
+
+        Vector3 pos = job.parent.transform.position;
+        float[] floatf = new float[] { pos.x, pos.z };
+
+        foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
+            n.Value.Remove(job);
+    }
+    
 
     private bool finalizeJob(NifLoadJob job)
     {
@@ -584,9 +545,14 @@ public class telera_spawner : MonoBehaviour
         PlayerPrefs.Save();
         updateLOD(useLOD);
     }
-
+    
     private void applyLOD(GameObject go)
     {
+
+        // don't LOD terrain
+        if (go.GetComponent<TerrainObj>() != null)
+            return;
+
         if (!useLOD)
             return;
         LODGroup group = go.GetComponent<LODGroup>();
@@ -594,10 +560,10 @@ public class telera_spawner : MonoBehaviour
             group = go.AddComponent<LODGroup>();
         group.animateCrossFading = true;
         group.fadeMode = LODFadeMode.SpeedTree;
-        LOD[] lods = new LOD[2];
+        LOD[] lods = new LOD[1];
         Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
         lods[0] = new LOD(LODCutoff, renderers);
-        lods[1] = new LOD(1f - LODCutoff, renderers);
+        //lods[1] = new LOD(1f - LODCutoff, renderers);
         group.SetLODs(lods);
 
 

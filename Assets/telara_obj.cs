@@ -8,7 +8,7 @@ using System.IO;
 
 public class telara_obj : MonoBehaviour {
 
-    private string file;
+    public string file;
     public bool doLoad = false;
     public bool loaded = false;
     public Assets.RiftAssets.AssetDatabase.RequestCategory cat = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
@@ -23,6 +23,7 @@ public class telara_obj : MonoBehaviour {
         this.spawner = spawner;
         this.cat = cat;
     }
+    /*
     public void objectVisible()
     {
         if (doLoad || loaded)
@@ -35,6 +36,7 @@ public class telara_obj : MonoBehaviour {
     {
         spawner.addJob(this, file);
     }
+    */
 
     public void unload()
     {

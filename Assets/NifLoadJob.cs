@@ -99,16 +99,41 @@ public class NifLoadJob : ThreadedJob
     }
     protected override void OnFinished()
     {
+        GameObject go = null;
         try
         {
             if (filename.Contains("_terrain_"))
                 parent.gameObject.AddComponent<TerrainObj>();
-            GameObject go;
             count--;
             // This is executed by the Unity main thread when the job is finished
             if (niffile != null)
             {
                 go = NIFLoader.loadNIF(niffile, filename);
+                if (lodfile != null)
+                {
+                    GameObject lodgo = NIFLoader.loadNIF(lodfile, filename);
+
+                    // terrain lod
+                    LODGroup group = go.GetComponent<LODGroup>();
+                    if (group == null)
+                        group = go.AddComponent<LODGroup>();
+                    group.animateCrossFading = true;
+                    group.fadeMode = LODFadeMode.SpeedTree;
+                    LOD[] lods = new LOD[2];
+                    Renderer[] renderersMax = go.GetComponentsInChildren<Renderer>();
+                    Renderer[] renderersLow = lodgo.GetComponentsInChildren<Renderer>();
+                    lods[0] = new LOD(0.6f, renderersMax);
+                    lods[1] = new LOD(0.03f, renderersLow);
+                    //lods[1] = new LOD(1f - LODCutoff, renderers);
+                    group.SetLODs(lods);
+
+                    GameObject lodObj = new GameObject();
+                    lodObj.name = "LOD-" + filename;
+                    lodgo.transform.SetParent(lodObj.transform);
+                    lodObj.transform.SetParent(go.transform);
+
+                }
+
                 lock (originals)
                 {
                     originals[filename] = go;
@@ -134,6 +159,8 @@ public class NifLoadJob : ThreadedJob
         {
             Debug.LogWarning("Unable to load nif:" + niffile + " " + filename);
             Debug.Log(ex);
+            if (null != go)
+                GameObject.Destroy(go);
         }
         finally
         {

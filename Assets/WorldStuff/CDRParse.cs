@@ -62,7 +62,7 @@ namespace Assets.WorldStuff
                 }
                 else
                 {
-                    Debug.Log("can't add tile nif:" + terrainNif + ", it doesn't exist");
+                    //Debug.Log("can't add tile nif:" + terrainNif + ", it doesn't exist");
                 }
 
                 processCDR(s, addFunc, adb, db);
@@ -139,7 +139,9 @@ namespace Assets.WorldStuff
                                             Quaternion qut = _603.getMember(4).readQuat();
                                             float scale = _603.getFloatMember(5, 1.0f);
                                             Vector3 translation = _603.getVector3Member(3);
-                                            Vector3 centroid = _603.getVector3Member(9);
+                                            Vector3 centroid = translation;
+                                            if (_603.hasMember(9))
+                                                centroid = _603.getVector3Member(9);
 
                                             Vector3 min = translation;
                                             Vector3 max = centroid;

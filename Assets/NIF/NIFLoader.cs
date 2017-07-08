@@ -340,6 +340,7 @@ public class NIFLoader
 
             // do materials/textures
             Material mat = new Material(Shader.Find("Standard"));
+            mat.enableInstancing = true;
             mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
             if (IS_TERRAIN)
                 mat = new Material(Resources.Load("terrainmat", typeof(Material)) as Material);
