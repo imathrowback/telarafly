@@ -145,6 +145,7 @@ public class NIFLoader
                 NiMesh mes = getMeshForMod(nf, skinMod);
                 Transform meshObject = skeletonRoot.transform.FindDeepChild(mes.name);
                 SkinnedMeshRenderer meshRenderer = meshObject.GetComponent<SkinnedMeshRenderer>();
+                meshRenderer.updateWhenOffscreen = true;
                 //Debug.Log("found mesh renderer: " + meshRenderer.GetInstanceID() + " with bones:" + bones.Count);
                 meshRenderer.rootBone = rootBone;
                 meshRenderer.bones = bones.ToArray();
@@ -352,25 +353,33 @@ public class NIFLoader
                 if (mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
                     mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
 
-            if (mesh.materialNames.Contains("TwoSided_Alpha_Specular"))
+            bool alpha = (mesh.materialNames.Contains("TwoSided_Alpha_Specular"));
+            foreach (string n in mesh.materialNames)
+                if (n.ToLower().Contains("alpha"))
+                    alpha = true;
+            if (alpha)
+            {
                 mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+            }
 
             // handle some simple animated "scrolling" textures
-            if (mesh.materialNames.Contains("Additive_UVScroll_Distort") || 
-                mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") || mesh.materialNames.Contains("Fat_spike12_m") || mesh.materialNames.Contains("pPlane1_m"))
-                {
-                    mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+            bool animated = (mesh.materialNames.Contains("Additive_UVScroll_Distort") ||
+                mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") || mesh.materialNames.Contains("Fat_spike12_m") || mesh.materialNames.Contains("pPlane1_m"));
 
-                UVScroll scroller = go.AddComponent<UVScroll>();
-                scroller.material = mat;
 
-               NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
+            if (animated) 
+            {
+                mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+
+                NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
                 if (extra != null)
                 {
+                    UVScroll scroller = go.AddComponent<UVScroll>();
+                    scroller.material = mat;
+
                     scroller.xRate = extra.floatData[0];
                     scroller.yRate = extra.floatData[1];
                 }
-
             }
 
 
