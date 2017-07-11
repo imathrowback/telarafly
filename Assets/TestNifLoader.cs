@@ -8,6 +8,8 @@ using Assets;
 using System.IO;
 using Assets.Wardrobe;
 using Assets.Database;
+using Assets.NIF;
+using Assets.DatParser;
 
 public class TestNifLoader : MonoBehaviour {
     GameObject mount;
@@ -21,30 +23,47 @@ public class TestNifLoader : MonoBehaviour {
         {
             DBInst.inst.GetHashCode();
 
-            mount = AnimatedModelLoader.loadNIFFromFile(@"L:\Projects\riftools\RiftTools\build\jar\output\9b5ef705-c4256efcbd38f8a8-B.file", "mount_disc.kfm", "mount_disc_mount.kfb");
+//            mount = AnimatedModelLoader.loadNIF(1066487579);
+            mount = AnimatedModelLoader.loadNIF(1823429099);
             AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
-            animNif.animSpeed = 0.001f;
+            animNif.animSpeed = 0.005f;
             animNif.setSkeletonRoot(mount);
-            animNif.setActiveAnimation("mount_disc_idle");
+            animNif.setActiveAnimation("mount_haunted_carriage_idle");
             mount.transform.localRotation = Quaternion.identity;
             mount.transform.localPosition = new Vector3(0, -5.91f, 7.66f);
 
             GameObject character = new GameObject();
 
             Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
-            mainPaperdoll.animOverride = "mount_disc_dance_2";
+
+            mainPaperdoll.animOverride = "mount_haunted_carriage_idle";
             mainPaperdoll.kfbOverride = "human_female_mount.kfb";
             mainPaperdoll.setGender("female");
             mainPaperdoll.setRace("human");
             //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.001f;
-            mainPaperdoll.animSpeed = 0.001f;
+            mainPaperdoll.animSpeed = 0.005f;
             character.transform.parent = mount.transform;
             character.transform.localPosition = new Vector3(0, 0, 0);
             character.transform.localRotation = Quaternion.identity;
             mainPaperdoll.transform.localRotation = Quaternion.identity;
 
+            if (false)
+            {
+                mainPaperdoll.FixedUpdate();
+                List<KFAnimation> anims = mainPaperdoll.getAnimations();
+                Debug.Log("===> anims:" + anims.Count + " ==>" + mainPaperdoll.getState());
+                foreach (KFAnimation kf in anims)
+                {
+                    string s = (kf.sequenceFilename + ":" + kf.sequencename);
+                    if (s.Contains("carriage"))
+                        Debug.Log(s);
+                }
+            }
+
             //mainPaperdoll.updateRaceGender();
-            //mainPaperdoll.loadAppearenceSet(623293935);
+
+            //mainPaperdoll.setAppearenceSet(623293935);
+            mainPaperdoll.setAppearenceSet(1044454339);
         }
-	}
+    }
 }
