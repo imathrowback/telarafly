@@ -24,6 +24,28 @@ namespace Assets
 
     public class AnimatedModelLoader
     {
+        static public GameObject loadNIF(string modelName)
+        {
+            IEnumerable<entry> entries = DBInst.inst.getEntriesForID(7305);
+            foreach(entry entry in entries)
+            {
+                try
+                {
+                    long key = entry.key;
+                    Model model = load7305(AssetDatabaseInst.DB, key);
+                    if (model.nifFile.Equals(modelName))
+                    {
+                        Debug.Log("search [" + modelName + "] found key:" + key);
+                        return loadNIF(key);
+                    }
+                }catch(Exception ex)
+                {
+
+                }
+            }
+            return null;
+        }
+
         static public GameObject loadNIF(long key)
         {
             Model model = load7305(AssetDatabaseInst.DB, key);
