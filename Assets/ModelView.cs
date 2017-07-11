@@ -58,8 +58,48 @@ public class ModelView : MonoBehaviour
         DBInst.loadOrCallback((d) => db = d);
         DBInst.progress += (m) => progress = m;
     }
-    public void mainMenuButton()
+
+    public void UseCurrentMount()
     {
+        string newNifP = nIFModelDropdown.options[nIFModelDropdown.value].text;
+        string newNif = newNifP;
+        if (newNifP.Contains(":"))
+            newNif = newNifP.Split(':')[1];
+        Model animNifModel = nifDictionary[newNif];
+        string anim = this.animationDropdown.options[this.animationDropdown.value].text;
+        if (animNifModel.nifFile.Contains("mount"))
+        {
+            Dictionary<string, string> settings = DotNet.Config.AppSettings.Retrieve("telarafly.cfg");
+            settings["MOUNT_KEY"] = "" + animNifModel.key;
+            settings["MOUNT_ANIM"] = anim;
+            DotNet.Config.AppSettings.saveFrom(settings, "telarafly.cfg");
+        }
+    }
+    bool mountsOnly = false;
+
+    public void toggleShowMountsOnly(bool v)
+    {
+        Debug.Log("v:" + v);
+        mountsOnly = v;
+        this.AFdropdown.gameObject.SetActive(v);
+        this.GLdropdown.gameObject.SetActive(v);
+        this.MRdropdown.gameObject.SetActive(v);
+        this.SZdropdown.gameObject.SetActive(v);
+        this.SZZdropdown.gameObject.SetActive(v);
+        this.SZZZdropdown.gameObject.SetActive(v);
+
+        if (!v)
+        {
+            IEnumerable<entry> entries = db.getEntriesForID(7305);
+            parse7305(entries);
+            changeNif("crucia.nif");
+            animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
+        }
+        else
+        {
+            IEnumerable<entry> entries = db.getEntriesForID(7305);
+            parse7305(entries);
+        }
 
     }
 
@@ -72,7 +112,7 @@ public class ModelView : MonoBehaviour
         this.MRdropdown.ClearOptions();
         this.SZdropdown.ClearOptions();
         this.SZZdropdown.ClearOptions();
-            this.SZZZdropdown.ClearOptions();
+        this.SZZZdropdown.ClearOptions();
         List<string> nIFModelEntries = new List<string>();
         List<string> AFdropdownE = new List<string>();
         List<string> GLdropdownE = new List<string>();
@@ -86,6 +126,8 @@ public class ModelView : MonoBehaviour
         //nIFModelEntries.Add("human_male_ref.nif");
         //nifDictionary["human_male_ref.nif"] = new AnimatedNif(adb, "human_male_ref.nif", "human_male.kfm", "human_male.kfb");
 
+        nIFModelEntries.Clear();
+        nifDictionary.Clear();
 
         List<string> nifsToBucket = new List<string>();
         foreach (entry e in lentries)
@@ -96,7 +138,8 @@ public class ModelView : MonoBehaviour
                 if (model != null)
                 {
                     string nifFile = model.nifFile;
-
+                    if (!model.mount && mountsOnly)
+                        continue;
                     if (model.animated)
                     {
                         if (!nifDictionary.ContainsKey(nifFile))

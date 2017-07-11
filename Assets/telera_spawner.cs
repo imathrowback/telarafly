@@ -339,11 +339,13 @@ public class telera_spawner : MonoBehaviour
         {
             if (mount == null)
             {
-                mount = AnimatedModelLoader.loadNIF(1445235995); // dragon mount
+                int key = ProgramSettings.get("MOUNT_KEY", 1445235995); // dragon mount default
+                string anim = ProgramSettings.get("MOUNT_ANIM", "mount_dragon_jump_cycle");
+                mount = AnimatedModelLoader.loadNIF(key); 
                 AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
                 animNif.animSpeed = 0.02f;
                 animNif.setSkeletonRoot(mount);
-                animNif.setActiveAnimation("mount_dragon_jump_cycle");
+                animNif.setActiveAnimation(anim);
                 //mount.transform.parent = mcamera.transform;
 
                 mount.transform.position = this.mcamera.transform.position;
@@ -353,7 +355,7 @@ public class telera_spawner : MonoBehaviour
                 GameObject character = new GameObject();
 
                 Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
-                mainPaperdoll.animOverride = "mount_dragon_jump_cycle";
+                mainPaperdoll.animOverride = anim;
                 mainPaperdoll.kfbOverride = "human_female_mount.kfb";
                 mainPaperdoll.setGender("female");
                 mainPaperdoll.setRace("human");

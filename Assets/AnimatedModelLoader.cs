@@ -15,10 +15,11 @@ namespace Assets
         public string nifFile;
         public string kfmFile;
         public string kfbFile;
-
+        public long key;
         public bool animated = false;
 
         public string displayname;
+        public bool mount = false;
     }
 
 
@@ -93,14 +94,17 @@ namespace Assets
                     {
                         string displayName = nifFile;
                         // special handling for mounts as we want them grouped together
-                        if (postfix.Length > 0 && postfix.Contains("mount"))
-                            displayName = postfix.Replace("_", "") + ":" + nifFile;
-
                         model = new Model();
+                        if (postfix.Length > 0 && postfix.Contains("mount"))
+                        {
+                            displayName = postfix.Replace("_", "") + ":" + nifFile;
+                            model.mount = true;
+                        }
                         model.animated = true;
                         model.nifFile = nifFile;
                         model.kfmFile = kfmFile;
                         model.kfbFile = kfbFile;
+                        model.key = key;
                         model.displayname = displayName;
 
 
@@ -114,6 +118,7 @@ namespace Assets
                     model.nifFile = nifFile;
                     model.kfmFile = null;
                     model.kfbFile = null;
+                    model.key = key;
                     model.displayname = nifFile; ;
                 }
             }

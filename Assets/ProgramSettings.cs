@@ -29,6 +29,12 @@ namespace Assets
             return getInstance().properties.get(key);
         }
 
+        public static string get(string key, string defaultVal)
+        {
+
+            return getInstance().properties.get(key, defaultVal);
+        }
+
         public static int get(string key, int defaultVal)
         {
             return int.Parse(getInstance().properties.get(key, "" + defaultVal));
@@ -41,7 +47,7 @@ namespace Assets
 
         static private ProgramSettings getInstance()
         {
-            if (inst == null)
+            //if (inst == null)
                 inst = new ProgramSettings();
             return inst;
         }
