@@ -1,4 +1,5 @@
-﻿using Assets.DatParser;
+﻿using Assets.Database;
+using Assets.DatParser;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -38,6 +39,11 @@ namespace Assets.Database
             return data[datasetid].Values;
         }
 
+        public CObject getObject(long datasetid, long key)
+        {
+            entry e = getEntry(datasetid, key);
+            return Parser.processStreamObject(new MemoryStream(e.decompressedData));
+        }
         public entry getEntry(long datasetid, long key)
         {
             Dictionary<long, entry> ds = data[datasetid];
@@ -70,4 +76,13 @@ namespace Assets.Database
             get { return getData(id, key); }
         }
     }
+
+    static class EntryExtensions
+    {
+        static public CObject getObject(this entry e)
+        {
+            return Parser.processStreamObject(new MemoryStream(e.decompressedData));
+        }
+    }
+
 }
