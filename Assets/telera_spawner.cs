@@ -335,33 +335,42 @@ public class telera_spawner : MonoBehaviour
         if (tpuc != null && tpuc.isRotating)
             return;
 
-        if (Input.GetKeyDown(KeyCode.F) && mount == null)
+        if (Input.GetKeyDown(KeyCode.F) )
         {
-            mount = AnimatedModelLoader.loadNIF(1445235995);
-            AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
-            animNif.animSpeed = 0.02f;
-            animNif.setSkeletonRoot(mount);
-            animNif.setActiveAnimation("mount_dragon_jump_cycle");
-            mount.transform.parent = mcamera.transform;
-            mount.transform.localRotation = Quaternion.identity;
-            mount.transform.localPosition = new Vector3(0, -5.91f, 7.66f);
-            // human_female_mount_dragon_jump_cycle.kf
+            if (mount == null)
+            {
+                mount = AnimatedModelLoader.loadNIF(1445235995);
+                AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
+                animNif.animSpeed = 0.02f;
+                animNif.setSkeletonRoot(mount);
+                animNif.setActiveAnimation("mount_dragon_jump_cycle");
+                mount.transform.parent = mcamera.transform;
+                mount.transform.localRotation = Quaternion.identity;
+                mount.transform.localPosition = new Vector3(0, -5.91f, 7.66f);
+                // human_female_mount_dragon_jump_cycle.kf
 
-            GameObject character = new GameObject();
-            
-            Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
-            mainPaperdoll.animOverride = "mount_dragon_jump_cycle";
-            mainPaperdoll.kfbOverride = "human_female_mount.kfb";
-            mainPaperdoll.setGender("female");
-            mainPaperdoll.setRace("human");
-            //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.02f;
-            mainPaperdoll.animSpeed = 0.02f;
-            character.transform.parent = mount.transform;
-            character.transform.localPosition = new Vector3(0, 0, 0);
-            character.transform.localRotation = Quaternion.identity;
-            mainPaperdoll.transform.localRotation = Quaternion.identity;
+                GameObject character = new GameObject();
 
-            mainPaperdoll.setAppearenceSet(-57952362);
+                Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
+                mainPaperdoll.animOverride = "mount_dragon_jump_cycle";
+                mainPaperdoll.kfbOverride = "human_female_mount.kfb";
+                mainPaperdoll.setGender("female");
+                mainPaperdoll.setRace("human");
+                //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.02f;
+                mainPaperdoll.animSpeed = 0.02f;
+                character.transform.parent = mount.transform;
+                character.transform.localPosition = new Vector3(0, 0, 0);
+                character.transform.localRotation = Quaternion.identity;
+                mainPaperdoll.transform.localRotation = Quaternion.identity;
+
+                mainPaperdoll.setAppearenceSet(-57952362);
+            }
+            else
+            {
+                DestroyChildren(mount.transform);
+                GameObject.Destroy(mount);
+                mount = null;
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.P) && GameWorld.useColliders && charC != null)
@@ -568,4 +577,14 @@ public class telera_spawner : MonoBehaviour
 
 
     }
+
+    public static void DestroyChildren(Transform root)
+    {
+        int childCount = root.childCount;
+        for (int i = 0; i < childCount; i++)
+        {
+            GameObject.Destroy(root.GetChild(0).gameObject);
+        }
+    }
+
 }
