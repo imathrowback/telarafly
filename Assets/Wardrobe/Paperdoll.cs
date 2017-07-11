@@ -17,7 +17,7 @@ namespace Assets.Wardrobe
 
     public class Paperdoll : MonoBehaviour
     {
-        enum ClassState
+        public enum ClassState
         {
             DB_LOADING,
             IDLE,
@@ -35,6 +35,29 @@ namespace Assets.Wardrobe
         Dictionary<GearSlot, long> gearSlotKeys = new Dictionary<GearSlot, long>();
         long appearenceSet = long.MinValue;
 
+        public Paperdoll() : base()
+        {
+            DBInst.loadOrCallback((d) => state = ClassState.UPDATE);
+        }
+        /// <summary>
+        /// Get animations, will block if not ready
+        /// </summary>
+        /// <returns></returns>
+        public List<KFAnimation> getAnimations()
+        {
+            checkState();
+            //while (state != ClassState.IDLE) ;
+            if (animationNif != null)
+                return animationNif.getAnimations();
+            return new List<KFAnimation>();
+        }
+
+        private void checkState()
+        {
+            if (DBInst.loaded && state == ClassState.DB_LOADING)
+                Debug.LogError("db is loaded but we still think it's not?");
+        }
+        
         public string getGenderString()
         {
             return genderString;
@@ -45,7 +68,7 @@ namespace Assets.Wardrobe
         }
         void Start()
         {
-            DBInst.loadOrCallback((d) => state = ClassState.UPDATE);
+            
         }
 
         string getBaseModel()
@@ -128,7 +151,7 @@ namespace Assets.Wardrobe
 
         public void setGearSlotKey(GearSlot slot, long key)
         {
-            Debug.Log("set gear slot[" + slot + "] to  key " + key);
+            //Debug.Log("set gear slot[" + slot + "] to  key " + key);
             gearSlotKeys[slot] = key;
             if (state == ClassState.IDLE)
                 state = ClassState.UPDATE;
@@ -136,7 +159,7 @@ namespace Assets.Wardrobe
 
         private void updateGearSlotObject(GearSlot slot)
         {
-            Debug.Log("update gear slot [" + slot + "]");
+            //Debug.Log("update gear slot [" + slot + "]");
             if (state != ClassState.UPDATE)
             {
                 Debug.LogError("Cannot update gear slot[" + slot + "] without being update mode");
@@ -144,11 +167,11 @@ namespace Assets.Wardrobe
             }
 
             // destroy any existing gear slot
-            Debug.Log("try destroy update gear slot object");
+            //Debug.Log("try destroy update gear slot object");
             if (gearSlotObjects.ContainsKey(slot))
                 GameObject.Destroy(gearSlotObjects[slot]);
 
-            Debug.Log("try create update gear slot object if key for slot: " + gearSlotKeys.ContainsKey(slot));
+            //Debug.Log("try create update gear slot object if key for slot: " + gearSlotKeys.ContainsKey(slot));
             if (gearSlotKeys.ContainsKey(slot))
             {
                 int race = WardrobeStuff.raceMap[raceString];
@@ -156,7 +179,7 @@ namespace Assets.Wardrobe
                 long key = gearSlotKeys[slot];
                 ClothingItem item = new ClothingItem(DBInst.inst, key);
                 string nif = item.nifRef.getNif(race, sex);
-                Debug.Log("load nif[" + nif + "] for slot:" + slot);
+                //Debug.Log("load nif[" + nif + "] for slot:" + slot);
                 gearSlotObjects[slot] = loadNIFForSlot(slot, refModel, costumeParts, Path.GetFileName(nif), "");
             }
         }
@@ -279,6 +302,11 @@ namespace Assets.Wardrobe
         public void Update()
         {
            
+        }
+
+        public ClassState getState()
+        {
+            return state;
         }
 
         public void FixedUpdate()
