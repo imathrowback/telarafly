@@ -64,10 +64,13 @@ namespace Assets.Database
          */ 
         public static void loadOrCallback(LoadedCallback loadCallback)
         {
-            if (db != null)
-                loadCallback.Invoke(db);
-            else
-                isloadedCallback += loadCallback;
+            lock (isloadedCallback)
+            {
+                if (db != null)
+                    loadCallback.Invoke(db);
+                else
+                    isloadedCallback += loadCallback;
+            }
         }
 
         static DBInst()
@@ -78,58 +81,77 @@ namespace Assets.Database
         
         private static void loadDatabase_()
         {
-            lock (lockObj)
+            try
             {
-                AssetDatabase adb = AssetDatabaseInst.DB;
-                AssetEntry ae = adb.getEntryForFileName("telara.db");
-                string entryHash = Util.bytesToHexString(ae.hash);
-
-                string namePath = System.IO.Path.GetTempPath() + "telaraflydb";
-                string compressedSQLDB = namePath + ".db3";
-                string dbHashname = namePath + ".hash";
-
-                AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+                lock (lockObj)
                 {
-                    if (origc != null)
-                        origc.Close();
-                };
+                    Debug.Log("get asset database inst");
+                    AssetDatabase adb = AssetDatabaseInst.DB;
+                    Debug.Log("get telara.db");
+                    AssetEntry ae = adb.getEntryForFileName("telara.db");
+                    Debug.Log("done get telara.db");
 
-                string foundHash = "";
-                if (File.Exists(dbHashname) && File.Exists(compressedSQLDB))
-                {
-                    string[] lines = File.ReadAllLines(dbHashname);
-                    if (lines.Length == 1)
-                        foundHash = lines[0];
+                    string entryHash = Util.bytesToHexString(ae.hash);
+
+                    string namePath = System.IO.Path.GetTempPath() + "telaraflydb";
+                    string compressedSQLDB = namePath + ".db3";
+                    string dbHashname = namePath + ".hash";
+
+                    AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+                    {
+                        if (origc != null)
+                            origc.Close();
+                    };
+
+                    string foundHash = "";
+                    Debug.Log("check telaradb hash");
+                    if (File.Exists(dbHashname) && File.Exists(compressedSQLDB))
+                    {
+                        string[] lines = File.ReadAllLines(dbHashname);
+                        if (lines.Length == 1)
+                            foundHash = lines[0];
+                    }
+
+                    DB db;
+                    if (!foundHash.Equals(entryHash))
+                    {
+                        db = readDB(adb.extract(ae), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+                        File.WriteAllLines(dbHashname, new String[] { entryHash });
+                    }
+                    else
+                    {
+                        db = new DB();
+                        processSQL(db, compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+                    }
+
+                    progress.Invoke("[Phase 1 of 2] Reading language database");
+                    langdb = new DBLang(adb, "english", (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+
+                    DBInst.db = db;
+                    if (db != null)
+                    {
+                        loaded = true;
+                        lock (isloadedCallback)
+                        {
+                            isloadedCallback.Invoke(db);
+                        }
+                        Debug.Log("db and lang done");
+                        progress.Invoke("");
+                    }
+
                 }
-
-                DB db;
-                if (!foundHash.Equals(entryHash))
-                {
-                    db = readDB(adb.extract(ae), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
-                    File.WriteAllLines(dbHashname, new String[] { entryHash });
-                }
-                else
-                {
-                    db = new DB();
-                    processSQL(db, compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
-                }
-
-                progress.Invoke("[Phase 1 of 2] Reading language database");
-                langdb = new DBLang(adb, "english", (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
-
-                DBInst.db = db;
-                if (db != null)
-                {
-                    loaded = true;
-                    isloadedCallback.Invoke(db);
-                    Debug.Log("db and lang done");
-                    progress.Invoke("");
-                }
-
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+                progress.Invoke("Error while loading:" + ex);
+                throw ex;
             }
         }
         private static DB readDB(byte[] telaraDBData, string outSQLDb, Action<String> progress)
         {
+            Debug.Log("get new DB");
+
             DB db = new DB();
 
             try
