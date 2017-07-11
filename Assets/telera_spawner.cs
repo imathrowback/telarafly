@@ -339,14 +339,15 @@ public class telera_spawner : MonoBehaviour
         {
             if (mount == null)
             {
-                mount = AnimatedModelLoader.loadNIF(1445235995);
+                mount = AnimatedModelLoader.loadNIF(1445235995); // dragon mount
                 AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
                 animNif.animSpeed = 0.02f;
                 animNif.setSkeletonRoot(mount);
                 animNif.setActiveAnimation("mount_dragon_jump_cycle");
-                mount.transform.parent = mcamera.transform;
-                mount.transform.localRotation = Quaternion.identity;
-                mount.transform.localPosition = new Vector3(0, -5.91f, 7.66f);
+                //mount.transform.parent = mcamera.transform;
+
+                mount.transform.position = this.mcamera.transform.position;
+                mount.transform.rotation = this.mcamera.transform.rotation;
                 // human_female_mount_dragon_jump_cycle.kf
 
                 GameObject character = new GameObject();
@@ -364,12 +365,23 @@ public class telera_spawner : MonoBehaviour
                 mainPaperdoll.transform.localRotation = Quaternion.identity;
 
                 mainPaperdoll.setAppearenceSet(-57952362);
+
+                this.mcamera.GetComponent<cam.camera_movement>().enabled = false;
+                mount_movement mm = mount.AddComponent<mount_movement>();
+                mm.source = mount;
+
+                this.mcamera.GetComponent<Mount_Camera>().enabled = true;
+                this.mcamera.GetComponent<Mount_Camera>().target = mount.transform;
+
+
             }
             else
             {
                 DestroyChildren(mount.transform);
                 GameObject.Destroy(mount);
                 mount = null;
+                this.mcamera.GetComponent<cam.camera_movement>().enabled = true;
+                this.mcamera.GetComponent<Mount_Camera>().enabled = false;
             }
         }
 
