@@ -63,12 +63,21 @@ namespace Assets.RiftAssets
 
             if (holders.Count > 1)
             {
-                // we have a 32 and 64 bit one pick the right one
-                AssetFile f_32 = (from f in holders where !f.is64 select f).First();
-                AssetFile f_64 = (from f in holders where f.is64 select f).First();
-                if (is64)
-                    return f_64;
-                return f_32;
+                try
+                {
+                    // we have a 32 and 64 bit one pick the right one
+                    AssetFile f_32 = (from f in holders where !f.is64 select f).First();
+                    AssetFile f_64 = (from f in holders where f.is64 select f).First();
+                    if (is64)
+                        return f_64;
+                    return f_32;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError(ex);
+                    string holdersStr = String.Join(",", holders.Select(x => x.file).ToArray());
+                    Debug.LogError("More than one asset file [" + holdersStr + "] contains id [" + id + "]");
+                }
             }
 
             return holders[0];
@@ -114,7 +123,7 @@ namespace Assets.RiftAssets
                 return manifest.getPAKName(e.pakIndex).Contains("patch") && entries.Any(x => x != e && x.idStr.Equals(e.idStr));
             });
 
-            //Debug.Log("found " + entries.Count() + " entries in manifest that match");
+            // Debug.Log("found " + entries.Count() + " entries in manifest that match");
             string id = "";
             if (entries.Count() == 1)
             {
@@ -163,10 +172,12 @@ namespace Assets.RiftAssets
                 Debug.Log("settled on entry:" + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
 
             }
+            //Debug.Log("find asset file for id:" + id);
             AssetFile assetFile = findAssetFileForID(id);
+            //Debug.Log("result:" + assetFile);
             if (assetFile == null)
                 throw new Exception(
-                        "Filename hash found in manifest but unable to locate ID[" + id + "] in assets: '" + filename
+                        "Filename found in manifest but unable to locate ID[" + id + "] in assets: '" + filename
                                 + "'");
             //Debug.Log("found with id:" + id);
             return assetFile.getEntry(id);
