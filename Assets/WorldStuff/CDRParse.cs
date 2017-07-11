@@ -178,14 +178,11 @@ namespace Assets.WorldStuff
                                             // does it have a light source?
                                             if (_602.hasMember(3))
                                             {
-                                                CObject lary = _602.getMember(3);
-                                                //Debug.Log("found a light! process ary:" + lary);
-                                                float r = (float)CFloatConvertor.inst.convert(lary.get(0));
-                                                float g = (float)CFloatConvertor.inst.convert(lary.get(1));
-                                                float b = (float)CFloatConvertor.inst.convert(lary.get(2));
-                                                float range = 0;
-                                                if (_602.hasMember(4))
-                                                    range = (float)CFloatConvertor.inst.convert(_602.getMember(4));
+                                                Vector3 color = _602.getVector3Member(3);
+                                                float r = color.x;
+                                                float g = color.y;
+                                                float b = color.z;
+                                                float range = _602.getFloatMember(4, 2.0f);
                                                 addFunc.Invoke(new Assets.LightPosition(range, r, g, b, min, qut, max, scale));
                                             }
                                         }
