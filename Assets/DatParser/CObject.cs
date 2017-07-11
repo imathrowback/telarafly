@@ -88,6 +88,8 @@ namespace Assets.DatParser
         internal string getStringMember(int i)
         {
             CObject member = getMember(i);
+            if (member == null)
+                return "";
             object o = member.convert();
             if (o is string)
                 return (string)o;
