@@ -67,11 +67,12 @@ public class ModelView : MonoBehaviour
             newNif = newNifP.Split(':')[1];
         Model animNifModel = nifDictionary[newNif];
         string anim = this.animationDropdown.options[this.animationDropdown.value].text;
-        if (animNifModel.nifFile.Contains("mount"))
+        if (animNifModel.mount)
         {
             Dictionary<string, string> settings = DotNet.Config.AppSettings.Retrieve("telarafly.cfg");
             settings["MOUNT_KEY"] = "" + animNifModel.key;
             settings["MOUNT_ANIM"] = anim;
+            settings["MOUNT_ANIM_SPEED"] = "" + animSpeed;
             DotNet.Config.AppSettings.saveFrom(settings, "telarafly.cfg");
         }
     }

@@ -341,9 +341,10 @@ public class telera_spawner : MonoBehaviour
             {
                 int key = ProgramSettings.get("MOUNT_KEY", 1445235995); // dragon mount default
                 string anim = ProgramSettings.get("MOUNT_ANIM", "mount_dragon_jump_cycle");
+                float speed = ProgramSettings.get("MOUNT_ANIM_SPEED", 0.02f);
                 mount = AnimatedModelLoader.loadNIF(key); 
                 AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
-                animNif.animSpeed = 0.02f;
+                animNif.animSpeed = speed;
                 animNif.setSkeletonRoot(mount);
                 animNif.setActiveAnimation(anim);
                 //mount.transform.parent = mcamera.transform;
@@ -360,7 +361,7 @@ public class telera_spawner : MonoBehaviour
                 mainPaperdoll.setGender("female");
                 mainPaperdoll.setRace("human");
                 //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.02f;
-                mainPaperdoll.animSpeed = 0.02f;
+                mainPaperdoll.animSpeed = speed;
                 character.transform.parent = mount.transform;
                 character.transform.localPosition = new Vector3(0, 0, 0);
                 character.transform.localRotation = Quaternion.identity;
