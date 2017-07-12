@@ -443,19 +443,20 @@ public class telera_spawner : MonoBehaviour
                 //getWorldCamPos();
             float[] camPosF = new float[] { camPos.x, camPos.z };
             KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.RadialSearch(camPosF, ProgramSettings.get("TERRAIN_VIS", 10)*256, MAX_RUNNING_THREADS);
-            //this.terraintree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
+            KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
             SCG.IEnumerable<NifLoadJob> terjobs = tercandidates.SelectMany(e => e.Value);
             // always have at least two terrain job running 
-            //Debug.Log("terrain found:" + terjobs.Count() + " in tree:" + this.terraintree.Count());
-            if (terjobs.Count() > 0)
+            if (terjobs.Count() > 0 && terrainRunningList.Count <= 2)
             {
-                //terjobs = terjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam)).ThenByDescending(n => Vector3.Distance(n.parent.transform.position, camPos));
                 terjobs = terjobs.OrderBy(n => Vector3.Distance(n.parent.transform.position, camPos));
 
                 SCG.List<NifLoadJob> jobs = terjobs.ToList();
                 startJob(jobs[0], terrainRunningList, tercandidates);
-                if (availThreads() > 0 && terjobs.Count() > 1)
-                    startJob(jobs[1], terrainRunningList, tercandidates);
+                if (candidates.Count() < availThreads())
+                {
+                    if (terjobs.Count() > 1)
+                     startJob(jobs[1], terrainRunningList, tercandidates);
+                }
 
                 foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
                     if (n.Value.Count == 0)
@@ -464,11 +465,8 @@ public class telera_spawner : MonoBehaviour
 
             if (availThreads() > 0)
             {
-                KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
-                    //postree.GetNearestNeighbours(camPosF, MAX_RUNNING_THREADS);
 
                 SCG.IEnumerable<NifLoadJob> otherjobs = candidates.SelectMany(e => e.Value);
-//                otherjobs = otherjobs.OrderBy(n => !IsVisibleFrom(n.parent.transform.position, cam)).ThenByDescending(n => Vector3.Distance(n.parent.transform.position, camPos)); ;
                 otherjobs = otherjobs.OrderBy(n => Vector3.Distance(n.parent.transform.position, camPos));
                 foreach (NifLoadJob job in otherjobs)
                 {
