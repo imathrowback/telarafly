@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Assets;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -26,6 +27,12 @@ public class Mount_Camera : MonoBehaviour
     void Start()
     {
         setAngles();
+
+        Dictionary<string, string> settings = DotNet.Config.AppSettings.Retrieve("telarafly.cfg");
+        if (settings.ContainsKey("MOUNT_ZOFFSET"))
+            zOffset = float.Parse(settings["MOUNT_ZOFFSET"]);
+
+
     }
 
     void setAngles()
@@ -72,6 +79,12 @@ public class Mount_Camera : MonoBehaviour
             if (Input.GetKey(KeyCode.LeftAlt))
             {
                 zOffset += Input.GetAxis("Mouse ScrollWheel") * 5;
+                Dictionary<string, string> settings = DotNet.Config.AppSettings.Retrieve("telarafly.cfg");
+                if (!settings.ContainsKey("MOUNT_ZOFFSET"))
+                    settings.Add("MOUNT_ZOFFSET", "" + zOffset);
+                else
+                    settings["MOUNT_ZOFFSET"] = "" + zOffset;
+                DotNet.Config.AppSettings.saveFrom(settings, "telarafly.cfg");
             }
             else
             {
