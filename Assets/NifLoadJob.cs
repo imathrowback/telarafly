@@ -48,6 +48,7 @@ public class NifLoadJob : ThreadedJob
     NIFFile niffile;
     NIFFile lodfile;
 
+    public Vector3 parentPos { get; internal set; }
 
     public NifLoadJob( string file)
     {

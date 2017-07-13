@@ -92,7 +92,6 @@ namespace Assets.WorldStuff
             processCDR(new MemoryStream(data), str, addFunc, db);
 
         }
-
         static void processCDR(Stream ms, string cdrName, Action<ObjectPosition> addFunc, DB db)
         {
             try

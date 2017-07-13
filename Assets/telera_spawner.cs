@@ -16,7 +16,6 @@ using System;
 public class telera_spawner : MonoBehaviour
 {
     GameObject meshRoot;
-    SCG.List<ObjectPosition> objectPositions;
 //    TreeDictionary<Guid, NifLoadJob> objsToCreateList;
     GameObject charC;
     ThirdPersonUserControl tpuc;
@@ -25,7 +24,8 @@ public class telera_spawner : MonoBehaviour
     //camera_movement camMove;
     System.IO.StreamReader fileStream;
 
-    int MAX_RUNNING_THREADS = 6;
+
+  
     int MAX_NODE_PER_FRAME = 15025;
 
     public void purgeObjects()
@@ -42,40 +42,11 @@ public class telera_spawner : MonoBehaviour
     }
 
 
-    public void addJob(telara_obj parent, string filename)
-    {
-        NifLoadJob job = new NifLoadJob( filename);
-        job.parent = parent;
-        Vector3 pos = parent.transform.position;
-        float[] floatf = new float[] { pos.x, pos.z };
-        SCG.List<NifLoadJob> nList;
-        if (job.filename.Contains("terrain") || job.filename.Contains("ocean"))
-        {
-            if (!this.terraintree.TryFindValueAt(floatf, out nList))
-            {
-                nList = new SCG.List<NifLoadJob>();
-                nList.Add(job);
-                this.terraintree.Add(floatf, nList);
-            }
-            else
-                nList.Add(job);
-        }
-        else
-        {
-            if (!this.postree.TryFindValueAt(floatf, out nList))
-            {
-                nList = new SCG.List<NifLoadJob>();
-                nList.Add(job);
-                this.postree.Add(floatf, nList);
-            }
-            else
-                nList.Add(job);
-        }
-    }
+   
 
     public int ObjJobLoadQueueSize()
     {
-        return  objectRunningList.Count() + terrainRunningList.Count();
+        return worldLoader.tCount();
     }
 
     // Use this for initialization
@@ -88,7 +59,6 @@ public class telera_spawner : MonoBehaviour
         this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.9f);
         lodslider.value = this.LODCutoff;
 
-        objectPositions = new SCG.List<ObjectPosition>();
 
         charC = GameObject.Find("ThirdPersonController");
         if (charC != null)
@@ -101,7 +71,6 @@ public class telera_spawner : MonoBehaviour
         mcamera = GameObject.Find("Main Camera");
         meshRoot = GameObject.Find("NIFRotationRoot");
 
-        MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 10);
         MAX_NODE_PER_FRAME = ProgramSettings.get("MAX_NODE_PER_FRAME", 15000);
 
         setCameraLoc(GameWorld.initialSpawn);
@@ -122,9 +91,10 @@ public class telera_spawner : MonoBehaviour
         dropdown.gameObject.SetActive(true);
         dropdown.GetComponent<FavDropDown>().doOptions();
         dropdown.RefreshShownValue();
+
+
     }
 
-    HashSet<long> processedTiles = new HashSet<long>();
 
     public void setCameraLoc(WorldSpawn spawn, bool useChar = false)
     {
@@ -226,30 +196,13 @@ public class telera_spawner : MonoBehaviour
         go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
         go.transform.localPosition = op.min;
         go.transform.localRotation = op.qut;
-
+        
         
         triggerLoad(tobj);
         return go;
     }
 
-    private void addLoading(NifLoadJob job)
-    {
-        // Add a loading capsule to the location of the job 
-        //if (job.parent.gameObject.transform.childCount == 0)
-        {
-            telara_obj obj = job.parent;
-            GameObject loading = (GameObject)GameObject.Instantiate(Resources.Load("LoadingCapsule"));
-            loading.name = "Loading";
-            SphereCollider sp = obj.GetComponent<SphereCollider>();
-            if (sp != null)
-                loading.transform.localScale = Vector3.one*3;
-            loading.transform.parent = obj.gameObject.transform;
-            loading.transform.localPosition = Vector3.zero;
-            loading.transform.localRotation = Quaternion.identity;
-            //applyLOD(loading);
-        }
-
-    }
+    WorldLoadingThread worldLoader = new WorldLoadingThread();
 
     private Dropdown dropdown;
     void triggerLoad(telara_obj obj)
@@ -259,7 +212,7 @@ public class telera_spawner : MonoBehaviour
             if (!(obj.doLoad || obj.loaded))
             {
                 obj.doLoad = true;
-                addJob(obj, obj.file);
+                worldLoader.addJob(obj, obj.file);
             }
         }
     }
@@ -272,81 +225,10 @@ public class telera_spawner : MonoBehaviour
         return meshRoot.transform.InverseTransformPoint(mcamera.transform.position);
     }
 
-
-    KdTree.KdTree<float, SCG.List<NifLoadJob>> postree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
-    KdTree.KdTree<float, SCG.List<NifLoadJob>> terraintree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
-
-    public bool IsVisibleFrom(Vector3 v, Camera camera)
+    void OnDestroy()
     {
-        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(camera);
-        return GeometryUtility.TestPlanesAABB(planes, new Bounds(v, Vector3.one));
+        worldLoader.doShutdown();
     }
-
-
-    private static long Combine(int x, int y)
-    {
-        return (long)(((ulong)x) | ((ulong)y) << 32);
-    }
-
-    TreeDictionary<Guid, NifLoadJob> terrainRunningList;
-    TreeDictionary<Guid, NifLoadJob> objectRunningList;
-
-    int availThreads()
-    {
-        return MAX_RUNNING_THREADS - (terrainRunningList.Count + objectRunningList.Count);
-    }
-
-    SCG.List<KeyValuePair<int, int>> cdrJobQueue = new SCG.List<KeyValuePair<int, int>>();
-    int MAX_TERRAIN_THREADS = 2;
-    volatile int runningTerrainThreads = 0;
-    
-    void processCDRQueue()
-    {
-
-        int tileX = Mathf.FloorToInt(getWorldCamPos().x / 256.0f);
-        int tileY = Mathf.FloorToInt(getWorldCamPos().z / 256.0f);
-        cdrJobQueue = cdrJobQueue.OrderBy(x => Vector2.Distance(new Vector2(tileX, tileY), new Vector2(x.Key, x.Value))).ToList();
-        while (runningTerrainThreads < MAX_TERRAIN_THREADS && cdrJobQueue.Count() > 0)
-        {
-            KeyValuePair<int, int> job = cdrJobQueue[0];
-            cdrJobQueue.RemoveAt(0);
-            int tx = job.Key;
-            int ty = job.Value;
-            runningTerrainThreads++;
-            System.Threading.Thread m_Thread = new System.Threading.Thread(() =>
-            {
-                try
-                {
-                    SCG.List<ObjectPosition> objs = new SCG.List<ObjectPosition>();
-                    CDRParse.doWorldTile(AssetDatabaseInst.DB, DBInst.inst, GameWorld.worldName, tx * 256, ty * 256, (p) =>
-                    {
-                        objs.Add(p);
-                    });
-                    lock (objectPositions)
-                    {
-                        objectPositions.AddRange(objs);
-                    }
-                }
-                finally
-                {
-                    runningTerrainThreads--;
-                }
-            });
-            m_Thread.Priority = (System.Threading.ThreadPriority)ProgramSettings.get("MAP_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal);
-            m_Thread.Start();
-        }
-    }
-    void submitCDRJob(int tx, int ty)
-    {
-        long key = Combine(tx, ty);
-        if (!processedTiles.Contains(key))
-        {
-            cdrJobQueue.Add(new KeyValuePair<int, int>(tx, ty));
-            processedTiles.Add(key);
-        }
-
-    }
-
     // Update is called once per frame
     void Update()
     {
@@ -354,182 +236,37 @@ public class telera_spawner : MonoBehaviour
             return;
 
         if (Input.GetKeyDown(KeyCode.F) )
-        {
-            if (mount == null)
-            {
-                int key = ProgramSettings.get("MOUNT_KEY", 1445235995); // dragon mount default
-                string anim = ProgramSettings.get("MOUNT_ANIM", "mount_dragon_jump_cycle");
-                float speed = ProgramSettings.get("MOUNT_ANIM_SPEED", 0.02f);
-                mount = AnimatedModelLoader.loadNIF(key); 
-                AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
-                animNif.animSpeed = speed;
-                animNif.setSkeletonRoot(mount);
-                animNif.setActiveAnimation(anim);
-                //mount.transform.parent = mcamera.transform;
-
-                mount.transform.position = this.mcamera.transform.position;
-                mount.transform.rotation = this.mcamera.transform.rotation;
-                // human_female_mount_dragon_jump_cycle.kf
-
-                GameObject character = new GameObject();
-
-                Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
-                mainPaperdoll.animOverride = anim;
-                mainPaperdoll.kfbOverride = "human_female_mount.kfb";
-                mainPaperdoll.setGender("female");
-                mainPaperdoll.setRace("human");
-                //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.02f;
-                mainPaperdoll.animSpeed = speed;
-                character.transform.parent = mount.transform;
-                character.transform.localPosition = new Vector3(0, 0, 0);
-                character.transform.localRotation = Quaternion.identity;
-                mainPaperdoll.transform.localRotation = Quaternion.identity;
-
-                mainPaperdoll.setAppearenceSet(-57952362);
-
-                this.mcamera.GetComponent<cam.camera_movement>().enabled = false;
-                mount_movement mm = mount.AddComponent<mount_movement>();
-                mm.source = mount;
-
-                this.mcamera.GetComponent<Mount_Camera>().enabled = true;
-                this.mcamera.GetComponent<Mount_Camera>().target = mount.transform;
-
-
-            }
-            else
-            {
-                DestroyChildren(mount.transform);
-                GameObject.Destroy(mount);
-                mount = null;
-                this.mcamera.GetComponent<cam.camera_movement>().enabled = true;
-                this.mcamera.GetComponent<Mount_Camera>().enabled = false;
-            }
-        }
+            handleMount();
 
         if (Input.GetKeyDown(KeyCode.P) && GameWorld.useColliders && charC != null)
         {
             setCameraLoc(GameWorld.initialSpawn, true);
         }
-       
 
-        /**
-         * Load the world tiles around the camera and their objects 
-         */
-        int tileX = Mathf.FloorToInt(getWorldCamPos().x / 256.0f) ;
-        int tileY = Mathf.FloorToInt(getWorldCamPos().z / 256.0f) ;
-        int[][] v = {
-            new int[]{ -1, 1 },  new int[]{ 0, 1 },   new int[]{ 1, 1 },
-            new int[]{ -1, 0 },  new int[]{ 0, 0 },   new int[]{ 1, 0 },
-            new int[]{ -1, -1 },  new int[]{ 0, -1 },   new int[]{ 1, -1 },
-        };
-        int range = ProgramSettings.get("TERRAIN_VIS", 10);
-        submitCDRJob(tileX, tileY);
-        for (int txx = tileX - range; txx <= tileX + range; txx++)
-            for (int txy = tileY - range; txy <= tileY + range; txy++)
-                submitCDRJob(txx, txy);
-        processCDRQueue();
-        lock (objectPositions)
-        {
-            DateTime end = DateTime.Now.AddMilliseconds(20);
-            while (objectPositions.Count() > 0) 
-            {
-                ObjectPosition p = objectPositions[0];
-                objectPositions.RemoveAt(0);
-                GameObject go = process(p);
-                // don't spend more than a certain amount of milliseconds in here
-                //if (DateTime.Now < end)
-                 //   break;
-            }
-        }
-
-        if (objectRunningList == null)
-        {
-            objectRunningList = new TreeDictionary<Guid, NifLoadJob>();
-            terrainRunningList = new TreeDictionary<Guid, NifLoadJob>();
-        }
-
-        if (availThreads() != MAX_RUNNING_THREADS)
-        {
-            processRunningList(objectRunningList);
-            processRunningList(terrainRunningList);
-        }
-
-        //Debug.Log("avail threads:" + availThreads());
-        if (availThreads() > 0)
-        {
-            Camera cam = mcamera.GetComponent<Camera>();
-            Vector3 camPos = cam.transform.position;
-                //getWorldCamPos();
-            float[] camPosF = new float[] { camPos.x, camPos.z };
-            KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.RadialSearch(camPosF, ProgramSettings.get("TERRAIN_VIS", 10)*256, MAX_RUNNING_THREADS);
-            KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
-            SCG.IEnumerable<NifLoadJob> terjobs = tercandidates.SelectMany(e => e.Value);
-            // always have at least two terrain job running 
-            if (terjobs.Count() > 0 && terrainRunningList.Count <= 2)
-            {
-                terjobs = terjobs.OrderBy(n => Vector3.Distance(n.parent.transform.position, camPos));
-
-                SCG.List<NifLoadJob> jobs = terjobs.ToList();
-                startJob(jobs[0], terrainRunningList, tercandidates);
-                if (candidates.Count() < availThreads())
-                {
-                    if (terjobs.Count() > 1)
-                     startJob(jobs[1], terrainRunningList, tercandidates);
-                }
-
-                foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
-                    if (n.Value.Count == 0)
-                        terraintree.RemoveAt(n.Point);
-            }
-
-            if (availThreads() > 0)
-            {
-
-                SCG.IEnumerable<NifLoadJob> otherjobs = candidates.SelectMany(e => e.Value);
-                otherjobs = otherjobs.OrderBy(n => Vector3.Distance(n.parent.transform.position, camPos));
-                foreach (NifLoadJob job in otherjobs)
-                {
-                    if (availThreads() > 0)
-                    {
-                        startJob(job, objectRunningList, candidates);
-                    }
-                    else
-                        break;
-                }
-
-                foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
-                    if (n.Value.Count == 0)
-                        postree.RemoveAt(n.Point);
-
-            }
-        }
+        worldLoader.cameraWorldCamPos = mcamera.transform.position;
+        worldLoader.telaraWorldCamPos = getWorldCamPos();
+        worldLoader.processThreadsUnityUpdate(processRunningList, process);
     }
-    void processRunningList(TreeDictionary<Guid, NifLoadJob> runningList)
+
+
+
+    [CallFromUnityUpdate]
+    public void processRunningList(TreeDictionary<Guid, NifLoadJob> runningList)
     {
         foreach (NifLoadJob job in runningList.Values.ToArray())
         {
             if (job.Update())
             {
+                //Debug.Log("finalize load:" + job.filename);
                 finalizeJob(job);
                 runningList.Remove(job.uid);
             }
         }
     }
-    void startJob(NifLoadJob job, TreeDictionary<Guid, NifLoadJob> runningList, KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates)
-    {
-        //Debug.Log("Start job:" + job.filename);
-        job.Start((System.Threading.ThreadPriority)ProgramSettings.get("OBJECT_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal));
-        runningList.Add(job.uid, job);
-        addLoading(job);
 
-        Vector3 pos = job.parent.transform.position;
-        float[] floatf = new float[] { pos.x, pos.z };
 
-        foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
-            n.Value.Remove(job);
-    }
-    
 
+    [CallFromUnityUpdate]
     private bool finalizeJob(NifLoadJob job)
     {
         telara_obj to = job.parent;
@@ -618,4 +355,57 @@ public class telera_spawner : MonoBehaviour
         }
     }
 
+    void handleMount()
+    {
+        if (mount == null)
+        {
+            int key = ProgramSettings.get("MOUNT_KEY", 1445235995); // dragon mount default
+            string anim = ProgramSettings.get("MOUNT_ANIM", "mount_dragon_jump_cycle");
+            float speed = ProgramSettings.get("MOUNT_ANIM_SPEED", 0.02f);
+            mount = AnimatedModelLoader.loadNIF(key);
+            AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
+            animNif.animSpeed = speed;
+            animNif.setSkeletonRoot(mount);
+            animNif.setActiveAnimation(anim);
+            //mount.transform.parent = mcamera.transform;
+
+            mount.transform.position = this.mcamera.transform.position;
+            mount.transform.rotation = this.mcamera.transform.rotation;
+            // human_female_mount_dragon_jump_cycle.kf
+
+            GameObject character = new GameObject();
+
+            Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
+            mainPaperdoll.animOverride = anim;
+            mainPaperdoll.kfbOverride = "human_female_mount.kfb";
+            mainPaperdoll.setGender("female");
+            mainPaperdoll.setRace("human");
+            //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.02f;
+            mainPaperdoll.animSpeed = speed;
+            character.transform.parent = mount.transform;
+            character.transform.localPosition = new Vector3(0, 0, 0);
+            character.transform.localRotation = Quaternion.identity;
+            mainPaperdoll.transform.localRotation = Quaternion.identity;
+
+            mainPaperdoll.setAppearenceSet(-57952362);
+
+            this.mcamera.GetComponent<cam.camera_movement>().enabled = false;
+            mount_movement mm = mount.AddComponent<mount_movement>();
+            mm.source = mount;
+
+            this.mcamera.GetComponent<Mount_Camera>().enabled = true;
+            this.mcamera.GetComponent<Mount_Camera>().target = mount.transform;
+
+
+        }
+        else
+        {
+            DestroyChildren(mount.transform);
+            GameObject.Destroy(mount);
+            mount = null;
+            this.mcamera.GetComponent<cam.camera_movement>().enabled = true;
+            this.mcamera.GetComponent<Mount_Camera>().enabled = false;
+        }
+
+    }
 }
