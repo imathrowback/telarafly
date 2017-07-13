@@ -202,7 +202,7 @@ public class telera_spawner : MonoBehaviour
         return go;
     }
 
-    WorldLoadingThread worldLoader = new WorldLoadingThread();
+    WorldLoadingThread worldLoader;
 
     private Dropdown dropdown;
     void triggerLoad(telara_obj obj)
@@ -227,7 +227,8 @@ public class telera_spawner : MonoBehaviour
 
     void OnDestroy()
     {
-        worldLoader.doShutdown();
+        if (worldLoader != null)
+            worldLoader.doShutdown();
     }
     // Update is called once per frame
     void Update()
@@ -242,7 +243,11 @@ public class telera_spawner : MonoBehaviour
         {
             setCameraLoc(GameWorld.initialSpawn, true);
         }
-
+        if (worldLoader == null)
+        {
+            worldLoader = new WorldLoadingThread();
+            worldLoader.startThread();
+        }
         worldLoader.cameraWorldCamPos = mcamera.transform.position;
         worldLoader.telaraWorldCamPos = getWorldCamPos();
         worldLoader.processThreadsUnityUpdate(processRunningList, process);

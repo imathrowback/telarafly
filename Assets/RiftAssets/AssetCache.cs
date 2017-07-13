@@ -32,7 +32,7 @@ namespace Assets.RiftAssets
         Timer timer;
         private AssetCache()
         {
-           timer = new Timer(purgeExpired, null, 5000, Timeout.Infinite);
+           timer = new Timer(purgeExpired, null, 25000, Timeout.Infinite);
             stats["miss"] = 0;
             stats["hit"] = 0;
             stats["purged"] = 0;

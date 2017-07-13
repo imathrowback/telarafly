@@ -40,6 +40,17 @@ namespace Assets
         {
             shutdown = true;
             Debug.Log("SHUTDOWN world loader thread");
+
+            DateTime end = DateTime.Now.AddMilliseconds(10000);
+            do
+            {
+                if (DateTime.Now > end)
+                {
+                    worldThread.Abort();
+                    break;
+                }
+
+            }
             while (worldThread.IsAlive) ;
             Debug.Log("world loader thread is now shutdown");
 
@@ -50,8 +61,11 @@ namespace Assets
             terrainRunningList = new TreeDictionary<Guid, NifLoadJob>();
             objectPositions = new SCG.List<ObjectPosition>();
             MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 10);
+        }
+
+        public void startThread()
+        {
             worldThread = new System.Threading.Thread(worldLoadLoop);
-            
             worldThread.Start();
         }
 
@@ -122,7 +136,7 @@ namespace Assets
             Debug.Log("starting world loader thread");
             while (!shutdown)
             {
-
+                // abort this thread if we arn't playing
                 try
                 {
                     worldLoad();
@@ -285,6 +299,9 @@ namespace Assets
                     ObjectPosition p = objectPositions[0];
                     objectPositions.RemoveAt(0);
                     GameObject go = process(p);
+                    // don't stay here too long
+                    if (DateTime.Now > end)
+                        break;
                 }
             }
         }
