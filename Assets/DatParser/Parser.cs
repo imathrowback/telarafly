@@ -207,7 +207,7 @@ namespace Assets.DatParser
 #if (PLOG)
                         log("array size: " + count + " of type[" + codeOfChildren + "]", indent + 1);
 #endif
-                        while (handleCode(obj, dis, codeOfChildren, r.data, indent + 2))
+                        while (handleCode(obj, dis, codeOfChildren, i, indent + 2))
                         {
 #if (PLOG)
                             log("code 11: handled  item[" + i + " of " + count + "], childcode[" + codeOfChildren + "]",
