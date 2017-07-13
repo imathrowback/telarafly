@@ -130,6 +130,8 @@ namespace Assets.WorldStuff
                                     }
                                     else
                                     {
+                                        bool visible = true;
+                                        // this is not a visibility property? _602.getBoolMember(2, true);
 
                                         try
                                         {
@@ -169,7 +171,13 @@ namespace Assets.WorldStuff
 
                                                             string nifFile = Path.GetFileName(nif);
 
-                                                            addFunc.Invoke(new Assets.ObjectPosition(nifFile, min, qut, max, scale));
+                                                            Assets.ObjectPosition op = new Assets.ObjectPosition(nifFile, min, qut, max, scale);
+                                                            op.index = child.index;
+                                                            op.cdrfile = cdrName;
+                                                            op.visible = visible;
+                                                            op.entityname = oname;
+
+                                                            addFunc.Invoke(op);
                                                         }
                                                     }
                                                 }
@@ -183,7 +191,13 @@ namespace Assets.WorldStuff
                                                 float g = color.y;
                                                 float b = color.z;
                                                 float range = _602.getFloatMember(4, 2.0f);
-                                                addFunc.Invoke(new Assets.LightPosition(range, r, g, b, min, qut, max, scale));
+                                                Assets.LightPosition lp = new Assets.LightPosition(range, r, g, b, min, qut, max, scale);
+                                                lp.visible = visible;
+                                                lp.index = child.index;
+                                                lp.cdrfile = cdrName;
+                                                lp.entityname = oname;
+
+                                                addFunc.Invoke(lp);
                                             }
                                         }
                                         catch (Exception ex)

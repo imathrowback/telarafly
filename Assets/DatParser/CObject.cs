@@ -96,6 +96,18 @@ namespace Assets.DatParser
             return (string)CStringConvertor.inst.convert(getMember(i));
         }
 
+        public bool getBoolMember(int i, bool defValue)
+        {
+            if (!hasMember(i))
+                return defValue;
+            CObject member = getMember(i);
+            object o = member.convert();
+            if (o is bool)
+                return (bool)o;
+
+            return (bool)CBooleanConvertor.inst.convert(getMember(i)); 
+
+        }
         public int getIntMember(int i)
         {
             CObject member = getMember(i);
@@ -187,6 +199,6 @@ namespace Assets.DatParser
             }
         }
 
-        
+       
     }
 }

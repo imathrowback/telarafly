@@ -13,9 +13,15 @@ namespace Assets
         public Quaternion qut;
         public Vector3 max;
         public float scale;
+        public string entityname { get; internal set; }
+        public int index { get; internal set; }
+        public string cdrfile { get; internal set; }
+        public bool visible { get; internal set; }
 
         public ObjectPosition(string nifFile, Vector3 min, Quaternion qut, Vector3 max, float scale)
         {
+            this.entityname = "";
+            this.visible = true;
             this.nifFile = nifFile;
             this.min = min;
             this.qut = qut;

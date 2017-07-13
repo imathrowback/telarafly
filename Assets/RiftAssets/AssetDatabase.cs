@@ -74,9 +74,9 @@ namespace Assets.RiftAssets
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError(ex);
+                    Debug.LogWarning(ex);
                     string holdersStr = String.Join(",", holders.Select(x => x.file).ToArray());
-                    Debug.LogError("More than one asset file [" + holdersStr + "] contains id [" + id + "]");
+                    Debug.LogWarning("More than one asset file [" + holdersStr + "] contains id [" + id + "]");
                 }
             }
 

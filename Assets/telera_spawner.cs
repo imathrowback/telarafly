@@ -165,14 +165,36 @@ public class telera_spawner : MonoBehaviour
         GameWorld.initialSpawn = GameWorld.getSpawns()[dropdown.value];
         setCameraLoc(GameWorld.initialSpawn);
     }
-
+    SCG.List<GameObject> invisibleObjects = new SCG.List<GameObject>();
+    public void toggleInvisible(bool v)
+    {
+        /** FindGameObjectsWithTag doesn't work with with "inactive" objects */
+        //foreach(GameObject go in GameObject.FindGameObjectsWithTag("invisible"))
+        //    go.SetActive(v);
+        foreach (GameObject go in invisibleObjects)
+            go.SetActive(v);
+    }
     private GameObject process(ObjectPosition op)
     {
-        GameObject go;
+        GameObject go = new GameObject();
+
+#if UNITY_EDITOR
+        // add some debug stuff to the object if we are in the editor
+        CDRItem cdrItem = go.AddComponent<CDRItem>();
+        cdrItem.cdrFile = op.cdrfile;
+        cdrItem.index = op.index;
+        cdrItem.name = op.entityname;
+#endif
+        if (!op.visible || (op.nifFile != null && op.nifFile.Contains("30meter.nif")))
+        {
+            go.tag = "invisible";
+            go.SetActive(false);
+            invisibleObjects.Add(go);
+        }
+
         if (op is LightPosition)
         {
             LightPosition lp = (LightPosition)op;
-            go = new GameObject("Light");
             go.transform.SetParent(meshRoot.transform);
             go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
             go.transform.localPosition = op.min;
@@ -190,14 +212,10 @@ public class telera_spawner : MonoBehaviour
         Assets.RiftAssets.AssetDatabase.RequestCategory category = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
         if (name.Contains("_terrain_") || name.Contains("ocean_chunk"))
         {
-            go = new GameObject();
             if (name.Contains("_terrain_"))
                 category = Assets.RiftAssets.AssetDatabase.RequestCategory.GEOMETRY;
         }
-        else
-        {
-            go = new GameObject();
-        }
+
         telara_obj tobj = go.AddComponent<telara_obj>();
         tobj.setProps(category, this);
 
