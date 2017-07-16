@@ -23,6 +23,7 @@ public class telera_spawner : MonoBehaviour
     public GameObject mcamera;
     //camera_movement camMove;
     System.IO.StreamReader fileStream;
+    public GameObject telaraObjectPrefab;
 
 
   
@@ -144,16 +145,44 @@ public class telera_spawner : MonoBehaviour
         foreach (GameObject go in invisibleObjects)
             go.SetActive(v);
     }
-    private GameObject process(ObjectPosition op)
-    {
-        GameObject go = new GameObject();
 
-#if UNITY_EDITOR
+    void addCDR(ObjectPosition op, GameObject go)
+    {
         // add some debug stuff to the object if we are in the editor
         CDRItem cdrItem = go.AddComponent<CDRItem>();
         cdrItem.cdrFile = op.cdrfile;
         cdrItem.index = op.index;
         cdrItem.name = op.entityname;
+    }
+    private GameObject process(ObjectPosition op)
+    {
+
+        if (op is LightPosition)
+        {
+            GameObject lgo = new GameObject();
+
+#if UNITY_EDITOR
+            addCDR(op, lgo);
+#endif
+            LightPosition lp = (LightPosition)op;
+            lgo.transform.SetParent(meshRoot.transform);
+            lgo.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
+            lgo.transform.localPosition = op.min;
+            lgo.transform.localRotation = op.qut;
+
+            Light light = lgo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(lp.r, lp.g, lp.b);
+            light.intensity = lp.range;
+            light.shadows = LightShadows.Hard;
+            return lgo;
+        }
+
+        GameObject go = GameObject.Instantiate(telaraObjectPrefab, meshRoot.transform);
+            //new GameObject();
+
+#if UNITY_EDITOR
+        addCDR(op, go);
 #endif
         if (!op.visible || (op.nifFile != null && op.nifFile.Contains("30meter.nif")))
         {
@@ -162,21 +191,6 @@ public class telera_spawner : MonoBehaviour
             invisibleObjects.Add(go);
         }
 
-        if (op is LightPosition)
-        {
-            LightPosition lp = (LightPosition)op;
-            go.transform.SetParent(meshRoot.transform);
-            go.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
-            go.transform.localPosition = op.min;
-            go.transform.localRotation = op.qut;
-
-            Light light = go.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = new Color(lp.r, lp.g, lp.b);
-            light.intensity = lp.range;
-            light.shadows = LightShadows.Hard;
-            return go;
-        }
 
         string name = op.nifFile;
         Assets.RiftAssets.AssetDatabase.RequestCategory category = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
@@ -186,10 +200,10 @@ public class telera_spawner : MonoBehaviour
                 category = Assets.RiftAssets.AssetDatabase.RequestCategory.GEOMETRY;
         }
 
-        telara_obj tobj = go.AddComponent<telara_obj>();
+        telara_obj tobj = go.GetComponent<telara_obj>();
         tobj.setProps(category, this);
 
-        go.transform.SetParent(meshRoot.transform);
+        //go.transform.SetParent(meshRoot.transform);
 
         tobj.setFile(name);
         go.name = name;

@@ -23,7 +23,18 @@ namespace Assets.RiftAssets
         {
             internal string id;
             internal DateTime expires;
-            internal byte[] data;
+            private byte[] data;
+
+            public byte[] getData()
+            {
+                lock (id)
+                {
+                    if (data == null)
+                        data = getFunc.Invoke();
+                    return data;
+                }
+            }
+            internal Func<byte[]> getFunc;
         }
 
         Dictionary<string, int> stats = new Dictionary<string, int>();
@@ -41,17 +52,17 @@ namespace Assets.RiftAssets
         SortedDictionary<string, Entry> entries = new SortedDictionary<string, Entry>();
         public byte[] GetOrAdd(string strID, Func<byte[]> getFunc)
         {
+            Entry entry;
+
             lock (entries)
             {
-                Entry entry;
                 if (!entries.TryGetValue(strID, out entry))
                 {
                     addStat("miss", 1);
                     entry = new RiftAssets.AssetCache.Entry();
                     entry.id = strID;
-                    entry.data = getFunc.Invoke();
+                    entry.getFunc = getFunc;
                     entries.Add(strID, entry);
-                    //Debug.Log("[" + strID + "] cache miss");
                 }
                 else
                 {
@@ -59,8 +70,8 @@ namespace Assets.RiftAssets
                     addStat("hit", 1);
                 }
                 entry.expires = DateTime.Now.AddMinutes(EXPIRE_MINUTES);
-                return entry.data;
             }
+            return entry.getData();
         }
 
         void writeStats()

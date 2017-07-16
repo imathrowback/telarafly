@@ -76,6 +76,32 @@ namespace Assets.Wardrobe
             return string.Format("{0}_{1}", raceString, genderString);
         }
 
+        string getKFBBase()
+        {
+            string postfix = "";
+            if (this.kfbPostfix != null)
+                postfix = "_" + kfbPostfix;
+            return string.Format("{0}_{1}{2}", raceString, genderString, postfix);
+        }
+
+        private string kfbPostfix = "";
+
+        public string getKFBPostfix()
+        {
+            return kfbPostfix;
+        }
+
+        /// <summary>
+        /// eg, "mount"
+        /// </summary>
+        /// <param name="postfix"></param>
+        public void setKFBPostFix(string postfix)
+        {
+            this.kfbPostfix = postfix;
+            if (state == ClassState.IDLE)
+                state = ClassState.UPDATE;
+        }
+
         public string kfbOverride = "";
         public string animOverride = "";
 
@@ -115,7 +141,8 @@ namespace Assets.Wardrobe
             // defines the base model
             string nif = string.Format("{0}_refbare.nif", getBaseModel());
             string kfm = string.Format("{0}.kfm", getBaseModel());
-            string kfb = string.Format("{0}.kfb", getBaseModel());
+            string kfb = string.Format("{0}.kfb", getKFBBase());
+
             if (!"".Equals(kfbOverride))
                 kfb = kfbOverride;
 

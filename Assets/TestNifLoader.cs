@@ -15,16 +15,36 @@ public class TestNifLoader : MonoBehaviour {
     GameObject mount;
     // Use this for initialization
     void Start () {
+        GameObject go = NIFLoader.loadNIF("N_C_ember_isle_volcano_plume_top_01.nif");
     }
 	
 	// Update is called once per frame
 	void Update () {
+        if (true)
+            return; 
 		if (mount == null)
         {
+
+            KFMFile fa = new KFMFile(new FileStream(@"L:\Projects\riftools\RiftTools\build\jar\output\bahmi_female.kfmA", FileMode.Open));
+            KFMFile fb = new KFMFile(new FileStream(@"L:\Projects\riftools\RiftTools\build\jar\output\bahmi_female.kfmB", FileMode.Open));
+
+            StreamWriter sw = new StreamWriter("kfma.txt");
+            foreach (KFAnimation b in fa.kfanimations.OrderBy(x => x.sequencename))
+                sw.WriteLine(b.id + ":" + b.sequencename + ":" + b.sequenceFilename);
+            sw.Close();
+            sw = new StreamWriter("kfmb.txt");
+
+            foreach (KFAnimation b in fb.kfanimations.OrderBy(x => x.sequencename))
+                sw.WriteLine(b.id + ":" + b.sequencename + ":" + b.sequenceFilename);
+            sw.Close();
+
+            if (true)
+                return;
+
             DBInst.inst.GetHashCode();
 
-//            mount = AnimatedModelLoader.loadNIF(1066487579);
-            mount = AnimatedModelLoader.loadNIF(1823429099);
+            mount = AnimatedModelLoader.loadNIF(1066487579);
+//            mount = AnimatedModelLoader.loadNIF(1823429099);
             AnimatedNif animNif = mount.GetComponent<AnimatedNif>();
             animNif.animSpeed = 0.005f;
             animNif.setSkeletonRoot(mount);
@@ -37,9 +57,10 @@ public class TestNifLoader : MonoBehaviour {
             Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
 
             mainPaperdoll.animOverride = "mount_haunted_carriage_idle";
-            mainPaperdoll.kfbOverride = "human_female_mount.kfb";
-            mainPaperdoll.setGender("female");
-            mainPaperdoll.setRace("human");
+            //mainPaperdoll.kfbOverride = "bahmi_male_mount.kfb";
+            mainPaperdoll.setKFBPostFix("mount");
+            mainPaperdoll.setGender("male");
+            mainPaperdoll.setRace("bahmi");
             //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.001f;
             mainPaperdoll.animSpeed = 0.005f;
             character.transform.parent = mount.transform;

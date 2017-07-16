@@ -13,7 +13,7 @@ namespace Assets.RiftAssets
     {
         public string file;
         public bool is64 = false;
-        Dictionary<String, AssetEntry> assets = new Dictionary<String, AssetEntry>();
+        Dictionary<string, AssetEntry> assets = new Dictionary<string, AssetEntry>();
 
 
         public AssetFile( string file) 
@@ -35,18 +35,18 @@ namespace Assets.RiftAssets
             assets[assetEntry.strID] = assetEntry;
         }
 
-        public bool contains( String id)
+        public bool contains( string id)
         {
             return assets.ContainsKey(id);
         }
 
         public bool contains(byte[] id)
         {
-            String strID = Util.bytesToHexString(id);
+            string strID = Util.bytesToHexString(id);
             return contains(strID);
         }
 
-        public AssetEntry getEntry( String strID)
+        public AssetEntry getEntry( string strID)
         {
             return assets[strID];
         }

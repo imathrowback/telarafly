@@ -1,6 +1,10 @@
 README
 ======
 
+NOTES
+-----
+1. Tela
+
 
 Step 1
 ------
@@ -17,18 +21,14 @@ Step 2
 Run telarafly.exe
 
 ===== Movement
-Mouse to look around
+Right Mouse to look around
 WSAD to move around
 Q/E to move up and down
 HOLD SHIFT to move faster
 HOLD ALT to move slower
 F10 for screenshots
 
-== 
-PURGE
-==
-
-When viewing the world, use the PURGE OBJECTS button to remove all objects (except terrain) loaded so far. 
-NOTE: It will not work while meshes are queued for loading (look at the bottom left)
-
-
+== stupid flying mode
+F to mount up or dismount
+Left-Alt + scroll wheel to change view axis up/down
+Use the model viewer to choose a mount then go back to the world viewer

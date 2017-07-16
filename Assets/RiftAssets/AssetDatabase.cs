@@ -50,14 +50,43 @@ namespace Assets.RiftAssets
             return findAssetFileForID(Util.bytesToHexString(id));
         }
 
+        Dictionary<string, List<AssetFile>> assetFiles;
+        System.Object locko = new System.Object();
         private AssetFile findAssetFileForID( string id)
         {
+            if (assetFiles == null)
+            {
+                lock (locko)
+                {
+                    if (assetFiles == null)
+                    {
+                        assetFiles = new Dictionary<string, List<AssetFile>>();
+                        foreach (AssetFile file in assets)
+                        {
+                            foreach (AssetEntry ae in file.getEntries())
+                            {
+                                List<AssetFile> list;
+                                if (!assetFiles.TryGetValue(ae.strID, out list))
+                                {
+                                    list = new List<AssetFile>();
+                                    assetFiles.Add(ae.strID, list);
+                                }
+                                list.Add(file);
+                            }
+                        }
+                    }
+                }
+            }
             if (id == null)
                 return null;
-            List<AssetFile> holders = new List<AssetFile>();
-            foreach (AssetFile file in assets)
-                if (file.contains(id))
-                    holders.Add(file);
+            List<AssetFile> holders;
+            if (!assetFiles.TryGetValue(id, out holders))
+                return null;
+
+                //new List<AssetFile>();
+            //foreach (AssetFile file in assets)
+            //    if (file.contains(id))
+            //        holders.Add(file);
             if (holders.Count == 0)
                 return null;
 

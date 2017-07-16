@@ -95,7 +95,7 @@ public class NIFLoader
         root.name = Path.GetFileNameWithoutExtension(fname);
         root.transform.localPosition = Vector3.zero;
 
-        List<NIFObject> rootObjects = getChildren(nf, -1);
+        List<NIFObject> rootObjects = nf.getChildren(-1);
        
         foreach (NIFObject obj in rootObjects)
         {
@@ -182,14 +182,7 @@ public class NIFLoader
         return mods;
     }
 
-    static List<NIFObject> getChildren(NIFFile nf, int parentIndex)
-    {
-        List<NIFObject> list = new List<NIFObject>();
-        foreach (NIFObject obj in nf.getObjects())
-            if (obj.parentIndex == parentIndex)
-                list.Add(obj);
-        return list;
-    }
+    
 
     static GameObject processNodeAndLinkToParent(NIFFile nf, NiNode niNode, GameObject parent, bool skinMesh)
     {
@@ -214,7 +207,7 @@ public class NIFLoader
             }
             }
 
-        List<NIFObject> children = getChildren(nf, niNode.index);
+        List<NIFObject> children = nf.getChildren(niNode.index);
         foreach (NIFObject obj in children)
         {
             if (obj is NiNode)
@@ -279,8 +272,6 @@ public class NIFLoader
     }
 
 
-
-  
     /// <summary>
     /// This method needs to be called within an Update method from unity. As such, it should be pretty quick
     /// </summary>
@@ -291,7 +282,6 @@ public class NIFLoader
     /// <returns></returns>
     static GameObject processMesh(NIFFile nf, NiMesh mesh, NIFFile.MeshData meshData, bool skinMesh)
     {
-        bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
 
         //Debug.Log("process mesh:" + mesh.name);
         GameObject go = new GameObject();
@@ -307,15 +297,15 @@ public class NIFLoader
         {
             r = go.AddComponent<MeshRenderer>();
         }
-        else 
+        else
         {
             r = go.AddComponent<SkinnedMeshRenderer>();
             // needed to force Unity to use 2 bones. RIFT exposes 3 bones, and if we let Unity choose, it'll try to use 4
             // which will make models look wrong
-            ((SkinnedMeshRenderer)r).quality = SkinQuality.Bone2;  
+            ((SkinnedMeshRenderer)r).quality = SkinQuality.Bone2;
             ((SkinnedMeshRenderer)r).sharedMesh = newMesh;
         }
-        
+
         mf.mesh = newMesh;
         if (Assets.GameWorld.useColliders)
         {
@@ -329,173 +319,179 @@ public class NIFLoader
         }
         else
         {
-           
+            bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
+
             newMesh.SetVertices(meshData.verts);
             if (meshData.inNormals.Count > 0)
-               newMesh.SetNormals(meshData.inNormals);
+                newMesh.SetNormals(meshData.inNormals);
             if (meshData.uvs.Count > 0)
                 newMesh.SetUVs(0, meshData.uvs);
             if (meshData.boneWeights.Count > 0 && !IS_TERRAIN && skinMesh)
                 newMesh.boneWeights = meshData.boneWeights.ToArray();
             newMesh.triangles = meshData.tristest.ToArray();
+            r.material = doMaterials(nf, mesh, go);
+        }
+        return go;
+    }
 
-            // do materials/textures
-            Material mat = new Material(Shader.Find("Standard"));
-            mat.enableInstancing = true;
-            mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
-            if (IS_TERRAIN)
-                mat = new Material(Resources.Load("terrainmat", typeof(Material)) as Material);
+    static Material doMaterials(NIFFile nf, NiMesh mesh, GameObject go)
+    {
+        bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
 
-            if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water"))
-                mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
-            //foreach(var matN in mesh.materialNames)
-                //if (matN.Contains("water_"))
-                if (mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
-                    mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
+        // do materials/textures
+        Material mat = new Material(Shader.Find("Standard"));
+        mat.enableInstancing = true;
+        mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+        if (IS_TERRAIN)
+            mat = new Material(Resources.Load("terrainmat", typeof(Material)) as Material);
 
-            bool alpha = (mesh.materialNames.Contains("TwoSided_Alpha_Specular"));
-            foreach (string n in mesh.materialNames)
-                if (n.ToLower().Contains("alpha"))
-                    alpha = true;
-            if (alpha)
+        if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water"))
+            mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
+        if (mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
+            mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
+
+        bool alpha = (mesh.materialNames.Contains("TwoSided_Alpha_Specular") || mesh.materialNames.Contains("Lava_Flow_Decal"));
+        foreach (string n in mesh.materialNames)
+            if (n.ToLower().Contains("alpha"))
+                alpha = true;
+        if (alpha)
+            mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+
+        // handle some simple animated "scrolling" textures
+        bool animated = (mesh.materialNames.Contains("Additive_UVScroll_Distort") || mesh.materialNames.Contains("Lava_Flow_Decal") || mesh.materialNames.Contains("Local_Cloud_Flat") ||
+            mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") || mesh.materialNames.Contains("Fat_spike12_m") || mesh.materialNames.Contains("pPlane1_m"));
+
+
+        if (animated) 
+        {
+            mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+
+            NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
+            if (extra != null)
             {
-                mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+                UVScroll scroller = go.AddComponent<UVScroll>();
+                scroller.material = mat;
+
+                scroller.xRate = extra.floatData[0];
+                scroller.yRate = extra.floatData[1];
             }
-
-            // handle some simple animated "scrolling" textures
-            bool animated = (mesh.materialNames.Contains("Additive_UVScroll_Distort") ||
-                mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") || mesh.materialNames.Contains("Fat_spike12_m") || mesh.materialNames.Contains("pPlane1_m"));
+        }
 
 
-            if (animated) 
+        foreach (int eid in mesh.extraDataIDs)
+        {
+            NIFObject obj = nf.getObject(eid);
+            if (obj is NiBooleanExtraData)
             {
-                mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
-
-                NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
-                if (extra != null)
+                NiBooleanExtraData fExtra = (NiBooleanExtraData)obj;
+                switch (fExtra.extraDataString)
                 {
-                    UVScroll scroller = go.AddComponent<UVScroll>();
-                    scroller.material = mat;
+                    case "doAlphaTest":
+                        if (fExtra.booleanData)
+                            mat = new Material(Resources.Load("2sidedtransmat", typeof(Material)) as Material);
+                        break;
+                    default:
+                        break;
 
-                    scroller.xRate = extra.floatData[0];
-                    scroller.yRate = extra.floatData[1];
-                }
-            }
-
-
-            foreach (int eid in mesh.extraDataIDs)
-            {
-                NIFObject obj = nf.getObject(eid);
-                if (obj is NiBooleanExtraData)
-                {
-                    NiBooleanExtraData fExtra = (NiBooleanExtraData)obj;
-                    switch (fExtra.extraDataString)
-                    {
-                        case "doAlphaTest":
-                            if (fExtra.booleanData)
-                                mat = new Material(Resources.Load("2sidedtransmat", typeof(Material)) as Material);
-                            break;
-                        default:
-                            break;
-
-                    }
-                }
-            }
-            r.material = mat;
-
-            foreach (int eid in mesh.extraDataIDs)
-            {
-                NIFObject obj = nf.getObject(eid);
-                if (obj is NiFloatExtraData)
-                {
-                    NiFloatExtraData fExtra = (NiFloatExtraData)obj;
-                    switch (fExtra.extraDataString)
-                    {
-                        case "scaleY":
-                            mat.mainTextureScale = new Vector2(mat.mainTextureScale.x, fExtra.floatData);
-                            break;
-                        case "scale":
-                            mat.mainTextureScale = new Vector2(fExtra.floatData, mat.mainTextureScale.y);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-
-            String[] textureNameIds = getTextureIds(nf, mesh);
-
-
-            List<int> propIDs = mesh.nodePropertyIDs;
-            foreach (int propID in propIDs)
-            {
-                NIFObject obj = nf.getObject(propID);
-
-                if (obj is NiTexturingProperty)
-                {
-                    NiTexturingProperty propObj = (NiTexturingProperty)obj;
-                    foreach (NifTexMap tex in propObj.texList)
-                    {
-                        if (tex != null)
-                            Debug.Log("\t" + tex.sourceTexLinkID);
-                    }
-
-                    int i = 0;
-                    foreach (NifTexMap tex in propObj.shaderMapList)
-                    {
-                        String texName = "";
-                        if (tex != null)
-                        {
-                            int sourceTexID = tex.sourceTexLinkID;
-                            if (sourceTexID != -1)
-                            {
-                                NiSourceTexture sourceTex = (NiSourceTexture)nf.getObject(sourceTexID);
-                                texName = sourceTex.texFilename;
-                                if (IS_TERRAIN)
-                                {
-                                    string param = "_terrain" + i;
-                                    //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
-                                    mat.SetTexture(param, loadTexture(texName));
-                                }
-                                else
-                                {
-                                    switch (textureNameIds[i])
-                                    {
-                                        case "diffuseTexture":
-                                        case "diffuseTextureXZ":
-                                            mat.SetTexture("_MainTex", loadTexture( texName));
-                                            break;
-                                        case "decalNormalTexture":
-                                            mat.SetTexture("_DetailNormalMap", loadTexture( texName));
-                                            break;
-                                        case "normalTexture":
-                                            mat.SetTexture("_BumpMap", loadTexture( texName));
-                                            break;
-                                        case "glowTexture":
-                                            mat.EnableKeyword("_EMISSION");
-                                            
-                                            mat.SetColor("_EmissionColor", Color.white*0.5f);
-                                            mat.SetTexture("_EmissionMap", loadTexture( texName));
-                                            break;
-                                        case "glossTexture":
-                                            mat.SetTexture("_MetallicGlossMap", loadTexture( texName));
-                                            break;
-                                        case "decalTexture":
-                                            mat.SetTexture("_DetailAlbedoMap", loadTexture(texName));
-                                            break;
-                                        default:
-                                            //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                        i++;
-                    }
                 }
             }
         }
-        return go;
+        
+
+        foreach (int eid in mesh.extraDataIDs)
+        {
+            NIFObject obj = nf.getObject(eid);
+            if (obj is NiFloatExtraData)
+            {
+                NiFloatExtraData fExtra = (NiFloatExtraData)obj;
+                switch (fExtra.extraDataString)
+                {
+                    case "scaleY":
+                        mat.mainTextureScale = new Vector2(mat.mainTextureScale.x, fExtra.floatData);
+                        break;
+                    case "scale":
+                        mat.mainTextureScale = new Vector2(fExtra.floatData, mat.mainTextureScale.y);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        string[] textureNameIds = getTextureIds(nf, mesh);
+
+
+        List<int> propIDs = mesh.nodePropertyIDs;
+        foreach (int propID in propIDs)
+        {
+            NIFObject obj = nf.getObject(propID);
+
+            if (obj is NiTexturingProperty)
+            {
+                NiTexturingProperty propObj = (NiTexturingProperty)obj;
+                foreach (NifTexMap tex in propObj.texList)
+                {
+                    if (tex != null)
+                        Debug.Log("\t" + tex.sourceTexLinkID);
+                }
+
+                int i = 0;
+                foreach (NifTexMap tex in propObj.shaderMapList)
+                {
+                    string texName = "";
+                    if (tex != null)
+                    {
+                        int sourceTexID = tex.sourceTexLinkID;
+                        if (sourceTexID != -1)
+                        {
+                            NiSourceTexture sourceTex = (NiSourceTexture)nf.getObject(sourceTexID);
+                            texName = sourceTex.texFilename;
+                            if (IS_TERRAIN)
+                            {
+                                string param = "_terrain" + i;
+                                //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
+                                mat.SetTexture(param, loadTexture(texName));
+                            }
+                            else
+                            {
+                                switch (textureNameIds[i])
+                                {
+                                    case "diffuseTexture":
+                                    case "diffuseTextureXZ":
+                                        mat.SetTexture("_MainTex", loadTexture( texName));
+                                        break;
+                                    case "decalNormalTexture":
+                                        mat.SetTexture("_DetailNormalMap", loadTexture( texName));
+                                        break;
+                                    case "normalTexture":
+                                        mat.SetTexture("_BumpMap", loadTexture( texName));
+                                        break;
+                                    case "glowTexture":
+                                        mat.EnableKeyword("_EMISSION");
+                                        if (mesh.materialNames.Contains("Lava_Flow_Decal"))
+                                            mat.SetColor("_EmissionColor", Color.red);
+                                        else
+                                            mat.SetColor("_EmissionColor", Color.white*0.5f);
+                                        mat.SetTexture("_EmissionMap", loadTexture( texName));
+                                        break;
+                                    case "glossTexture":
+                                        mat.SetTexture("_MetallicGlossMap", loadTexture( texName));
+                                        break;
+                                    case "decalTexture":
+                                        mat.SetTexture("_DetailAlbedoMap", loadTexture(texName));
+                                        break;
+                                    default:
+                                        //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                    i++;
+                }
+            }
+        }
+        return mat;
     }
 
    static private NiFloatsExtraData getFloatsExtraData(NIFFile nf, NiMesh mesh, string v)

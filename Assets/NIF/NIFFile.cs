@@ -45,6 +45,7 @@ namespace Assets.NIF
         {
             parseFile(stream);
             prepMeshes();
+            prepChildrenLists();
         }
 
 
@@ -58,6 +59,39 @@ namespace Assets.NIF
                     meshDataDict[mesh.index] = md;
                 }
             }
+        }
+
+        Dictionary<int, List<NIFObject>> childrenLists = new Dictionary<int, List<NIFObject>>();
+
+        void prepChildrenLists()
+        {
+            foreach(NIFObject obj in getObjects())
+            {
+                int p = obj.parentIndex;
+                List<NIFObject> children;
+                if (!childrenLists.TryGetValue(p, out children))
+                {
+                    children = new List<NIFObject>();
+                    childrenLists.Add(p, children);
+                }
+                children.Add(obj);
+            }
+        }
+        public List<NIFObject> getChildren(int parentIndex)
+        {
+         //   return childrenLists[parentIndex];
+            
+            List<NIFObject> list = new List<NIFObject>();
+            foreach (NIFObject obj in getObjects())
+                if (obj.parentIndex == parentIndex)
+                    list.Add(obj);
+            return list;
+            
+        }
+
+        public List<NIFObject> getChildren(NIFObject obj)
+        {
+            return getChildren(obj.index);
         }
 
         public MeshData getMeshData(NiMesh ni)
@@ -75,9 +109,12 @@ namespace Assets.NIF
             return stringTable[i];
         }
 
+        List<NIFObject> objCache = null;
         public List<NIFObject> getObjects()
         {
-            return objects.Values.ToList();
+            if (objCache == null)
+                objCache = objects.Values.ToList();
+            return objCache;
         }
 
         public List<String> getStringTable()
@@ -381,16 +418,7 @@ namespace Assets.NIF
         }
        
 
-        public List<NIFObject> getChildren(NIFObject obj)
-        {
-            List<NIFObject> children = new List<NIFObject>();
-            foreach (NIFObject ni in objects.Values)
-            {
-                if (ni.parentIndex == obj.index)
-                    children.Add(ni);
-            }
-            return children;
-        }
+       
 
         internal NIFObject getObject(int id)
         {
