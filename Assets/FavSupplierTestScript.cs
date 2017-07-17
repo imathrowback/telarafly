@@ -15,7 +15,7 @@ public class FavSupplierTestScript : MonoBehaviour
         d.ClearOptions();
         var options = d.options;
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 6; i++)
         {
             options.Add(new DOption(i + "123", null, true));
             options.Add(new DOption(i  + "1234", null));
