@@ -42,6 +42,8 @@ namespace Assets.Database
         public CObject getObject(long datasetid, long key)
         {
             entry e = getEntry(datasetid, key);
+            if (e == null)
+                throw new Exception("Unable to get entry for " + datasetid + ":" + key + ", no record");
             return Parser.processStreamObject(new MemoryStream(e.decompressedData));
         }
         public entry getEntry(long datasetid, long key)

@@ -24,7 +24,8 @@ public class telera_spawner : MonoBehaviour
     //camera_movement camMove;
     System.IO.StreamReader fileStream;
     public GameObject telaraObjectPrefab;
-
+    Map map;
+    Text zoneText;
 
   
     int MAX_NODE_PER_FRAME = 15025;
@@ -75,6 +76,31 @@ public class telera_spawner : MonoBehaviour
         MAX_NODE_PER_FRAME = ProgramSettings.get("MAX_NODE_PER_FRAME", 15000);
 
         setCameraLoc(GameWorld.initialSpawn);
+        map = CDRParse.getMap(GameWorld.worldName);
+        zoneText = GameObject.Find("ZoneText").GetComponent<Text>();
+        foreach (Zone z in map.zones)
+        {
+            Debug.Log("creating zone:" + z._113Key);
+            SCG.List<Vector3> points = z.points;
+            GameObject zone = new GameObject("zone:" + z._113Key);
+            
+            PolygonCollider2D p = zone.AddComponent<PolygonCollider2D>();
+            p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
+            z.collider = p;
+            
+
+        }
+        foreach (Scene z in map.scenes)
+        {
+            SCG.List<Vector3> points = z.points;
+            GameObject zone = new GameObject("scene:" + z._114Key);
+
+            PolygonCollider2D p = zone.AddComponent<PolygonCollider2D>();
+            p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
+            z.collider = p;
+
+
+        }
 
         dropdown.gameObject.SetActive(false);
         dropdown.options.Clear();
@@ -149,7 +175,9 @@ public class telera_spawner : MonoBehaviour
     void addCDR(ObjectPosition op, GameObject go)
     {
         // add some debug stuff to the object if we are in the editor
-        CDRItem cdrItem = go.AddComponent<CDRItem>();
+        CDRItem cdrItem = go.GetComponent<CDRItem>();
+        if (cdrItem == null)
+            cdrItem = go.AddComponent<CDRItem>();
         cdrItem.cdrFile = op.cdrfile;
         cdrItem.index = op.index;
         cdrItem.name = op.entityname;
@@ -179,8 +207,6 @@ public class telera_spawner : MonoBehaviour
         }
 
         GameObject go = GameObject.Instantiate(telaraObjectPrefab, meshRoot.transform);
-            //new GameObject();
-
 #if UNITY_EDITOR
         addCDR(op, go);
 #endif
@@ -244,9 +270,43 @@ public class telera_spawner : MonoBehaviour
         if (worldLoader != null)
             worldLoader.doShutdown();
     }
+
+    Zone lastZone = null;
+    GameObject zoneSky = null;
+    void handleZone()
+    {
+        Vector3 camPos = getWorldCamPos();
+        Vector2 cPos = new Vector2(camPos.x, camPos.z);
+        Zone zone = null;
+        Scene scene = null;
+        foreach (Zone z in map.zones)
+            if (z.collider.OverlapPoint(cPos))
+                zone = z;
+        foreach (Scene s in map.scenes)
+            if (s.collider.OverlapPoint(cPos))
+                scene = s;
+        string zstr = "";
+        string cstr = "";
+        if (zone != null)
+            zstr = zone.name;
+        if (scene != null)
+            cstr = scene.name;
+        zoneText.text = "Zone:" + zstr + ", scene:" + cstr;
+        if (zone != lastZone)
+        {
+            if (zoneSky != null)
+            {
+                //zone
+            }
+
+
+        }
+    }
+
     // Update is called once per frame
     void Update()
     {
+        handleZone();
         if (tpuc != null && tpuc.isRotating)
             return;
 
@@ -270,7 +330,7 @@ public class telera_spawner : MonoBehaviour
 
 
     [CallFromUnityUpdate]
-    public void processRunningList(TreeDictionary<Guid, NifLoadJob> runningList)
+    public void processRunningList(TreeDictionary<long, NifLoadJob> runningList)
     {
         foreach (NifLoadJob job in runningList.Values.ToArray())
         {

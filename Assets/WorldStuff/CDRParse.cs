@@ -11,8 +11,183 @@ using UnityEngine;
 
 namespace Assets.WorldStuff
 {
+    class Map
+    {
+        public List<Zone> zones;
+        public List<Scene> scenes;
+    }
+    class Zone
+    {
+        public long _113Key;
+        public string name;
+        public List<Vector3> points = new List<Vector3>();
+        public PolygonCollider2D collider;
+        public List<string> sky = new List<string>();
+    }
+    class Scene
+    {
+        public long _114Key;
+        public List<Vector3> points = new List<Vector3>();
+        internal string name;
+        internal PolygonCollider2D collider;
+    }
     class CDRParse
     {
+        static private string getLocalized(CObject obj, string defaultText)
+        {
+            if (obj == null)
+                return defaultText;
+            if (obj.type != 7703)
+                throw new Exception("Object[" + obj.type + "]: Not a localizable entry");
+            int textID = obj.getIntMember(0);
+            return DBInst.lang_inst.getOrDefault(textID, defaultText);
+        }
+
+        private static string getZoneName(long key)
+        {
+            try
+            {
+                CObject entry = DBInst.inst.getObject(113, key);
+                return getLocalized(entry.getMember(0), "");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+                return "";
+            }
+        }
+
+        private static string getSceneName(long key)
+        {
+            try
+            {
+                CObject entry = DBInst.inst.getObject(114, key);
+                return getLocalized(entry.getMember(0), "");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+                return "";
+            }
+        }
+
+        private static List<string> getSky(long key)
+        {
+            List<string> ilist = new List<string>();
+            CObject entry = DBInst.inst.getObject(114, key);
+            CObject skyInfo = DBInst.inst.getObject(111, entry.getIntMember(31));
+            CObject list = skyInfo.getMember(20);
+            for (int i = 0; i < list.members.Count; i++)
+            {
+                int _7305 = list.getIntMember(i);
+                ilist.Add(DBInst.inst.getObject(7305, _7305).getStringMember(2));
+            }
+            return ilist;
+        }
+
+        public static Map getMap(string worldNameNoCDR)
+        {
+            Map map = new Map();
+            try
+            {
+                map.zones = getZones(worldNameNoCDR);
+                map.scenes = getScenes(worldNameNoCDR);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+            }
+            return map;
+        }
+
+        private static List<Scene> getScenes(string worldNameNoCDR)
+        {
+            List<Scene> scenes = new List<Scene>();
+            try
+            {
+                string worldName = worldNameNoCDR + "_map.cdr";
+                AssetDatabase adb = AssetDatabaseInst.DB;
+                if (!adb.getManifest().containsHash(Util.hashFileName(worldName)))
+                    throw new Exception("Unable to find world name:" + worldName);
+                Debug.Log("loading world zones:" + worldName);
+                byte[] data = adb.extractUsingFilename(worldName);
+                CObject obj = Parser.processStreamObject(data);
+
+                CObject scenesObj = obj.getMember(9);
+                Debug.Log("found scenes object with " + scenesObj.members.Count + " members");
+                for (int i = 0; i < scenesObj.members.Count; i++)
+                {
+                    CObject sceneObj = scenesObj.get(i);
+                    long key = sceneObj.getIntMember(0);
+                    Debug.Log("found scene with key:" + key);
+                    List<Vector3> points = getPoints(sceneObj.getMember(3));
+                    Scene scene = new WorldStuff.Scene();
+                    scene._114Key = key;
+                    scene.name = getSceneName(key);
+                    scene.points = points;
+                    scenes.Add(scene);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+            }
+            return scenes;
+
+        }
+
+        private static List<Zone> getZones(string worldNameNoCDR)
+        {
+            List<Zone> zones = new List<Zone>();
+            try
+            {
+                string worldName = worldNameNoCDR + "_map.cdr";
+                AssetDatabase adb = AssetDatabaseInst.DB;
+                if (!adb.getManifest().containsHash(Util.hashFileName(worldName)))
+                    throw new Exception("Unable to find world name:" + worldName);
+                Debug.Log("loading world zones:" + worldName);
+                byte[] data = adb.extractUsingFilename(worldName);
+                CObject obj = Parser.processStreamObject(data);
+
+                CObject zonesObj = obj.getMember(8);
+                Debug.Log("found zones object with " + zonesObj.members.Count + " members");
+                for (int i = 0; i < zonesObj.members.Count; i++)
+                {
+                    CObject zoneObj = zonesObj.get(i);
+                    long key = zoneObj.getIntMember(0);
+                    Debug.Log("found zone with key:" + key);
+                    List<Vector3> points = getPoints(zoneObj.getMember(3));
+                    Zone zone = new WorldStuff.Zone();
+                    zone._113Key = key;
+                    zone.name = getZoneName(key);
+                    zone.points = points;
+                    //zone.sky = getSky(key);
+                    zones.Add(zone);
+
+
+                }
+            }catch (Exception ex)
+            {
+                Debug.LogError(ex);
+            }
+            return zones;
+
+        }
+
+        
+
+        private static List<Vector3> getPoints(CObject cObject)
+        {
+            List<Vector3> p = new List<Vector3>();
+            for (int i = 0; i < cObject.members.Count; i++)
+            {
+                CObject v = cObject.get(i);
+                p.Add(v.getVector3Member(0));
+
+            }
+            return p;
+        }
+
         public static void getMinMax(string worldName, ref int x, ref int y)
         {
             AssetDatabase adb = AssetDatabaseInst.DB;

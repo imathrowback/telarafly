@@ -103,9 +103,9 @@ namespace Assets.RiftAssets
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning(ex);
-                    string holdersStr = String.Join(",", holders.Select(x => x.file).ToArray());
-                    Debug.LogWarning("More than one asset file [" + holdersStr + "] contains id [" + id + "]");
+                    //Debug.LogWarning(ex);
+                    //string holdersStr = String.Join(",", holders.Select(x => x.file).ToArray());
+                    //Debug.LogWarning("More than one asset file [" + holdersStr + "] contains id [" + id + "]");
                 }
             }
 
@@ -176,11 +176,11 @@ namespace Assets.RiftAssets
                 }
                 // work out which one we want based on the category
                 string requestStr = requestCategory.ToString().ToLower();
-                Debug.Log("multiple ids found for " + filename + ", using request category " + requestStr);
+                //Debug.Log("multiple ids found for " + filename + ", using request category " + requestStr);
                 ManifestEntry finalEntry = null;
                 foreach (ManifestEntry entry in entries)
                 {
-                    Debug.Log("[" + filename + "]: considering entry:" + entry + " :" + manifest.getPAKName(entry.pakIndex));
+                    //Debug.Log("[" + filename + "]: considering entry:" + entry + " :" + manifest.getPAKName(entry.pakIndex));
                     ManifestPAKFileEntry pak = manifest.getPAK(entry.pakIndex);
                     string pakName = pak.name;
                     if (pakName.Contains(requestStr))
@@ -198,7 +198,7 @@ namespace Assets.RiftAssets
                     throw new Exception("Multiple ids match the filename [" + filename + "] but the request category[" + requestStr + "] did not match any, unable to determine which to return");
                 }
                 id = finalEntry.idStr;
-                Debug.Log("settled on entry:" + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
+                //Debug.Log("settled on entry:" + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
 
             }
             //Debug.Log("find asset file for id:" + id);

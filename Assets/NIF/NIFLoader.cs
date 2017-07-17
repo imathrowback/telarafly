@@ -334,28 +334,31 @@ public class NIFLoader
         return go;
     }
 
+    static Shader standardShader = null;
+    static Material standardMaterial = null;
     static Material doMaterials(NIFFile nf, NiMesh mesh, GameObject go)
     {
+        if (standardShader == null)
+            standardShader = Shader.Find("Standard");
+
         bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
 
-        // do materials/textures
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.enableInstancing = true;
-        mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
-        if (IS_TERRAIN)
-            mat = new Material(Resources.Load("terrainmat", typeof(Material)) as Material);
+        string materialName = null;
 
-        if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water"))
-            mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
-        if (mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
-            mat = new Material(Resources.Load("WaterMaterial", typeof(Material)) as Material);
+        // do materials/textures
+        
+        if (IS_TERRAIN)
+            materialName = "terrainmat";
+
+        if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water") || mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
+            materialName = "WaterMaterial";
 
         bool alpha = (mesh.materialNames.Contains("TwoSided_Alpha_Specular") || mesh.materialNames.Contains("Lava_Flow_Decal"));
         foreach (string n in mesh.materialNames)
             if (n.ToLower().Contains("alpha"))
                 alpha = true;
         if (alpha)
-            mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+            materialName = "2sidedtransmat_fade";
 
         // handle some simple animated "scrolling" textures
         bool animated = (mesh.materialNames.Contains("Additive_UVScroll_Distort") || mesh.materialNames.Contains("Lava_Flow_Decal") || mesh.materialNames.Contains("Local_Cloud_Flat") ||
@@ -363,19 +366,8 @@ public class NIFLoader
 
 
         if (animated) 
-        {
-            mat = new Material(Resources.Load("2sidedtransmat_fade", typeof(Material)) as Material);
+            materialName = "2sidedtransmat_fade";
 
-            NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
-            if (extra != null)
-            {
-                UVScroll scroller = go.AddComponent<UVScroll>();
-                scroller.material = mat;
-
-                scroller.xRate = extra.floatData[0];
-                scroller.yRate = extra.floatData[1];
-            }
-        }
 
 
         foreach (int eid in mesh.extraDataIDs)
@@ -388,7 +380,7 @@ public class NIFLoader
                 {
                     case "doAlphaTest":
                         if (fExtra.booleanData)
-                            mat = new Material(Resources.Load("2sidedtransmat", typeof(Material)) as Material);
+                            materialName = "2sidedtransmat";
                         break;
                     default:
                         break;
@@ -396,7 +388,36 @@ public class NIFLoader
                 }
             }
         }
+
+        Material mat = null;
+        if (materialName == null)
+        {
+            if (standardMaterial == null)
+                standardMaterial = new Material(standardShader);
+            mat = Material.Instantiate(standardMaterial);
+        }
+        else
+            mat = Material.Instantiate(Resources.Load(materialName, typeof(Material)) as Material);
+        mat.enableInstancing = true;
+        mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+
+
+
         
+
+
+        if (animated)
+        {
+            NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
+            if (extra != null)
+            {
+                UVScroll scroller = go.AddComponent<UVScroll>();
+                scroller.material = mat;
+
+                scroller.xRate = extra.floatData[0];
+                scroller.yRate = extra.floatData[1];
+            }
+        }
 
         foreach (int eid in mesh.extraDataIDs)
         {
@@ -454,8 +475,10 @@ public class NIFLoader
                             }
                             else
                             {
+                                //Debug.Log("texName[" + texName + "]: id:" + textureNameIds[i]);
                                 switch (textureNameIds[i])
                                 {
+                                    case "skyGradientTexture0":
                                     case "diffuseTexture":
                                     case "diffuseTextureXZ":
                                         mat.SetTexture("_MainTex", loadTexture( texName));
@@ -478,6 +501,7 @@ public class NIFLoader
                                         mat.SetTexture("_MetallicGlossMap", loadTexture( texName));
                                         break;
                                     case "decalTexture":
+                                    case "starMapTexture0":
                                         mat.SetTexture("_DetailAlbedoMap", loadTexture(texName));
                                         break;
                                     default:

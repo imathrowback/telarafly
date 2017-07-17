@@ -8,7 +8,9 @@ using System.Threading;
 public class NifLoadJob : ThreadedJob
 {
     public volatile static int count = 0;
-    public Guid uid = Guid.NewGuid();
+    public static long guid = 0;
+    public long uid = guid++;
+    //public Guid uid = Guid.NewGuid();
     static Dictionary<String, GameObject> originals = new Dictionary<string, GameObject>();
     static Dictionary<String, Semaphore> cacheWait = new Dictionary<string, Semaphore>();
 
@@ -95,7 +97,7 @@ public class NifLoadJob : ThreadedJob
         }
         catch (Exception ex)
         {
-            Debug.Log("there was an exception while doing the thread:" + filename + ": " + ex);
+            //Debug.Log("there was an exception while doing the thread:" + filename + ": " + ex);
         }
     }
     protected override void OnFinished()

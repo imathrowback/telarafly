@@ -30,8 +30,8 @@ namespace Assets
         int MAX_RUNNING_THREADS = 6;
         volatile int runningTerrainThreads = 0;
         System.Threading.Thread worldThread;
-        TreeDictionary<Guid, NifLoadJob> terrainRunningList;
-        TreeDictionary<Guid, NifLoadJob> objectRunningList;
+        TreeDictionary<long, NifLoadJob> terrainRunningList;
+        TreeDictionary<long, NifLoadJob> objectRunningList;
 
         public Vector3 telaraWorldCamPos { get; set; }
         public Vector3 cameraWorldCamPos { get; set; }
@@ -57,8 +57,8 @@ namespace Assets
         }
         public WorldLoadingThread()
         {
-            objectRunningList = new TreeDictionary<Guid, NifLoadJob>();
-            terrainRunningList = new TreeDictionary<Guid, NifLoadJob>();
+            objectRunningList = new TreeDictionary<long, NifLoadJob>();
+            terrainRunningList = new TreeDictionary<long, NifLoadJob>();
             objectPositions = new SCG.List<ObjectPosition>();
             MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 10);
         }
@@ -261,7 +261,7 @@ namespace Assets
             }
         }
         IQueue<NifLoadJob> loadingCapsuleQueue = new CircularQueue<NifLoadJob>();
-        void startJob(NifLoadJob job, TreeDictionary<Guid, NifLoadJob> runningList, KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates)
+        void startJob(NifLoadJob job, TreeDictionary<long, NifLoadJob> runningList, KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates)
         {
             //Debug.Log("Start job:" + job.filename);
             job.Start((System.Threading.ThreadPriority)ProgramSettings.get("OBJECT_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal));
@@ -279,7 +279,7 @@ namespace Assets
         }
 
         [CallFromUnityUpdate]
-        internal void processThreadsUnityUpdate(Action<TreeDictionary<Guid, NifLoadJob>> processRunningList, Func<ObjectPosition, GameObject> process)
+        internal void processThreadsUnityUpdate(Action<TreeDictionary<long, NifLoadJob>> processRunningList, Func<ObjectPosition, GameObject> process)
         {
             lock (objectRunningList)
             {
@@ -293,7 +293,7 @@ namespace Assets
             }
             lock (objectPositions)
             {
-                DateTime end = DateTime.Now.AddMilliseconds(20);
+                DateTime end = DateTime.Now.AddMilliseconds(100);
                 while (objectPositions.Count() > 0)
                 {
                     ObjectPosition p = objectPositions[0];
@@ -322,41 +322,44 @@ namespace Assets
 
         private void processJobAdds()
         {
-            lock (jobsToAdd)
+            while (true)
             {
-                while (!jobsToAdd.IsEmpty)
+                NifLoadJob job;
+                lock (jobsToAdd)
                 {
-                    NifLoadJob job = jobsToAdd.Dequeue();
-                    Vector3 pos = job.parentPos;
-                    float[] floatf = new float[] { pos.x, pos.z };
-                    SCG.List<NifLoadJob> nList;
-                    if (job.filename.Contains("terrain") || job.filename.Contains("ocean"))
+                    if (jobsToAdd.IsEmpty)
+                        break;
+                    job = jobsToAdd.Dequeue();
+                }
+                Vector3 pos = job.parentPos;
+                float[] floatf = new float[] { pos.x, pos.z };
+                SCG.List<NifLoadJob> nList;
+                if (job.filename.Contains("terrain") || job.filename.Contains("ocean"))
+                {
+                    lock (terraintree)
                     {
-                        lock (terraintree)
+                        if (!this.terraintree.TryFindValueAt(floatf, out nList))
                         {
-                            if (!this.terraintree.TryFindValueAt(floatf, out nList))
-                            {
-                                nList = new SCG.List<NifLoadJob>();
-                                nList.Add(job);
-                                this.terraintree.Add(floatf, nList);
-                            }
-                            else
-                                nList.Add(job);
+                            nList = new SCG.List<NifLoadJob>();
+                            nList.Add(job);
+                            this.terraintree.Add(floatf, nList);
                         }
+                        else
+                            nList.Add(job);
                     }
-                    else
+                }
+                else
+                {
+                    lock (postree)
                     {
-                        lock (postree)
+                        if (!this.postree.TryFindValueAt(floatf, out nList))
                         {
-                            if (!this.postree.TryFindValueAt(floatf, out nList))
-                            {
-                                nList = new SCG.List<NifLoadJob>();
-                                nList.Add(job);
-                                this.postree.Add(floatf, nList);
-                            }
-                            else
-                                nList.Add(job);
+                            nList = new SCG.List<NifLoadJob>();
+                            nList.Add(job);
+                            this.postree.Add(floatf, nList);
                         }
+                        else
+                            nList.Add(job);
                     }
                 }
             }
