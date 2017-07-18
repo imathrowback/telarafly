@@ -32,8 +32,8 @@ public class PanelSlideButtonHandler : MonoBehaviour {
     {
         for (int i = 0; i < t.childCount; i++)
         {
-            if (t.GetChild(i).gameObject != this.gameObject)
-                t.GetChild(i).gameObject.SetActive(state);
+            //if (t.GetChild(i).gameObject != this.gameObject)
+            //    t.GetChild(i).gameObject.SetActive(state);
         }
     }
 

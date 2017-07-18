@@ -19,7 +19,7 @@ public class ImaScrollViewport : MonoBehaviour {
     [SerializeField]
     GameObject templateItem;
 
-    int startVisibleIndex = 0;
+    public int startVisibleIndex = 0;
 
     private float itemHeight()
     {
@@ -107,8 +107,14 @@ public class ImaScrollViewport : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
-		
-	}
+        float delta = Input.GetAxis("Mouse ScrollWheel");
+        if (delta != 0)
+        {
+            Scrollbar sb = GetComponentInChildren<Scrollbar>();
+            sb.value -= sb.size * Math.Sign(delta);
+        }
+
+    }
 
     internal void setItems(List<DOption> options)
     {

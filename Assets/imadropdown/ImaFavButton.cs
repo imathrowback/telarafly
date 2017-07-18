@@ -16,7 +16,7 @@ namespace Assets
         override public void OnPointerClick(PointerEventData eventData)
         {
             /** so terribad */
-            Debug.Log(eventData);
+           // Debug.Log(eventData);
             ImaListItem toggle = this.transform.GetComponentInParent<ImaListItem>();
             string value = toggle.name;
             int id = int.Parse(value.Split(':')[0]);

@@ -8,12 +8,13 @@ using UnityEngine.UI;
 using System;
 using System.Linq;
 
+[RequireComponent(typeof(FavDropDown2))]
 public class ImaDropdown : MonoBehaviour
 {
-    public List<DOption> options { get;  }
+    public List<DOption> options;
     DOption selectedOption;
-    Color normalColor = Color.white;
-    Color overColor = new Color(0.7f, 0.7f, 0.7f);
+    public Color normalColor = Color.white;
+    public Color overColor = new Color(0.7f, 0.7f, 0.7f);
 
     [SerializeField]
     GameObject selectedItemObject;
@@ -26,18 +27,24 @@ public class ImaDropdown : MonoBehaviour
     public Image itemImage { get; internal set; }
 
     public Dropdown.DropdownEvent onValueChanged = new Dropdown.DropdownEvent();
+    public ImaScrollViewport scrollPort;
 
-    public ImaDropdown() : base()
+    public void Awake()
     {
-        options = new List<DOption>();
     }
-	// Use this for initialization
-	void Start () {
-        
+    // Use this for initialization
+    void Start() {
+    }
+
+    public void init()
+    { 
+        Debug.Log("dropdown start");
+        this.options = new List<DOption>();
         dropList = transform.Find("DropList").gameObject;
 
+        /*
         List<DOption> options = new List<DOption>();
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 1116; i++)
         {
             options.Add(new DOption(i + "123", null, true));
             options.Add(new DOption(i + "1234", null));
@@ -45,25 +52,32 @@ public class ImaDropdown : MonoBehaviour
             options.Add(new DOption(i + "1236", null, true));
         }
         SetOptions(options);
-
+        */
         makeTrigger(EventTriggerType.PointerEnter, (x) => OnPointerEnter((PointerEventData)x));
         makeTrigger(EventTriggerType.PointerClick, (x) => OnPointerClick((PointerEventData)x));
         makeTrigger(EventTriggerType.PointerExit, (x) => OnPointerExit((PointerEventData)x));
 
+        GetComponent<FavDropDown2>().init();
     }
 
     public void RefreshShownValue()
     {
-        //Debug.Log("refresh shown value");
-        selectedItemObject.GetComponent<Text>().text = selectedOption.text;
-        if (captionImage != null)
+        if (selectedOption != null)
         {
-            Debug.Log("setting caption image");
-            captionImage.sprite = null;
-            if (selectedOption != null)
+            Text txt = selectedItemObject.GetComponent<Text>();
+            if (txt != null)
             {
-                Debug.Log("set caption image");
-                captionImage.sprite = selectedOption.image;
+                txt.text = selectedOption.text;
+                if (captionImage != null)
+                {
+                    // Debug.Log("setting caption image");
+                    captionImage.sprite = null;
+                    if (selectedOption != null)
+                    {
+                        // Debug.Log("set caption image");
+                        captionImage.sprite = selectedOption.image;
+                    }
+                }
             }
         }
     }
@@ -98,6 +112,9 @@ public class ImaDropdown : MonoBehaviour
     }
     public void setSelected(DOption option)
     {
+        Debug.Log("set selected option:" + option.text);
+        if (this.selectedOption == option)
+            return;
         this.selectedOption = option;
         RefreshShownValue();
         onValueChanged.Invoke(options.IndexOf(option));
@@ -138,13 +155,24 @@ public class ImaDropdown : MonoBehaviour
 
     internal void SetOptions(IEnumerable<DOption> newOptions)
     {
+        if (options == null)
+            init();
         options.Clear();
         options.AddRange(newOptions);
-        if (newOptions.Count() > 0)
+        if (newOptions.Count() > 0 && !options.Contains(selectedOption))
             setSelected(options[0]);
-        dropList.GetComponent<ImaScrollViewport>().setItems(options);
-        if (this.itemImage != null)
-            dropList.GetComponent<ImaScrollViewport>().itemImageName = this.itemImage.name;
+        ImaScrollViewport isv = this.scrollPort;
+        if (isv != null)
+        {
+            isv.setItems(options);
+            if (this.itemImage != null)
+                isv.itemImageName = this.itemImage.name;
+            else
+                Debug.LogError("Unable to get item Image to set for item");
+        }
+        else
+            Debug.LogError("Unable to access scroll viewport to set images");
+        //readFavs();
     }
 
     public void onItemClick(BaseEventData data)
@@ -180,5 +208,15 @@ public class ImaDropdown : MonoBehaviour
     public void OnPointerExit(PointerEventData data)
     {
         GetComponent<Image>().color = normalColor;
+    }
+
+    internal DOption getSelected()
+    {
+        return selectedOption;
+    }
+
+    internal void readFavs()
+    {
+        GetComponent<FavDropDown2>().readFavs();
     }
 }

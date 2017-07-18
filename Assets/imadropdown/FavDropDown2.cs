@@ -20,10 +20,15 @@ public class FavDropDown2 : MonoBehaviour {
     public string saveName = "globalFav";
 
     void Start() {
+    }
 
+    public void init()
+    { 
+        Debug.Log("FavDropDown2 start called");
         dropdown = GetComponent<ImaDropdown>();
+        if (dropdown == null)
+            Debug.LogError("dropdown null");
 
-        readFavs();
         setupArrowFavIcon();
         setupItemListFavIcon();
 
@@ -38,7 +43,8 @@ public class FavDropDown2 : MonoBehaviour {
             itemsDirty = false;
 
         });
-        doOptions();
+        readFavs();
+        //doOptions();
     }
     
     public void readFavs()
@@ -82,6 +88,10 @@ public class FavDropDown2 : MonoBehaviour {
     {
         try
         {
+            if (dropdown == null)
+                Debug.LogError("dropdown was null?");
+            if (dropdown.options == null)
+                Debug.LogError("dropdown options was null?");
             List<DOption> options = dropdown.options.ToList();
             //Debug.Log("options:" + options.Count);
             foreach (DOption i in options)
@@ -102,9 +112,11 @@ public class FavDropDown2 : MonoBehaviour {
 
     void FavButtonClicked(Dictionary<string, object> dict)
     {
+        ImaScrollViewport viewport = GetComponentInChildren<ImaScrollViewport>();
         int index = (int)dict["index"];
         ImaFavButton button = (ImaFavButton)dict["source"];
-        DOption option = (DOption)dropdown.options[index];
+        DOption option = (DOption)dropdown.options[index + viewport.startVisibleIndex ];
+        Debug.Log("fav button clicked index:" + index + " source:" + button + " option:" + option.text);
         toggleFav(option);
         button.gameObject.GetComponent<Image>().sprite = option.image;
         dropdown.RefreshShownValue();

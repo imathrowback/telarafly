@@ -115,6 +115,7 @@ public class FavDropDown : MonoBehaviour {
         int index = (int)dict["index"];
         FavButton button = (FavButton)dict["source"];
         DOption option = (DOption)dropdown.options[index];
+        Debug.Log("fav button clicked index:" + index + " source:" + button + " option:" + option.text);
         toggleFav(option);
         button.gameObject.GetComponent<Image>().sprite = option.image;
         dropdown.RefreshShownValue();

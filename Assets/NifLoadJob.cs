@@ -167,7 +167,8 @@ public class NifLoadJob : ThreadedJob
         }
         finally
         {
-            cacheWait[filename].Release();
+            if (cacheWait.ContainsKey(filename))
+                cacheWait[filename].Release();
         }
     }
 }

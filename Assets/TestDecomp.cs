@@ -38,20 +38,21 @@ public class TestDecomp : MonoBehaviour
     string error;
     Color color;
     AssetDatabase adb;
-    Dropdown dropdown;
+    ImaDropdown dropdown;
 
     // Use this for initialization
     void Start()
     {
+        Debug.Log("TestDecomp start called");
 
         tex = GetComponentInChildren<Text>();
         img = GetComponentInChildren<Image>();
-        dropdown = GetComponentInChildren<Dropdown>();
+        dropdown = GetComponentInChildren<ImaDropdown>();
         dropdownbox = dropdown.gameObject;
+        dropdownbox.SetActive(false);
         loadbutton = GameObject.Find("LoadWorldButton");
         loadModelViewerbutton = GameObject.Find("LoadModelButton");
         thirdPersonToggle = GetComponentInChildren<Toggle>().gameObject;
-        dropdownbox.SetActive(false);
         thirdPersonToggle.SetActive(false);
         loadbutton.SetActive(false);
         loadModelViewerbutton.SetActive(false);
@@ -94,6 +95,8 @@ public class TestDecomp : MonoBehaviour
         }
         if (db != null && !first)
         {
+            Debug.Log("TestDecomp update called");
+
             first = true;
             Debug.Log("get keys");
             IEnumerable<entry> keys = db.getEntriesForID(4479);
@@ -134,6 +137,7 @@ public class TestDecomp : MonoBehaviour
             worlds = worlds.OrderBy(w => !favs.Contains(w.spawnName)).ThenBy(w => w.worldName).ThenBy(w => w.spawnName).ToList();
 
             // do favs first
+            dropdown.init();
             List<DOption> options = new List<DOption>();
             foreach (WorldSpawn spawn in worlds)
             {
@@ -141,9 +145,8 @@ public class TestDecomp : MonoBehaviour
                 options.Add(option);
             }
             dropdown.options.Clear();
-            dropdown.AddOptions(options.Cast< Dropdown.OptionData>().ToList());
-            dropdown.GetComponent<FavDropDown>().readFavs();
-
+            dropdown.SetOptions(options);
+            //dropdown.GetComponent<FavDropDown2>().readFavs();
             //dropdown.value = startIndex;
             dropdown.RefreshShownValue();
             dropdownbox.SetActive(true);
@@ -151,6 +154,11 @@ public class TestDecomp : MonoBehaviour
             loadModelViewerbutton.SetActive(true);
             loadWardrobebutton.SetActive(true);
             thirdPersonToggle.SetActive(true);
+            tex.enabled = false;
+
+        }
+        else
+        {
         }
         if (tex != null && img != null)
         {
@@ -203,7 +211,8 @@ public class TestDecomp : MonoBehaviour
     public void doLoadMap()
     {
         Assets.GameWorld.Clear();
-        WorldSpawn spawn = (WorldSpawn)((DOption)dropdown.options[dropdown.value]).userObject;
+        WorldSpawn spawn = (WorldSpawn)dropdown.getSelected().userObject;
+            //((DOption)dropdown.options[dropdown.value]).userObject;
 
         string worldName = spawn.worldName;
         string worldCDR = worldName + "_map.cdr";

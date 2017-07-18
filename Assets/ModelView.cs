@@ -25,7 +25,7 @@ public class ModelView : MonoBehaviour
     Slider speedSlider;
     AssetDatabase adb;
     public GameObject ground;
-    Dropdown nIFModelDropdown;
+    ImaDropdown nIFModelDropdown;
     Dropdown animationDropdown;
 
     Dropdown AFdropdown;
@@ -41,15 +41,17 @@ public class ModelView : MonoBehaviour
     {
         root = GameObject.Find("ROOT");
         progressText = GameObject.Find("ProgressText").GetComponent<Text>();
-        nIFModelDropdown = GameObject.Find("NIFModelDropdown").GetComponent<Dropdown>();
+        nIFModelDropdown = GameObject.Find("NIFmodelImaDropdown").GetComponent<ImaDropdown>();
         animationDropdown = GameObject.Find("AnimationDropdown").GetComponent<Dropdown>();
 
+        /*
         AFdropdown = GameObject.Find("AFdropdown").GetComponent<Dropdown>();
         GLdropdown = GameObject.Find("GLdropdown").GetComponent<Dropdown>();
         MRdropdown = GameObject.Find("MRdropdown").GetComponent<Dropdown>();
         SZdropdown = GameObject.Find("SZdropdown").GetComponent<Dropdown>();
         SZZdropdown = GameObject.Find("SZZdropdown").GetComponent<Dropdown>();
         SZZZdropdown = GameObject.Find("SZZZdropdown").GetComponent<Dropdown>();
+        */
         speedSlider = GameObject.Find("SpeedSlider").GetComponent<Slider>();
         speedSlider.value = this.animSpeed;
       
@@ -61,7 +63,7 @@ public class ModelView : MonoBehaviour
 
     public void UseCurrentMount()
     {
-        string newNifP = nIFModelDropdown.options[nIFModelDropdown.value].text;
+        string newNifP = nIFModelDropdown.getSelected().text;
         string newNif = newNifP;
         if (newNifP.Contains(":"))
             newNif = newNifP.Split(':')[1];
@@ -82,13 +84,14 @@ public class ModelView : MonoBehaviour
     {
         Debug.Log("v:" + v);
         mountsOnly = v;
+        /*
         this.AFdropdown.gameObject.SetActive(v);
         this.GLdropdown.gameObject.SetActive(v);
         this.MRdropdown.gameObject.SetActive(v);
         this.SZdropdown.gameObject.SetActive(v);
         this.SZZdropdown.gameObject.SetActive(v);
         this.SZZZdropdown.gameObject.SetActive(v);
-
+        */
         if (!v)
         {
             IEnumerable<entry> entries = db.getEntriesForID(7305);
@@ -106,14 +109,15 @@ public class ModelView : MonoBehaviour
 
     private void parse7305(IEnumerable<entry> entries)
     {
-        nIFModelDropdown.ClearOptions();
+        
 
-        this.AFdropdown.ClearOptions();
+        /*this.AFdropdown.ClearOptions();
         this.GLdropdown.ClearOptions();
         this.MRdropdown.ClearOptions();
         this.SZdropdown.ClearOptions();
         this.SZZdropdown.ClearOptions();
         this.SZZZdropdown.ClearOptions();
+        */
         List<string> nIFModelEntries = new List<string>();
         List<string> AFdropdownE = new List<string>();
         List<string> GLdropdownE = new List<string>();
@@ -182,6 +186,7 @@ public class ModelView : MonoBehaviour
 
 
         //nIFModelEntries.Sort();
+        /*
         AFdropdownE.Sort();
         GLdropdownE.Sort();
         MRdropdownE.Sort();
@@ -194,12 +199,12 @@ public class ModelView : MonoBehaviour
         SZdropdown.AddOptions(SZdropdownE);
         SZZdropdown.AddOptions(SZZdropdownE);
         SZZZdropdown.AddOptions(SZZZdropdownE);
-
-        nIFModelDropdown.ClearOptions();
-        nIFModelDropdown.AddOptions(nIFModelEntries.Select(x => new DOption(x, null, false)).Cast<Dropdown.OptionData>().ToList());
-        nIFModelDropdown.GetComponent<FavDropDown>().readFavs();
-
+        */
+        
+        nIFModelDropdown.SetOptions(nIFModelEntries.Select(x => new DOption(x, null, false)));
+        nIFModelDropdown.readFavs();
     }
+
     public void toggleGround()
     {
         if (ground != null)
@@ -219,39 +224,51 @@ public class ModelView : MonoBehaviour
 
     public void changeNif(string newNifP)
     {
-        Debug.Log("Change nif:" + newNifP);
-        string newNif = newNifP;
-        if (newNifP.Contains(":"))
-            newNif = newNifP.Split(':')[1];
-        Model animNifModel = nifDictionary[newNif];
-        AnimatedNif animNif = gameObject.GetComponent<AnimatedNif>();
-        if (animNif == null)
-            animNif = gameObject.AddComponent<AnimatedNif>();
-        animNif.setParams(adb, animNifModel.nifFile, animNifModel.kfmFile, animNifModel.kfbFile);
-
-        if (nifmodel != null)
-            GameObject.DestroyImmediate(nifmodel);
-
-        nifmodel = NIFLoader.loadNIF(animNif.nif, true);
-        nifmodel.transform.parent = root.transform;
-
-        this.animationDropdown.ClearOptions();
-        List<String> anims = new List<String>();
-        foreach (KFAnimation ani in animNif.getAnimations())
+        try
         {
-            anims.Add(ani.sequencename);
-        }
-        anims.Sort();
-        animNif.setSkeletonRoot(nifmodel);
-        animationNif = animNif;
-        animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
+            Debug.Log("Change nif:" + newNifP);
+            string newNif = newNifP;
+            if (newNifP.Contains(":"))
+                newNif = newNifP.Split(':')[1];
+            Model animNifModel = nifDictionary[newNif];
+            AnimatedNif animNif = gameObject.GetComponent<AnimatedNif>();
+            if (animNif == null)
+                animNif = gameObject.AddComponent<AnimatedNif>();
+            animNif.setParams(adb, animNifModel.nifFile, animNifModel.kfmFile, animNifModel.kfbFile);
 
-        this.animationDropdown.AddOptions(anims);
-        
+            if (nifmodel != null)
+                GameObject.DestroyImmediate(nifmodel);
+            Debug.Log("load nif");
+
+            nifmodel = NIFLoader.loadNIF(animNif.nif, true);
+            nifmodel.transform.parent = root.transform;
+
+            Debug.Log("set anims dropdown");
+            this.animationDropdown.ClearOptions();
+            List<String> anims = new List<String>();
+            foreach (KFAnimation ani in animNif.getAnimations())
+            {
+                anims.Add(ani.sequencename);
+            }
+            anims.Sort();
+            Debug.Log("set skel root");
+            animNif.setSkeletonRoot(nifmodel);
+            animationNif = animNif;
+            Debug.Log("set active anim");
+            animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
+
+            this.animationDropdown.AddOptions(anims);
+            Debug.Log("DONE Change nif:" + newNifP);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError(ex);
+        }
+
     }
     public void changeAnim()
     {
-        changeNif(nIFModelDropdown.options[nIFModelDropdown.value].text);
+        changeNif(nIFModelDropdown.getSelected().text);
 
         string anim = this.animationDropdown.options[this.animationDropdown.value].text;
         animationNif.setActiveAnimation(anim);
@@ -291,7 +308,7 @@ public class ModelView : MonoBehaviour
 
     public void changeNIF()
     {
-        string nif = nIFModelDropdown.options[nIFModelDropdown.value].text;
+        string nif = nIFModelDropdown.getSelected().text;
         changeNif(nif);
     }
 
@@ -302,6 +319,7 @@ public class ModelView : MonoBehaviour
         progressText.text = progress;
         if (DBInst.loaded && !first)
         {
+            nIFModelDropdown.init();
             first = true;
             IEnumerable<entry> entries = db.getEntriesForID(7305);
             parse7305(entries);
