@@ -28,12 +28,6 @@ public class ModelView : MonoBehaviour
     ImaDropdown nIFModelDropdown;
     Dropdown animationDropdown;
 
-    Dropdown AFdropdown;
-    Dropdown GLdropdown;
-    Dropdown MRdropdown;
-    Dropdown SZdropdown;
-    Dropdown SZZdropdown;
-    Dropdown SZZZdropdown;
     Dictionary<String, Model> nifDictionary = new Dictionary<string, Model>();
     DB db;
     volatile string progress = "";
@@ -44,14 +38,6 @@ public class ModelView : MonoBehaviour
         nIFModelDropdown = GameObject.Find("NIFmodelImaDropdown").GetComponent<ImaDropdown>();
         animationDropdown = GameObject.Find("AnimationDropdown").GetComponent<Dropdown>();
 
-        /*
-        AFdropdown = GameObject.Find("AFdropdown").GetComponent<Dropdown>();
-        GLdropdown = GameObject.Find("GLdropdown").GetComponent<Dropdown>();
-        MRdropdown = GameObject.Find("MRdropdown").GetComponent<Dropdown>();
-        SZdropdown = GameObject.Find("SZdropdown").GetComponent<Dropdown>();
-        SZZdropdown = GameObject.Find("SZZdropdown").GetComponent<Dropdown>();
-        SZZZdropdown = GameObject.Find("SZZZdropdown").GetComponent<Dropdown>();
-        */
         speedSlider = GameObject.Find("SpeedSlider").GetComponent<Slider>();
         speedSlider.value = this.animSpeed;
       
@@ -84,57 +70,31 @@ public class ModelView : MonoBehaviour
     {
         Debug.Log("v:" + v);
         mountsOnly = v;
-        /*
-        this.AFdropdown.gameObject.SetActive(v);
-        this.GLdropdown.gameObject.SetActive(v);
-        this.MRdropdown.gameObject.SetActive(v);
-        this.SZdropdown.gameObject.SetActive(v);
-        this.SZZdropdown.gameObject.SetActive(v);
-        this.SZZZdropdown.gameObject.SetActive(v);
-        */
         if (!v)
         {
-            IEnumerable<entry> entries = db.getEntriesForID(7305);
-            parse7305(entries);
+            
+            updateComboBoxDataModel();
             changeNif("crucia.nif");
             animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
         }
         else
         {
-            IEnumerable<entry> entries = db.getEntriesForID(7305);
-            parse7305(entries);
+          
+            updateComboBoxDataModel();
         }
 
     }
 
-    private void parse7305(IEnumerable<entry> entries)
+    private void updateComboBoxDataModel()
     {
-        
+        IEnumerable<entry> entries = db.getEntriesForID(7305);
 
-        /*this.AFdropdown.ClearOptions();
-        this.GLdropdown.ClearOptions();
-        this.MRdropdown.ClearOptions();
-        this.SZdropdown.ClearOptions();
-        this.SZZdropdown.ClearOptions();
-        this.SZZZdropdown.ClearOptions();
-        */
         List<string> nIFModelEntries = new List<string>();
-        List<string> AFdropdownE = new List<string>();
-        List<string> GLdropdownE = new List<string>();
-        List<string> MRdropdownE = new List<string>();
-        List<string> SZdropdownE = new List<string>();
-        List<string> SZZdropdownE = new List<string>();
-             List<string> SZZZdropdownE = new List<string>();
         List<entry> lentries = new List<entry>(entries);
-        List<string>[] buckets = new List<string>[] { AFdropdownE , GLdropdownE, MRdropdownE, SZdropdownE , SZZdropdownE ,SZZZdropdownE };
-
-        //nIFModelEntries.Add("human_male_ref.nif");
-        //nifDictionary["human_male_ref.nif"] = new AnimatedNif(adb, "human_male_ref.nif", "human_male.kfm", "human_male.kfb");
 
         nIFModelEntries.Clear();
         nifDictionary.Clear();
 
-        List<string> nifsToBucket = new List<string>();
         foreach (entry e in lentries)
         {
             try
@@ -159,7 +119,6 @@ public class ModelView : MonoBehaviour
                         // normal model
                         if (!nifDictionary.ContainsKey(nifFile))
                         {
-                            nifsToBucket.Add(nifFile);
                             nifDictionary[nifFile] = model;
                         }
                     }
@@ -170,37 +129,6 @@ public class ModelView : MonoBehaviour
                 Debug.Log("Unable to parse entry " + e.id + ":" + e.key + ":" + ex.Message);
             }
         }
-
-        nifsToBucket.Sort();
-        int bucketSize = nifsToBucket.Count / buckets.Length;
-        Debug.Log("bucketsize: " + nifsToBucket.Count + ":" + bucketSize);
-        foreach (string s in nifsToBucket)
-        {
-            for (int i = 0; i < buckets.Length; i++)
-                if (buckets[i].Count <= bucketSize)
-                {
-                    buckets[i].Add(s);
-                    break;
-                }
-        }
-
-
-        //nIFModelEntries.Sort();
-        /*
-        AFdropdownE.Sort();
-        GLdropdownE.Sort();
-        MRdropdownE.Sort();
-        SZdropdownE.Sort();
-        SZZdropdownE.Sort();
-        SZZZdropdownE.Sort();
-        AFdropdown.AddOptions(AFdropdownE);
-        GLdropdown.AddOptions(GLdropdownE);
-        MRdropdown.AddOptions(MRdropdownE);
-        SZdropdown.AddOptions(SZdropdownE);
-        SZZdropdown.AddOptions(SZZdropdownE);
-        SZZZdropdown.AddOptions(SZZZdropdownE);
-        */
-        
         nIFModelDropdown.SetOptions(nIFModelEntries.Select(x => new DOption(x, null, false)));
         nIFModelDropdown.readFavs();
     }
@@ -279,33 +207,6 @@ public class ModelView : MonoBehaviour
         animSpeed = speedSlider.value;
     }
 
-    public void changeAF()
-    {
-        changeNif(AFdropdown.options[AFdropdown.value].text);
-    }
-    public void changeGL()
-    {
-        changeNif(GLdropdown.options[GLdropdown.value].text);
-    }
-    public void changeMR()
-    {
-        changeNif(MRdropdown.options[MRdropdown.value].text);
-    }
-    public void changeSZ()
-    {
-        changeNif(SZdropdown.options[SZdropdown.value].text);
-    }
-
-    public void changeSZZZ()
-    {
-        changeNif(SZZZdropdown.options[SZZZdropdown.value].text);
-    }
-
-    public void changeSZZ()
-    {
-        changeNif(SZZdropdown.options[SZZdropdown.value].text);
-    }
-
     public void changeNIF()
     {
         string nif = nIFModelDropdown.getSelected().text;
@@ -321,8 +222,8 @@ public class ModelView : MonoBehaviour
         {
             nIFModelDropdown.init();
             first = true;
-            IEnumerable<entry> entries = db.getEntriesForID(7305);
-            parse7305(entries);
+           
+            updateComboBoxDataModel();
             changeNif("crucia.nif");
             animationNif.setActiveAnimation(animationNif.getIdleAnimIndex());
         }

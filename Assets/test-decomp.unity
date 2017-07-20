@@ -2223,6 +2223,7 @@ MonoBehaviour:
       m_Calls: []
     m_TypeName: UnityEngine.UI.Dropdown+DropdownEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
+  scrollPort: {fileID: 188323487}
 --- !u!114 &1108362172
 MonoBehaviour:
   m_ObjectHideFlags: 0
