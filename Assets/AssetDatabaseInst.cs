@@ -23,7 +23,11 @@ namespace Assets
         {
             
             assetsDirectory = ProgramSettings.get("ASSETS_DIR");
+            if (assetsDirectory == null)
+                throw new Exception("Assets directory was null");
             assetsManifest = ProgramSettings.get("ASSETS_MANIFEST");
+            if (assetsManifest == null)
+                throw new Exception("Assets manifest was null");
             manifest = new Manifest(assetsManifest);
             db = AssetProcessor.buildDatabase(manifest, assetsDirectory);
         }

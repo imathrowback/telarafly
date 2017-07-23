@@ -47,7 +47,7 @@ namespace Assets
 
         static private ProgramSettings getInstance()
         {
-            //if (inst == null)
+            if (inst == null)
                 inst = new ProgramSettings();
             return inst;
         }

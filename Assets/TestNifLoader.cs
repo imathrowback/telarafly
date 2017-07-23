@@ -15,7 +15,7 @@ public class TestNifLoader : MonoBehaviour {
     GameObject mount;
     // Use this for initialization
     void Start () {
-        GameObject go = NIFLoader.loadNIF("SKY_instance_abyssal_precipice_dome.nif");
+        GameObject go = NIFLoader.loadNIF("N_W_freemarch_kings_retreat_01.nif");
     }
 	
 	// Update is called once per frame
