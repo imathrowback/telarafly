@@ -12,31 +12,15 @@ public class telara_obj : MonoBehaviour {
     public bool doLoad = false;
     public bool loaded = false;
     public Assets.RiftAssets.AssetDatabase.RequestCategory cat = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
-    telera_spawner spawner;
 
     public void setFile(String str)
     {
         file = str;
     }
-    public void setProps(Assets.RiftAssets.AssetDatabase.RequestCategory cat, telera_spawner spawner)
+    public void setProps(Assets.RiftAssets.AssetDatabase.RequestCategory cat)
     {
-        this.spawner = spawner;
         this.cat = cat;
     }
-    /*
-    public void objectVisible()
-    {
-        if (doLoad || loaded)
-            return;
-        doLoad = true;
-        startJob();
-    }
-
-    void startJob()
-    {
-        spawner.addJob(this, file);
-    }
-    */
 
     public void unload()
     {

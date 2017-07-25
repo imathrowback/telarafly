@@ -172,7 +172,7 @@ public class telera_spawner : MonoBehaviour
             go.SetActive(v);
     }
 
-    void addCDR(ObjectPosition op, GameObject go)
+    public static void addCDR(ObjectPosition op, GameObject go)
     {
         // add some debug stuff to the object if we are in the editor
         CDRItem cdrItem = go.GetComponent<CDRItem>();
@@ -182,7 +182,8 @@ public class telera_spawner : MonoBehaviour
         cdrItem.index = op.index;
         cdrItem.name = op.entityname;
     }
-    private GameObject process(ObjectPosition op)
+
+    public GameObject process(ObjectPosition op)
     {
 
         if (op is LightPosition)
@@ -227,7 +228,7 @@ public class telera_spawner : MonoBehaviour
         }
 
         telara_obj tobj = go.GetComponent<telara_obj>();
-        tobj.setProps(category, this);
+        tobj.setProps(category);
 
         //go.transform.SetParent(meshRoot.transform);
 

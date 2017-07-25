@@ -11,12 +11,12 @@ using UnityEngine;
 
 namespace Assets.WorldStuff
 {
-    class Map
+    public class Map
     {
         public List<Zone> zones;
         public List<Scene> scenes;
     }
-    class Zone
+    public class Zone
     {
         public long _113Key;
         public string name;
@@ -24,14 +24,14 @@ namespace Assets.WorldStuff
         public PolygonCollider2D collider;
         public List<string> sky = new List<string>();
     }
-    class Scene
+    public class Scene
     {
         public long _114Key;
         public List<Vector3> points = new List<Vector3>();
         internal string name;
         internal PolygonCollider2D collider;
     }
-    class CDRParse
+    public class CDRParse
     {
         static private string getLocalized(CObject obj, string defaultText)
         {

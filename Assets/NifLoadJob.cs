@@ -50,7 +50,7 @@ public class NifLoadJob : ThreadedJob
     NIFFile niffile;
     NIFFile lodfile;
 
-    public Vector3 parentPos { get; internal set; }
+    public Vector3 parentPos { get;  set; }
 
     public NifLoadJob( string file)
     {
