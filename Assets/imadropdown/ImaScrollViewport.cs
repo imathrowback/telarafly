@@ -37,8 +37,6 @@ public class ImaScrollViewport : MonoBehaviour {
     }
     void updateItems()
     {
-        int y = 2;
-
         trimVisibleItems();
         for (int i = 0; i < visibleItemCount(); i++)
         {
@@ -63,9 +61,20 @@ public class ImaScrollViewport : MonoBehaviour {
                     {
                         Image itemImage = itemImageObj.GetComponent<Image>();
                         if (itemImage != null)
+                        {
+                            if (option.image == null)
+                                Debug.LogWarning("option image was null for option[" + option.text + ":" + option.fav + ":" + itemImage.transform);
                             itemImage.GetComponent<Image>().sprite = option.image;
+                            ///Debug.Log("set sprite of itemImage to " + option.image.name, itemImage);
+                        }
+                        else
+                            Debug.LogWarning("Unable to get image fore item image obj", itemImageObj);
                     }
+                    else
+                        Debug.LogWarning("Unable to find itemImageName in item", item);
                 }
+                else Debug.LogWarning("No item imate name specified", item);
+
                 item.SetActive(true);
                 item.GetComponent<ImaListItem>().userObject = option;
                 item.name = i + ":" +  text.text;

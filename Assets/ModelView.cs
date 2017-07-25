@@ -201,8 +201,7 @@ public class ModelView : MonoBehaviour
         SZZZdropdown.AddOptions(SZZZdropdownE);
         */
         
-        nIFModelDropdown.SetOptions(nIFModelEntries.Select(x => new DOption(x, null, false)));
-        nIFModelDropdown.readFavs();
+        nIFModelDropdown.GetComponent<FavDropDown2>().SetOptions(nIFModelEntries.Select(x => new DOption(x, null, false)).ToList());
     }
 
     public void toggleGround()
@@ -319,7 +318,7 @@ public class ModelView : MonoBehaviour
         progressText.text = progress;
         if (DBInst.loaded && !first)
         {
-            nIFModelDropdown.init();
+          
             first = true;
             IEnumerable<entry> entries = db.getEntriesForID(7305);
             parse7305(entries);

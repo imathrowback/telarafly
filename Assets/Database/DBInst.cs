@@ -195,6 +195,7 @@ namespace Assets.Database
             catch(Exception ex)
             {
                 Debug.LogError(ex);
+                throw ex;
             }
             return db;
         }
