@@ -129,8 +129,7 @@ public class ModelView : MonoBehaviour
                 Debug.Log("Unable to parse entry " + e.id + ":" + e.key + ":" + ex.Message);
             }
         }
-        nIFModelDropdown.SetOptions(nIFModelEntries.Select(x => new DOption(x, null, false)));
-        nIFModelDropdown.readFavs();
+        nIFModelDropdown.GetComponent<FavDropDown2>().SetOptions(nIFModelEntries.Select(x => new DOption(x, null, false)).ToList());
     }
 
     public void toggleGround()
@@ -220,7 +219,7 @@ public class ModelView : MonoBehaviour
         progressText.text = progress;
         if (DBInst.loaded && !first)
         {
-            nIFModelDropdown.init();
+          
             first = true;
            
             updateComboBoxDataModel();

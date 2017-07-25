@@ -137,7 +137,7 @@ public class TestDecomp : MonoBehaviour
             worlds = worlds.OrderBy(w => !favs.Contains(w.spawnName)).ThenBy(w => w.worldName).ThenBy(w => w.spawnName).ToList();
 
             // do favs first
-            dropdown.init();
+           
             List<DOption> options = new List<DOption>();
             foreach (WorldSpawn spawn in worlds)
             {
@@ -145,7 +145,7 @@ public class TestDecomp : MonoBehaviour
                 options.Add(option);
             }
             dropdown.options.Clear();
-            dropdown.SetOptions(options);
+            dropdown.GetComponent<FavDropDown2>().SetOptions(options);
             //dropdown.GetComponent<FavDropDown2>().readFavs();
             //dropdown.value = startIndex;
             dropdown.RefreshShownValue();

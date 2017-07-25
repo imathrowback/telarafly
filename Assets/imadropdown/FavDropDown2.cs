@@ -21,10 +21,13 @@ public class FavDropDown2 : MonoBehaviour {
 
     void Start() {
     }
-
-    public void init()
+    public void Awake()
+    {
+        Debug.Log("FavDropDown2 awake called");
+        init();
+    }
+    private void init()
     { 
-        Debug.Log("FavDropDown2 start called");
         dropdown = GetComponent<ImaDropdown>();
         if (dropdown == null)
             Debug.LogError("dropdown null");
@@ -37,32 +40,42 @@ public class FavDropDown2 : MonoBehaviour {
         {
             if (itemsDirty)
             {
-                doOptions();
+                setSortedOptions();
                 storeFavs();
             }
             itemsDirty = false;
 
         });
-        readFavs();
+        //readFavs();
         //doOptions();
     }
-    
-    public void readFavs()
+   
+
+
+    private void updateItemsWithFavs(List<DOption> options)
     {
+        List<string> favs = new List<string>();
         try
         {
             byte[] saveData = Convert.FromBase64String(PlayerPrefs.GetString(saveName));
             BinaryFormatter ser = new BinaryFormatter();
-            List<string> favs = (List<string>)ser.Deserialize(new MemoryStream(saveData));
-                DOption[] options = dropdown.options.Cast<DOption>().ToArray();
-                foreach (DOption i in options)
-                    i.fav = favs.Contains(i.text);
+            favs.AddRange((List<string>)ser.Deserialize(new MemoryStream(saveData)));
         }
         catch (Exception ex)
         {
             Debug.LogWarning("Unable to process player preferences for favourites[" + saveName + "]:" + ex.Message);
         }
-        doOptions();
+        favSprite.name = "FavSprite";
+        notFavSprite.name = "NotFavSprite";
+        foreach (DOption i in options)
+        {
+            i.fav = favs.Contains(i.text);
+            if (i.fav)
+                i.image = favSprite;
+            else
+                i.image = notFavSprite;
+
+        }
     }
 
     void storeFavs()
@@ -84,23 +97,28 @@ public class FavDropDown2 : MonoBehaviour {
         PlayerPrefs.Save();
     }
 
-    public void doOptions()
+    public void setSortedOptions()
     {
+        if (dropdown.options == null)
+            Debug.LogError("dropdown options was null?");
+        setSortedOptions(dropdown.options.ToList());
+    }
+  
+    public void SetOptions(List<DOption> options)
+    {
+        setSortedOptions(options);
+    }
+   
+
+    public void setSortedOptions(List<DOption> options)
+    {
+        Debug.LogWarning("DOOPTIONS");
         try
         {
             if (dropdown == null)
                 Debug.LogError("dropdown was null?");
-            if (dropdown.options == null)
-                Debug.LogError("dropdown options was null?");
-            List<DOption> options = dropdown.options.ToList();
-            //Debug.Log("options:" + options.Count);
-            foreach (DOption i in options)
-            {
-                if (i.fav)
-                    i.image = favSprite;
-                else
-                    i.image = notFavSprite;
-            }
+            updateItemsWithFavs(options);
+           
             dropdown.SetOptions(options.OrderBy(x => !x.fav).ThenBy(x => x.text).ToList());
             dropdown.RefreshShownValue();
         }catch (Exception ex)
@@ -154,8 +172,7 @@ public class FavDropDown2 : MonoBehaviour {
         butt.clickMethodReciever = "FavButtonClicked";
     }
 
-
-
+    
 
     void setupArrowFavIcon()
     {

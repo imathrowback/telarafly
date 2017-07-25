@@ -31,12 +31,13 @@ public class ImaDropdown : MonoBehaviour
 
     public void Awake()
     {
+        init();
     }
     // Use this for initialization
     void Start() {
     }
 
-    public void init()
+    private void init()
     { 
         Debug.Log("dropdown start");
         this.options = new List<DOption>();
@@ -51,13 +52,11 @@ public class ImaDropdown : MonoBehaviour
             options.Add(new DOption(i + "1235", null));
             options.Add(new DOption(i + "1236", null, true));
         }
-        SetOptions(options);
         */
+        SetOptions(options);
         makeTrigger(EventTriggerType.PointerEnter, (x) => OnPointerEnter((PointerEventData)x));
         makeTrigger(EventTriggerType.PointerClick, (x) => OnPointerClick((PointerEventData)x));
         makeTrigger(EventTriggerType.PointerExit, (x) => OnPointerExit((PointerEventData)x));
-
-        GetComponent<FavDropDown2>().init();
     }
 
     public void RefreshShownValue()
@@ -152,7 +151,27 @@ public class ImaDropdown : MonoBehaviour
         }
         lastItemOver = null;
     }
-
+    void updateItemImages()
+    {
+        Debug.Log("update item images");
+        ImaScrollViewport isv = this.scrollPort;
+        if (isv == null)
+        {
+            this.scrollPort = transform.Find("DropList").GetComponent<ImaScrollViewport>();
+            isv = this.scrollPort;
+        }
+        if (isv != null)
+        {
+            Debug.Log("set items to scroll view");
+            if (this.itemImage != null)
+                isv.itemImageName = this.itemImage.name;
+            else
+                Debug.LogWarning("Unable to get item Image to set for item");
+            isv.setItems(options);
+        }
+        else
+            Debug.LogError("Unable to access scroll viewport to set images");
+    }
     internal void SetOptions(IEnumerable<DOption> newOptions)
     {
         if (options == null)
@@ -161,17 +180,7 @@ public class ImaDropdown : MonoBehaviour
         options.AddRange(newOptions);
         if (newOptions.Count() > 0 && !options.Contains(selectedOption))
             setSelected(options[0]);
-        ImaScrollViewport isv = this.scrollPort;
-        if (isv != null)
-        {
-            isv.setItems(options);
-            if (this.itemImage != null)
-                isv.itemImageName = this.itemImage.name;
-            else
-                Debug.LogError("Unable to get item Image to set for item");
-        }
-        else
-            Debug.LogError("Unable to access scroll viewport to set images");
+        updateItemImages();
         //readFavs();
     }
 
@@ -200,6 +209,7 @@ public class ImaDropdown : MonoBehaviour
 
             dropList.SetActive(true);
             dropList.GetComponent<ImaScrollViewport>().setItems(options);
+            updateItemImages();
             // create blocker to detect mouse OFF clicks
             //GameObject blocker = new GameObject();
             //blocker.transform.parent = 
@@ -215,8 +225,5 @@ public class ImaDropdown : MonoBehaviour
         return selectedOption;
     }
 
-    internal void readFavs()
-    {
-        GetComponent<FavDropDown2>().readFavs();
-    }
+   
 }
