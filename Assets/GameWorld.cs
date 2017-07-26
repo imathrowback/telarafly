@@ -12,7 +12,7 @@ namespace Assets
         public static int minY = 0;
         public static int maxX = 0;
         public static int maxY = 0;
-        public static string worldName;
+        public static string worldName = "world";
         static List<WorldSpawn> spawns = new List<WorldSpawn>();
         public static WorldSpawn initialSpawn { get; set; }
         public static bool useColliders { get; internal set; }

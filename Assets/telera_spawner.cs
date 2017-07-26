@@ -20,6 +20,7 @@ public class telera_spawner : MonoBehaviour
     GameObject charC;
     ThirdPersonUserControl tpuc;
     Rigidbody tpucRB;
+    public BigMap bigMap;
     public GameObject mcamera;
     //camera_movement camMove;
     System.IO.StreamReader fileStream;
@@ -119,7 +120,13 @@ public class telera_spawner : MonoBehaviour
         dropdown.GetComponent<FavDropDown>().doOptions();
         dropdown.RefreshShownValue();
 
+        bigMap.setWorld(GameWorld.worldName);
 
+        bigMap.OnSpawnClick += (s) =>
+        {
+            setCameraLoc(s);
+            bigMap.hide();
+        };
     }
 
 
@@ -162,6 +169,11 @@ public class telera_spawner : MonoBehaviour
         GameWorld.initialSpawn = GameWorld.getSpawns()[dropdown.value];
         setCameraLoc(GameWorld.initialSpawn);
     }
+    public void teleportTo(WorldSpawn spawn)
+    {
+        setCameraLoc(spawn);
+    }
+
     SCG.List<GameObject> invisibleObjects = new SCG.List<GameObject>();
     public void toggleInvisible(bool v)
     {

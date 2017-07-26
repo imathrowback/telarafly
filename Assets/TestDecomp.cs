@@ -19,6 +19,7 @@ using Assets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
 using System.Reflection;
+using Assets.WorldStuff;
 
 public class TestDecomp : MonoBehaviour
 {
@@ -99,37 +100,9 @@ public class TestDecomp : MonoBehaviour
 
             first = true;
             Debug.Log("get keys");
-            IEnumerable<entry> keys = db.getEntriesForID(4479);
             worlds.Clear();
 
-            Debug.Log("process keys");
-            foreach (entry e in keys)
-            {
-                byte[] data = e.decompressedData;
-                using (MemoryStream ms = new MemoryStream(data))
-                {
-                    CObject obj = Parser.processStreamObject(ms);
-                    string worldName =  obj.getStringMember(0);
-                    string internalSpawnName =  obj.getStringMember(1);
-                    string spawnName = getLocalized(obj.getMember(10), internalSpawnName);
-
-
-                    try
-                    {
-                        Vector3 pos = obj.getVector3Member(2);
-                        float angle = angle = obj.getFloatMember(3, 0);
-                        pos.y += 2;
-
-                        if (adb.filenameExists(worldName + "_map.cdr"))
-                        {
-                            worlds.Add(new WorldSpawn(worldName, spawnName, pos, angle));
-                        }
-                    }catch (Exception ex)
-                    {
-                        Debug.Log("Unable to get position for spawn [" + e.id + "][" + e.key + "]" + ex);
-                    }
-                }
-            }
+            worlds.AddRange(CDRParse.getSpawns(adb, db, null));
 
             favs.Add("tm_Meridian_EpochPlaza");
 

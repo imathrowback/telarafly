@@ -188,8 +188,11 @@ namespace Assets.WorldStuff
             return p;
         }
 
-        public static void getMinMax(string worldName, ref int x, ref int y)
+        public static void getMinMax(string worldName_, ref int x, ref int y)
         {
+            string worldName = worldName_;
+            if (!worldName_.Contains("cdr"))
+                worldName = worldName + "_map.cdr";
             AssetDatabase adb = AssetDatabaseInst.DB;
             System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
 
@@ -267,6 +270,47 @@ namespace Assets.WorldStuff
             processCDR(new MemoryStream(data), str, addFunc, db);
 
         }
+
+        public static List<WorldSpawn> getSpawns(AssetDatabase adb, DB db, string world)
+        {
+            List<WorldSpawn> worlds = new List<WorldSpawn>();
+            IEnumerable<entry> keys = db.getEntriesForID(4479);
+
+            foreach (entry e in keys)
+            {
+                byte[] data = e.decompressedData;
+                using (MemoryStream ms = new MemoryStream(data))
+                {
+                    CObject obj = Parser.processStreamObject(ms);
+                    string worldName = obj.getStringMember(0);
+                    string imagePath = obj.getStringMember(5);
+                    string internalSpawnName = obj.getStringMember(1);
+                    string spawnName = getLocalized(obj.getMember(10), internalSpawnName);
+                    if (world != null)
+                        if (!worldName.Equals(world))
+                            continue;
+                    try
+                    {
+                        Vector3 pos = obj.getVector3Member(2);
+                        float angle = angle = obj.getFloatMember(3, 0);
+                        pos.y += 2;
+
+                        if (adb.filenameExists(worldName + "_map.cdr"))
+                        {
+                            WorldSpawn ws = new WorldSpawn(worldName, spawnName, pos, angle);
+                            ws.imagePath = imagePath;
+                            worlds.Add(ws);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.Log("Unable to get position for spawn [" + e.id + "][" + e.key + "]" + ex);
+                    }
+                }
+            }
+            return worlds;
+        }
+
         static void processCDR(Stream ms, string cdrName, Action<ObjectPosition> addFunc, DB db)
         {
             try

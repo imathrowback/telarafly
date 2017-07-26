@@ -12,6 +12,9 @@ namespace Assets
         public string spawnName;
         public Vector3 pos;
         public float angle;
+
+        public string imagePath { get; internal set; }
+
         public WorldSpawn(string worldName, string spawnName, Vector3 pos, float angle)
         {
             this.worldName = worldName;
