@@ -125,7 +125,7 @@ public class telera_spawner : MonoBehaviour
         bigMap.OnSpawnClick += (s) =>
         {
             setCameraLoc(s);
-            bigMap.hide();
+           
         };
     }
 
