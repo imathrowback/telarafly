@@ -78,6 +78,23 @@ namespace Assets.Database
             loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(loadDatabase_));
             loadThread.Start();
         }
+
+        private static void cleanupOld()
+        {
+            string tempPath = System.IO.Path.GetTempPath();
+            foreach(string file in Directory.GetFiles(tempPath, "telaraflydb*"))
+            {
+                try
+                {
+                    Debug.Log("delete old DB file:" + file);
+                    File.Delete(file);
+                }
+                catch (Exception ex)
+                {
+                    Debug.Log("\tUnable to delete file:" + file + " :" + ex.Message);
+                }
+            }
+        }
         
         private static void loadDatabase_()
         {
@@ -93,16 +110,17 @@ namespace Assets.Database
 
                     string entryHash = Util.bytesToHexString(ae.hash);
 
-                    string namePath = System.IO.Path.GetTempPath() + "telaraflydb";
+                    string namePath = System.IO.Path.GetTempPath() + "telaraflydb" + Guid.NewGuid();
                     string compressedSQLDB = namePath + ".db3";
-                    string dbHashname = namePath + ".hash";
-
+                    //string dbHashname = namePath + ".hash";
+                    cleanupOld();
                     AppDomain.CurrentDomain.ProcessExit += (s, e) =>
                     {
                         if (origc != null)
                             origc.Close();
                     };
 
+                    /*
                     string foundHash = "";
                     Debug.Log("check telaradb hash");
                     if (File.Exists(dbHashname) && File.Exists(compressedSQLDB))
@@ -112,7 +130,6 @@ namespace Assets.Database
                             foundHash = lines[0];
                     }
 
-                    DB db;
                     if (!foundHash.Equals(entryHash))
                     {
                         db = readDB(adb.extract(ae), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
@@ -120,9 +137,11 @@ namespace Assets.Database
                     }
                     else
                     {
-                        db = new DB();
-                        processSQL(db, compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
-                    }
+                    */
+//                        db = new DB();
+//                        processSQL(db, compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+                    //}
+                    DB db = readDB(adb.extract(ae), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
 
                     progress.Invoke("[Phase 1 of 2] Reading language database");
                     langdb = new DBLang(adb, "english", (s) => { progress.Invoke("[Phase 1 of 2]" + s); });

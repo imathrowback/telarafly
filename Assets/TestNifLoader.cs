@@ -13,13 +13,20 @@ using Assets.DatParser;
 
 public class TestNifLoader : MonoBehaviour {
     GameObject mount;
+    GameObject test;
     // Use this for initialization
     void Start () {
-        GameObject go = NIFLoader.loadNIF("SKY_instance_abyssal_precipice_dome.nif");
+        this.test = NIFLoader.loadNIF("A_TNB_building_01.nif");
     }
 	
 	// Update is called once per frame
 	void Update () {
+#if UNITY_EDITOR
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            UnityEditor.PrefabUtility.CreatePrefab("Assets/x.prefab", test);
+        }
+#endif
         if (true)
             return; 
 		if (mount == null)
