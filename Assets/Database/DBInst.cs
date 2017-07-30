@@ -185,7 +185,7 @@ namespace Assets.Database
 
                 reader.BaseStream.Seek(0, SeekOrigin.Begin);
 
-                MemoryStream decryptedStream = new MemoryStream();
+                MemoryStream decryptedStream = new MemoryStream(telaraDBData.Length);
 
                 int pageCount = telaraDBData.Length / pageSize;
                 for (int i = 1; i < pageCount + 1; i++)
