@@ -22,8 +22,10 @@ namespace Assets
         KdTree.KdTree<float, SCG.List<NifLoadJob>> postree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
         KdTree.KdTree<float, SCG.List<NifLoadJob>> terraintree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
         SCG.List<ObjectPosition> objectPositions;
-
+        private Plane[] camPlanes;
+        System.Object camPlaneLock = new System.Object();
         HashSet<long> processedTiles = new HashSet<long>();
+        public Camera cam { get;  set; }
 
         SCG.List<KeyValuePair<int, int>> cdrJobQueue = new SCG.List<KeyValuePair<int, int>>();
         int MAX_TERRAIN_THREADS = 2;
@@ -211,7 +213,14 @@ namespace Assets
 
                             oListCountEstimate = objectRunningList.Count;
                             SCG.IEnumerable<NifLoadJob> otherjobs = candidates.SelectMany(e => e.Value);
-                            otherjobs = otherjobs.OrderBy(n => Vector3.Distance(n.parentPos, camPos));
+                            lock (camPlaneLock)
+                            {
+                                otherjobs = otherjobs.OrderBy(n =>
+                                {
+                                    return !TestPlanesAABB(camPlanes, n.parentPos);
+                                }
+                                ).ThenBy(n => Vector3.Distance(n.parentPos, camPos));
+                            }
                             foreach (NifLoadJob job in otherjobs)
                             {
                                 if (availThreads() > 0)
@@ -236,7 +245,15 @@ namespace Assets
             }
         }
 
-      
+        private bool TestPlanesAABB(Plane[] camPlanes, Vector3 point)
+        {
+            foreach (Plane p in camPlanes)
+            {
+                if (!p.GetSide(point))
+                    return false;
+            }
+            return true;
+        }
 
         private static long Combine(int x, int y)
         {
@@ -263,24 +280,29 @@ namespace Assets
         IQueue<NifLoadJob> loadingCapsuleQueue = new CircularQueue<NifLoadJob>();
         void startJob(NifLoadJob job, TreeDictionary<long, NifLoadJob> runningList, KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates)
         {
-            //Debug.Log("Start job:" + job.filename);
-            job.Start((System.Threading.ThreadPriority)ProgramSettings.get("OBJECT_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal));
-            lock (runningList)
-            {
-                runningList.Add(job.uid, job);
-            }
             lock (loadingCapsuleQueue)
             {
                 loadingCapsuleQueue.Enqueue(job);
             }
+            lock (runningList)
+            {
+                runningList.Add(job.uid, job);
+            }
             foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in candidates)
                 n.Value.Remove(job);
+            //Debug.Log("Start job:" + job.filename);
+            job.Start((System.Threading.ThreadPriority)ProgramSettings.get("OBJECT_LOAD_THREAD_PRIORITY", (int)System.Threading.ThreadPriority.Normal));
 
         }
 
         [CallFromUnityUpdate]
         internal void processThreadsUnityUpdate(Action<TreeDictionary<long, NifLoadJob>> processRunningList, Func<ObjectPosition, GameObject> process)
         {
+            lock (camPlaneLock)
+            {
+                camPlanes = GeometryUtility.CalculateFrustumPlanes(cam);
+            }
+            processLoadingQueue();
             lock (objectRunningList)
             {
                 processRunningList(objectRunningList);
@@ -369,7 +391,7 @@ namespace Assets
         private void addLoading(NifLoadJob job)
         {
             // Add a loading capsule to the location of the job 
-            //if (job.parent.gameObject.transform.childCount == 0)
+            if (!job.IsDone)
             {
                 telara_obj obj = job.parent;
                 GameObject loading = (GameObject)GameObject.Instantiate(Resources.Load("LoadingCapsule"));

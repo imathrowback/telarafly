@@ -332,6 +332,7 @@ public class telera_spawner : MonoBehaviour
         if (worldLoader == null)
         {
             worldLoader = new WorldLoadingThread();
+            worldLoader.cam = mcamera.GetComponent<Camera>();
             worldLoader.startThread();
         }
         worldLoader.cameraWorldCamPos = mcamera.transform.position;
@@ -361,7 +362,7 @@ public class telera_spawner : MonoBehaviour
     private bool finalizeJob(NifLoadJob job)
     {
         telara_obj to = job.parent;
-        Transform loadingObj = to.gameObject.transform.Find("Loading");
+        Transform loadingObj = to.gameObject.transform.FindDeepChild("Loading");
         if (loadingObj != null)
             GameObject.Destroy(loadingObj.gameObject);
         if (to.gameObject != null)
