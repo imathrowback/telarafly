@@ -15,7 +15,7 @@ public class Screenshot : MonoBehaviour {
         yield return new WaitForEndOfFrame();
         DateTime date = DateTime.Now;
         string dateStr = date.ToString("yyyyMMddHHmmss");
-        Application.CaptureScreenshot("Screenshot"+ dateStr + ".png");
+        ScreenCapture.CaptureScreenshot("Screenshot"+ dateStr + ".png");
         ui.gameObject.SetActive(true);
     }
 
