@@ -16,7 +16,7 @@ public class TestNifLoader : MonoBehaviour {
     GameObject test;
     // Use this for initialization
     void Start () {
-        this.test = NIFLoader.loadNIF("A_TNB_building_01.nif");
+        this.test = NIFLoader.loadNIF("N_ASF_rock_large_badlands_floating_02.nif");
     }
 	
 	// Update is called once per frame

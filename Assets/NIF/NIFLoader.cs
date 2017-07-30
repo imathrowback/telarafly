@@ -342,62 +342,106 @@ public class NIFLoader
             standardShader = Shader.Find("Standard");
 
         bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
-
+        bool animated = false;
+        bool presetMaterial = false;
         string materialName = null;
+        Material mat = null;
 
-        // do materials/textures
-        
-        if (IS_TERRAIN)
-            materialName = "terrainmat";
+        Material mat2 = Resources.Load<Material>("materials/" + mesh.materialNames[0]);
+        if (mat2 != null)
+            mat = Material.Instantiate<Material>(mat2);
 
-        if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water") || mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
-            materialName = "WaterMaterial";
-
-        bool alpha = (mesh.materialNames.Contains("TwoSided_Alpha_Specular") || mesh.materialNames.Contains("Lava_Flow_Decal"));
-        foreach (string n in mesh.materialNames)
-            if (n.ToLower().Contains("alpha"))
-                alpha = true;
-        if (alpha)
-            materialName = "2sidedtransmat_fade";
-
-        // handle some simple animated "scrolling" textures
-        bool animated = (mesh.materialNames.Contains("Additive_UVScroll_Distort") || mesh.materialNames.Contains("Lava_Flow_Decal") || mesh.materialNames.Contains("Local_Cloud_Flat") ||
-            mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") || mesh.materialNames.Contains("Fat_spike12_m") || mesh.materialNames.Contains("pPlane1_m"));
-
-
-        if (animated) 
-            materialName = "2sidedtransmat_fade";
-
-
-
-        foreach (int eid in mesh.extraDataIDs)
+        if (mat == null)
         {
-            NIFObject obj = nf.getObject(eid);
-            if (obj is NiBooleanExtraData)
-            {
-                NiBooleanExtraData fExtra = (NiBooleanExtraData)obj;
-                switch (fExtra.extraDataString)
-                {
-                    case "doAlphaTest":
-                        if (fExtra.booleanData)
-                            materialName = "2sidedtransmat";
-                        break;
-                    default:
-                        break;
 
+            // do materials/textures
+
+            if (IS_TERRAIN)
+                materialName = "terrainmat";
+
+            if (mesh.materialNames.Contains("Ocean_Water_Shader") || mesh.materialNames.Contains("Flow_Water") || mesh.name.Contains("water_UP") || mesh.name.Contains("water_DOWN"))
+                materialName = "WaterMaterial";
+
+            bool alpha = (mesh.materialNames.Contains("TwoSided_Alpha_Specular") || mesh.materialNames.Contains("Lava_Flow_Decal"));
+            foreach (string n in mesh.materialNames)
+                if (n.ToLower().Contains("alpha"))
+                    alpha = true;
+            if (alpha)
+                materialName = "2sidedtransmat_fade";
+
+            // handle some simple animated "scrolling" textures
+            animated = (mesh.materialNames.Contains("Additive_UVScroll_Distort") || mesh.materialNames.Contains("Lava_Flow_Decal") || mesh.materialNames.Contains("Local_Cloud_Flat") ||
+               mesh.materialNames.Contains("Alpha_UVScroll_Overlay_Foggy_Waterfall") || mesh.materialNames.Contains("Fat_spike12_m") || mesh.materialNames.Contains("pPlane1_m"));
+
+
+            if (animated)
+                materialName = "2sidedtransmat_fade";
+
+
+
+            foreach (int eid in mesh.extraDataIDs)
+            {
+                NIFObject obj = nf.getObject(eid);
+                if (obj is NiBooleanExtraData)
+                {
+                    NiBooleanExtraData fExtra = (NiBooleanExtraData)obj;
+                    switch (fExtra.extraDataString)
+                    {
+                        case "doAlphaTest":
+                            if (fExtra.booleanData)
+                                materialName = "2sidedtransmat";
+                            break;
+                        default:
+                            break;
+
+                    }
                 }
             }
-        }
-
-        Material mat = null;
-        if (materialName == null)
-        {
-            if (standardMaterial == null)
-                standardMaterial = new Material(standardShader);
-            mat = Material.Instantiate(standardMaterial);
+            if (materialName == null)
+            {
+                if (standardMaterial == null)
+                    standardMaterial = new Material(standardShader);
+                mat = Material.Instantiate(standardMaterial);
+                materialName = standardMaterial.name;
+            }
+            else
+                mat = Material.Instantiate(Resources.Load<Material>(materialName));
+            Debug.Log("Using guessed material[" + materialName + "] for " + mesh.name + " from list of materials: " + string.Join(",", mesh.materialNames.ToArray()), go);
         }
         else
-            mat = Material.Instantiate(Resources.Load(materialName, typeof(Material)) as Material);
+        {
+            materialName = mat2.name;
+            presetMaterial = true;
+            //Debug.Log("Using actual material[" + materialName + "] for " + mesh.name + " from list of materials: " + string.Join(",", mesh.materialNames.ToArray()), go);
+        }
+#if UNITY_EDITOR
+        MeshOriginalMaterial mom = go.AddComponent<MeshOriginalMaterial>();
+        mom.materialName = mesh.materialNames[0];
+#endif
+
+        if (presetMaterial)
+        {
+            foreach (int extraId in mesh.extraDataIDs)
+            {
+                NIFObject obj = nf.getObject(extraId);
+                setMaterialProperty(mat, obj);
+            }
+
+            if (mat.HasProperty("doAlphaTest"))
+            {
+                if (mat.GetInt("doAlphaTest") == 0)
+                {
+                    string shaderName = "materials/" + mat2.name + "_shader_opaque";
+                    Debug.Log("loading opaque shader:" + shaderName, go);
+                    Shader shader = Resources.Load<Shader>(shaderName); ;
+                    if (shader != null)
+                        mat.shader = shader;
+                }
+            }
+           
+
+        }
+
         mat.enableInstancing = true;
         mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
 
@@ -441,6 +485,17 @@ public class NIFLoader
 
         string[] textureNameIds = getTextureIds(nf, mesh);
 
+        if (presetMaterial)
+        {
+            foreach (int extraId in mesh.extraDataIDs)
+            {
+                NIFObject obj = nf.getObject(extraId);
+                setMaterialProperty(mat, obj);
+            }
+        }
+
+        if (mat.HasProperty("alphaTestRef"))
+            mat.SetFloat("alphaTestRef", 1.0f - mat.GetFloat("alphaTestRef"));
 
         List<int> propIDs = mesh.nodePropertyIDs;
         foreach (int propID in propIDs)
@@ -467,7 +522,16 @@ public class NIFLoader
                         {
                             NiSourceTexture sourceTex = (NiSourceTexture)nf.getObject(sourceTexID);
                             texName = sourceTex.texFilename;
-                            if (IS_TERRAIN)
+                            if (presetMaterial)
+                            {
+                                string propertyName = "_" + textureNameIds[i];
+                                if(IS_TERRAIN)
+                                    propertyName = "_terrain" + i;
+                               // Debug.Log("attempt to set texture property :" + propertyName + " with texure:" + texName);
+
+                                mat.SetTexture(propertyName, loadTexture(texName));
+                            }
+                            else if (IS_TERRAIN)
                             {
                                 string param = "_terrain" + i;
                                 //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
@@ -518,7 +582,51 @@ public class NIFLoader
         return mat;
     }
 
-   static private NiFloatsExtraData getFloatsExtraData(NIFFile nf, NiMesh mesh, string v)
+    private static void setMaterialProperty(Material mat, NIFObject obj)
+    {
+        string name = obj.extraDataString;
+        if (!mat.HasProperty(name))
+        {
+            Debug.Log("no property " + name + " in material " + mat.name + " using obj:" + obj.GetType());
+            return;
+        }
+        //Debug.Log("try set property " + name + " in material " + mat.name + " using obj:" + obj.GetType());
+        if (obj is NiFloatExtraData)
+        {
+            mat.SetFloat(name, (obj as NiFloatExtraData).floatData);
+            //Debug.Log("setting [" + name + "] of material to " + (obj as NiFloatExtraData).floatData);
+        }
+        else if (obj is NiFloatsExtraData)
+        {
+            float[] floats = (obj as NiFloatsExtraData).floatData;
+            if (floats.Count() == 4)
+            {
+                Color c = mat.GetColor(name);
+                if (c != null)
+                {
+                    Color color = new Color(floats[0], floats[1], floats[2], floats[3]);
+                    mat.SetColor(name, color);
+                    //Debug.Log("setting [" + name + "] of material to color: " + color);
+                    return;
+                }
+            }
+            mat.SetFloatArray(name, floats);
+            //Debug.Log("setting [" + name + "] of material to " + string.Join(",", (obj as NiFloatsExtraData).floatData.Select(x => "" + x).ToArray()));
+        }
+        else if (obj is NiIntegerExtraData)
+        {
+            mat.SetInt(name, (obj as NiIntegerExtraData).intExtraData);
+            //Debug.Log("setting [" + name + "] of material to " + (obj as NiIntegerExtraData).intExtraData);
+        }
+        else if (obj is NiBooleanExtraData)
+        {
+            int b = (obj as NiBooleanExtraData).booleanData ? 1 : 0;
+            mat.SetInt(name, b);
+            //Debug.Log("setting [" + name + "] of material to " + b);
+        }
+    }
+
+    static private NiFloatsExtraData getFloatsExtraData(NIFFile nf, NiMesh mesh, string v)
     {
         foreach (int eid in mesh.extraDataIDs)
         {

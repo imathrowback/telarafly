@@ -182,7 +182,7 @@ namespace Assets
                 {
                     lock (postree)
                     {
-                        KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.RadialSearch(camPosF, ProgramSettings.get("TERRAIN_VIS", 10) * 256, MAX_RUNNING_THREADS);
+                        KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.RadialSearch(camPosF, Math.Max(256, ProgramSettings.get("TERRAIN_VIS", 10) * 256), MAX_RUNNING_THREADS);
                         KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
                         SCG.IEnumerable<NifLoadJob> terjobs = tercandidates.SelectMany(e => e.Value);
                         // always have at least two terrain job running 

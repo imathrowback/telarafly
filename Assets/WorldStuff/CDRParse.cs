@@ -109,17 +109,17 @@ namespace Assets.WorldStuff
                 AssetDatabase adb = AssetDatabaseInst.DB;
                 if (!adb.getManifest().containsHash(Util.hashFileName(worldName)))
                     throw new Exception("Unable to find world name:" + worldName);
-                Debug.Log("loading world zones:" + worldName);
+                //Debug.Log("loading world zones:" + worldName);
                 byte[] data = adb.extractUsingFilename(worldName);
                 CObject obj = Parser.processStreamObject(data);
 
                 CObject scenesObj = obj.getMember(9);
-                Debug.Log("found scenes object with " + scenesObj.members.Count + " members");
+                //Debug.Log("found scenes object with " + scenesObj.members.Count + " members");
                 for (int i = 0; i < scenesObj.members.Count; i++)
                 {
                     CObject sceneObj = scenesObj.get(i);
                     long key = sceneObj.getIntMember(0);
-                    Debug.Log("found scene with key:" + key);
+                    //Debug.Log("found scene with key:" + key);
                     List<Vector3> points = getPoints(sceneObj.getMember(3));
                     Scene scene = new WorldStuff.Scene();
                     scene._114Key = key;
@@ -130,7 +130,7 @@ namespace Assets.WorldStuff
             }
             catch (Exception ex)
             {
-                Debug.LogError(ex);
+                Debug.LogWarning(ex);
             }
             return scenes;
 
@@ -168,7 +168,7 @@ namespace Assets.WorldStuff
                 }
             }catch (Exception ex)
             {
-                Debug.LogError(ex);
+                Debug.LogWarning(ex);
             }
             return zones;
 
