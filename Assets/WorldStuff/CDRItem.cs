@@ -11,5 +11,11 @@ namespace Assets.WorldStuff
         public string name;
         public int index;
         public string cdrFile;
+
+        void Start()
+        {
+        }
+
+
     }
 }

@@ -106,7 +106,13 @@ public class NifLoadJob : ThreadedJob
         try
         {
             if (filename.Contains("_terrain_"))
-                parent.gameObject.AddComponent<TerrainObj>();
+            {
+                TerrainObj tobj = parent.gameObject.GetComponent<TerrainObj>();
+                if (tobj == null)
+                    parent.gameObject.AddComponent<TerrainObj>();
+                else
+                    tobj.enabled = true;
+            }
             count--;
             // This is executed by the Unity main thread when the job is finished
             if (niffile != null)
@@ -117,9 +123,10 @@ public class NifLoadJob : ThreadedJob
                     GameObject lodgo = NIFLoader.loadNIF(lodfile, filename);
 
                     // terrain lod
-                    LODGroup group = go.GetComponent<LODGroup>();
+                    LODGroup group = parent.gameObject.GetComponent<LODGroup>();
                     if (group == null)
-                        group = go.AddComponent<LODGroup>();
+                        group = parent.gameObject.AddComponent<LODGroup>();
+                    group.enabled = true;
                     group.animateCrossFading = true;
                     group.fadeMode = LODFadeMode.SpeedTree;
                     LOD[] lods = new LOD[2];
@@ -134,6 +141,7 @@ public class NifLoadJob : ThreadedJob
                     lodObj.name = "LOD-" + filename;
                     lodgo.transform.SetParent(lodObj.transform);
                     lodObj.transform.SetParent(go.transform);
+                    
 
                 }
 
@@ -156,6 +164,8 @@ public class NifLoadJob : ThreadedJob
                 go.transform.localScale = Vector3.one;
                 go.transform.localPosition = Vector3.zero;
                 go.transform.localRotation = Quaternion.identity;
+
+                parent.gameObject.GetComponent<LODGroup>().RecalculateBounds();
             }
         }
         catch (Exception ex)

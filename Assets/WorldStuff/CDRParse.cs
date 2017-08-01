@@ -155,7 +155,7 @@ namespace Assets.WorldStuff
                 {
                     CObject zoneObj = zonesObj.get(i);
                     long key = zoneObj.getIntMember(0);
-                    Debug.Log("found zone with key:" + key);
+                    //Debug.Log("found zone with key:" + key);
                     List<Vector3> points = getPoints(zoneObj.getMember(3));
                     Zone zone = new WorldStuff.Zone();
                     zone._113Key = key;

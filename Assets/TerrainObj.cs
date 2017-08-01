@@ -4,5 +4,8 @@ using UnityEngine;
 
 public class TerrainObj : MonoBehaviour {
 
-	
+    void Start()
+    {
+    }
+
 }

@@ -44,6 +44,7 @@ public class telera_spawner : MonoBehaviour
        
     }
 
+    
 
    
 
@@ -81,7 +82,7 @@ public class telera_spawner : MonoBehaviour
         zoneText = GameObject.Find("ZoneText").GetComponent<Text>();
         foreach (Zone z in map.zones)
         {
-            Debug.Log("creating zone:" + z._113Key);
+            //Debug.Log("creating zone:" + z._113Key);
             SCG.List<Vector3> points = z.points;
             GameObject zone = new GameObject("zone:" + z._113Key);
             
@@ -419,7 +420,7 @@ public class telera_spawner : MonoBehaviour
     {
 
         // don't LOD terrain
-        if (go.GetComponent<TerrainObj>() != null)
+        if (go.GetComponent<TerrainObj>() != null && go.GetComponent<TerrainObj>().enabled)
             return;
 
         if (!useLOD)
@@ -434,8 +435,6 @@ public class telera_spawner : MonoBehaviour
         lods[0] = new LOD(LODCutoff, renderers);
         //lods[1] = new LOD(1f - LODCutoff, renderers);
         group.SetLODs(lods);
-
-
     }
 
     public static void DestroyChildren(Transform root)

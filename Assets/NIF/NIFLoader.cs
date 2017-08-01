@@ -9,6 +9,7 @@ using Ionic.Zlib;
 using System.Xml.Serialization;
 using System.Linq;
 using Assets;
+using DDSLoader;
 
 public class NIFLoader
 {
@@ -29,7 +30,23 @@ public class NIFLoader
                 try
                 {
                     // preload texture
-                    AssetDatabaseInst.DB.extractUsingFilename(tex.texFilename, Assets.RiftAssets.AssetDatabase.RequestCategory.TEXTURE);
+                    bool doLoad = false;
+                    lock (NIFLoader.texDataCache)
+                    {
+                        if (!NIFLoader.texDataCache.ContainsKey(tex.texFilename))
+                            doLoad = true;
+                    }
+                    if (doLoad)
+                    {
+                        byte[] data = AssetDatabaseInst.DB.extractUsingFilename(tex.texFilename, Assets.RiftAssets.AssetDatabase.RequestCategory.TEXTURE);
+                        TextureData texData;
+                        DDSLoader.DatabaseLoaderTexture_DDS.LoadDDS(data, out texData);
+                        lock (NIFLoader.texDataCache)
+                        {
+                            if (!NIFLoader.texDataCache.ContainsKey(tex.texFilename))
+                                NIFLoader.texDataCache.Add(tex.texFilename, texData);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -89,9 +106,13 @@ public class NIFLoader
         }
     }
 
-    public static GameObject loadNIF(NIFFile nf, string fname,  bool skinMesh = false)
+    public static GameObject loadNIF(NIFFile nf, string fname,  bool skinMesh = false, GameObject prefab = null)
     {
-        GameObject root = new GameObject();
+        GameObject root;
+        if (prefab != null)
+            root = prefab;
+        else
+            root = new GameObject();
         root.name = Path.GetFileNameWithoutExtension(fname);
         root.transform.localPosition = Vector3.zero;
 
@@ -406,7 +427,7 @@ public class NIFLoader
             }
             else
                 mat = Material.Instantiate(Resources.Load<Material>(materialName));
-            Debug.Log("Using guessed material[" + materialName + "] for " + mesh.name + " from list of materials: " + string.Join(",", mesh.materialNames.ToArray()), go);
+            //Debug.Log("Using guessed material[" + materialName + "] for " + mesh.name + " from list of materials: " + string.Join(",", mesh.materialNames.ToArray()), go);
         }
         else
         {
@@ -432,7 +453,7 @@ public class NIFLoader
                 if (mat.GetInt("doAlphaTest") == 0)
                 {
                     string shaderName = "materials/" + mat2.name + "_shader_opaque";
-                    Debug.Log("loading opaque shader:" + shaderName, go);
+                    //Debug.Log("loading opaque shader:" + shaderName, go);
                     Shader shader = Resources.Load<Shader>(shaderName); ;
                     if (shader != null)
                         mat.shader = shader;
@@ -529,13 +550,13 @@ public class NIFLoader
                                     propertyName = "_terrain" + i;
                                // Debug.Log("attempt to set texture property :" + propertyName + " with texure:" + texName);
 
-                                mat.SetTexture(propertyName, loadTexture(texName));
+                                mat.SetTexture(propertyName, loadTexture(nf, texName));
                             }
                             else if (IS_TERRAIN)
                             {
                                 string param = "_terrain" + i;
                                 //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
-                                mat.SetTexture(param, loadTexture(texName));
+                                mat.SetTexture(param, loadTexture(nf, texName));
                             }
                             else
                             {
@@ -545,13 +566,13 @@ public class NIFLoader
                                     case "skyGradientTexture0":
                                     case "diffuseTexture":
                                     case "diffuseTextureXZ":
-                                        mat.SetTexture("_MainTex", loadTexture( texName));
+                                        mat.SetTexture("_MainTex", loadTexture(nf, texName));
                                         break;
                                     case "decalNormalTexture":
-                                        mat.SetTexture("_DetailNormalMap", loadTexture( texName));
+                                        mat.SetTexture("_DetailNormalMap", loadTexture(nf, texName));
                                         break;
                                     case "normalTexture":
-                                        mat.SetTexture("_BumpMap", loadTexture( texName));
+                                        mat.SetTexture("_BumpMap", loadTexture(nf, texName));
                                         break;
                                     case "glowTexture":
                                         mat.EnableKeyword("_EMISSION");
@@ -559,14 +580,14 @@ public class NIFLoader
                                             mat.SetColor("_EmissionColor", Color.red);
                                         else
                                             mat.SetColor("_EmissionColor", Color.white*0.5f);
-                                        mat.SetTexture("_EmissionMap", loadTexture( texName));
+                                        mat.SetTexture("_EmissionMap", loadTexture(nf, texName));
                                         break;
                                     case "glossTexture":
-                                        mat.SetTexture("_MetallicGlossMap", loadTexture( texName));
+                                        mat.SetTexture("_MetallicGlossMap", loadTexture(nf, texName));
                                         break;
                                     case "decalTexture":
                                     case "starMapTexture0":
-                                        mat.SetTexture("_DetailAlbedoMap", loadTexture(texName));
+                                        mat.SetTexture("_DetailAlbedoMap", loadTexture(nf, texName));
                                         break;
                                     default:
                                         //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
@@ -587,7 +608,7 @@ public class NIFLoader
         string name = obj.extraDataString;
         if (!mat.HasProperty(name))
         {
-            Debug.Log("no property " + name + " in material " + mat.name + " using obj:" + obj.GetType());
+           // Debug.Log("no property " + name + " in material " + mat.name + " using obj:" + obj.GetType());
             return;
         }
         //Debug.Log("try set property " + name + " in material " + mat.name + " using obj:" + obj.GetType());
@@ -641,6 +662,7 @@ public class NIFLoader
         return null;
     }
 
+    static Dictionary<String, TextureData> texDataCache = new Dictionary<string, TextureData>();
     static Dictionary<String, Texture> toriginals = new Dictionary<string, Texture>();
 
     static public Texture getCachedTObject(string fn)
@@ -652,43 +674,48 @@ public class NIFLoader
         return null;
     }
 
-    static private Texture loadTexture(String name)
+    static private Texture loadTexture(NIFFile file, string name)
     {
-
         Texture tex = getCachedTObject(name);
         if (tex != null)
             return tex;
-        try
+        lock (texDataCache)
         {
-            //Debug.Log("load:" + name);
-            String testPath = @"d:\rift_stuff\dds\" + name;
-            byte[] data;
-            if (File.Exists(testPath))
-            {
-                data = File.ReadAllBytes(testPath);
-            }
-            else
-            {
-                AssetDatabase db = AssetDatabaseInst.DB;
-                if (db == null)
-                {
-                    //Debug.Log("db was null");
-                    return new Texture2D(2, 2);
-                }
-                data = db.extractUsingFilename(name, AssetDatabase.RequestCategory.TEXTURE);
-                //File.WriteAllBytes(testPath, data);
-            }
-            tex = DDSLoader.DatabaseLoaderTexture_DDS.LoadDDS(data);
-
+            if (texDataCache.ContainsKey(name))
+                tex = texDataCache[name].getTextureAndPurge();
         }
-        catch (Exception ex)
+        if (tex == null)
         {
-            Debug.LogWarning("Unable to load texture:" + name + ":" + ex);
-            tex = new Texture2D(2, 2);
+            try
+            {
+                String testPath = @"d:\rift_stuff\dds\" + name;
+                byte[] data;
+                if (File.Exists(testPath))
+                {
+                    data = File.ReadAllBytes(testPath);
+                }
+                else
+                {
+                    AssetDatabase db = AssetDatabaseInst.DB;
+                    if (db == null)
+                    {
+                        //Debug.Log("db was null");
+                        return new Texture2D(2, 2);
+                    }
+                    data = db.extractUsingFilename(name, AssetDatabase.RequestCategory.TEXTURE);
+                }
+                tex = DDSLoader.DatabaseLoaderTexture_DDS.LoadDDS(data);
+
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("Unable to load texture:" + name + ":" + ex);
+                tex = new Texture2D(2, 2);
+            }
         }
         tex.name = name;
         toriginals[name] = tex;
-        return tex;
+        return tex;      
     }
 
     public static Texture2D SimpleLoadTextureDXT(byte[] ddsBytes, TextureFormat textureFormat)

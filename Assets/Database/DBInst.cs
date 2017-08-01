@@ -117,7 +117,20 @@ namespace Assets.Database
                     AppDomain.CurrentDomain.ProcessExit += (s, e) =>
                     {
                         if (origc != null)
+                        {
                             origc.Close();
+                            origc = null;
+                        }
+                    };
+                    AppDomain.CurrentDomain.DomainUnload += (s, e) =>
+                    {
+                        Debug.Log("domain unloading");
+                        if (origc != null)
+                        {
+                            origc.Close();
+                            origc = null;
+                        }
+
                     };
 
                     /*
@@ -138,8 +151,8 @@ namespace Assets.Database
                     else
                     {
                     */
-//                        db = new DB();
-//                        processSQL(db, compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+                    //                        db = new DB();
+                    //                        processSQL(db, compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
                     //}
                     DB db = readDB(adb.extract(ae), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
 
