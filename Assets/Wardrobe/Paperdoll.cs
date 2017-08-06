@@ -30,6 +30,7 @@ namespace Assets.Wardrobe
         AnimatedNif animationNif;
         string raceString = "human";
         string genderString = "male";
+        string animationSet = "unarmed";
         public float animSpeed = 0.01f;
         Dictionary<GearSlot, GameObject> gearSlotObjects = new Dictionary<GearSlot, GameObject>();
         Dictionary<GearSlot, long> gearSlotKeys = new Dictionary<GearSlot, long>();
@@ -79,7 +80,7 @@ namespace Assets.Wardrobe
         string getKFBBase()
         {
             string postfix = "";
-            if (this.kfbPostfix != null)
+            if (this.kfbPostfix != null && this.kfbPostfix.Length > 0)
                 postfix = "_" + kfbPostfix;
             return string.Format("{0}_{1}{2}", raceString, genderString, postfix);
         }
@@ -160,7 +161,7 @@ namespace Assets.Wardrobe
             refModel = go;
 
 
-            animationNif.setActiveAnimation(string.Format("{0}_unarmed_idle", getBaseModel()));
+            animationNif.setActiveAnimation(string.Format("{0}_{1}_idle", getBaseModel(), animationSet));
             if (!"".Equals(animOverride))
                 animationNif.setActiveAnimation(animOverride);
             animationNif.setSkeletonRoot(refModel);
