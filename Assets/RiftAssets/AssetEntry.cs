@@ -28,5 +28,10 @@ namespace Assets.RiftAssets
          public byte[] id;
          public String strID;
          public int sizeD;
+
+        override public string ToString()
+        {
+            return strID + " @ " + offset + ":" + file.file + ", size[" + size  + "], compressed[" + compressed +"], sizeD:" + sizeD;
+        }
     }
 }

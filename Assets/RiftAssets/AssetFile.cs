@@ -5,7 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
-
+using UnityEngine;
 
 namespace Assets.RiftAssets
 {
@@ -79,7 +79,9 @@ namespace Assets.RiftAssets
             return data;
         }
 
-         private byte[] extractPart1(AssetEntry entry, int maxBytesToRead,  bool nodecomp)
+        byte[] unzipCache = new byte[0];
+        System.Object unzipLock = new System.Object();
+        private byte[] extractPart1(AssetEntry entry, int maxBytesToRead,  bool nodecomp)
         {
 
             try
@@ -113,22 +115,45 @@ namespace Assets.RiftAssets
                     {
                         long pos = stream.Seek(entry.offset, SeekOrigin.Begin);
 
-                        MemoryStream decompressed = new MemoryStream();
-                        
-                        using (ZlibStream ds = new ZlibStream(stream, Ionic.Zlib.CompressionMode.Decompress))
+                        lock (unzipLock)
                         {
-                            //Copy the decompression stream into the output file.
-                            byte[] buffer = new byte[4096];
-                            int numRead;
-                            while ((numRead = ds.Read(buffer, 0, buffer.Length)) > 0)
+                           // Debug.Log("extract asset:" + entry);
+                            //Debug.Log("decompress asset:" + entry.strID + ", size:" + entry.size + ", sizeD:" + entry.sizeD);
+                            if (unzipCache.Length < entry.sizeD)
                             {
-                                if (!readAll && decompressed.Length >= maxBytesToRead)
-                                    break;
-                                decompressed.Write(buffer, 0, numRead);
-                                
+                                //Debug.Log("Increasing unzip cache size from " + unzipCache.Length + " to " + entry.sizeD);
+                                unzipCache = new byte[entry.sizeD];
+                            }
+                            int writeIndex = 0;
+                            using (ZlibStream ds = new ZlibStream(stream, Ionic.Zlib.CompressionMode.Decompress))
+                            {
+                                int numRead;
+                                while ((numRead = ds.Read(unzipCache, writeIndex, unzipCache.Length - writeIndex)) > 0)
+                                {
+                                    //Debug.Log("read " + numRead + " into array at " + writeIndex + ", we tried to read " + (unzipCache.Length - writeIndex) + " bytes");
+                                    writeIndex += numRead;
+                                    if (!readAll && writeIndex >= maxBytesToRead)
+                                        break;
+                                }
+                                //if (writeIndex != entry.sizeD)
+                                   // Debug.LogWarning("expected to read " + entry.sizeD + " bytes, but only got " + writeIndex);
+                                /*
+                                //Copy the decompression stream into the output file.
+                                byte[] buffer = new byte[4096];
+                                while ((numRead = ds.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    totalRead += numRead;
+                                    if (!readAll && totalRead >= maxBytesToRead)
+                                        break;
+                                    decompressed.Write(buffer, 0, numRead);
+
+                                }
+                                */
+                                byte[] outData = new byte[writeIndex];
+                                Array.Copy(unzipCache, outData, outData.Length);
+                                return outData;
                             }
                         }
-                        return decompressed.ToArray();
                     }
                 }
             }

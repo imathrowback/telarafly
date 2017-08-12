@@ -28,8 +28,8 @@ namespace Assets
         public Camera cam { get;  set; }
 
         SCG.List<KeyValuePair<int, int>> cdrJobQueue = new SCG.List<KeyValuePair<int, int>>();
-        int MAX_TERRAIN_THREADS = 2;
-        int MAX_RUNNING_THREADS = 6;
+        int MAX_TERRAIN_THREADS = 1;
+        int MAX_RUNNING_THREADS = 2;
         volatile int runningTerrainThreads = 0;
         System.Threading.Thread worldThread;
         TreeDictionary<long, NifLoadJob> terrainRunningList;
@@ -62,7 +62,7 @@ namespace Assets
             objectRunningList = new TreeDictionary<long, NifLoadJob>();
             terrainRunningList = new TreeDictionary<long, NifLoadJob>();
             objectPositions = new SCG.List<ObjectPosition>();
-            MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 10);
+            MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 2);
         }
 
         public void startThread()
@@ -182,31 +182,33 @@ namespace Assets
                 {
                     lock (postree)
                     {
-                        KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.RadialSearch(camPosF, Math.Max(256, ProgramSettings.get("TERRAIN_VIS", 10) * 256), MAX_RUNNING_THREADS);
-                        KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), MAX_RUNNING_THREADS);
+                        KdTreeNode<float, SCG.List<NifLoadJob>>[] tercandidates = this.terraintree.RadialSearch(camPosF, Math.Max(256, ProgramSettings.get("TERRAIN_VIS", 10) * 256), 200);
+                        KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates = this.postree.RadialSearch(camPosF, ProgramSettings.get("OBJECT_VISIBLE", 500), 200);
                         SCG.IEnumerable<NifLoadJob> terjobs = tercandidates.SelectMany(e => e.Value);
-                        // always have at least two terrain job running 
+                        // always have a terrain job running 
+
+                        if (terjobs.Count() > 0)
+                        {
+                            lock (camPlaneLock)
+                            {
+                                terjobs = terjobs.OrderBy(n => Vector3.Distance(n.parentPos, camPos));
+                            }
+                            SCG.List<NifLoadJob> jobs = terjobs.ToList();
+                            lock (terrainRunningList)
+                            {
+                                if (terrainRunningList.Count <= 1)
+                                {
+                                    startJob(jobs[0], terrainRunningList, tercandidates);
+                                }
+                            }
+                        }
                         lock (terrainRunningList)
                         {
                             tListCountEstimate = terrainRunningList.Count;
-
-                            if (terjobs.Count() > 0 && terrainRunningList.Count <= 2)
-                            {
-                                terjobs = terjobs.OrderBy(n => Vector3.Distance(n.parentPos, camPos));
-
-                                SCG.List<NifLoadJob> jobs = terjobs.ToList();
-                                startJob(jobs[0], terrainRunningList, tercandidates);
-                                if (candidates.Count() < availThreads())
-                                {
-                                    if (terjobs.Count() > 1)
-                                        startJob(jobs[1], terrainRunningList, tercandidates);
-                                }
-
-                                foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
-                                    if (n.Value.Count == 0)
-                                        terraintree.RemoveAt(n.Point);
-                            }
                         }
+                        foreach (KdTreeNode<float, SCG.List<NifLoadJob>> n in tercandidates)
+                            if (n.Value.Count == 0)
+                                terraintree.RemoveAt(n.Point);
 
                         if (availThreads() > 0)
                         {
@@ -215,11 +217,7 @@ namespace Assets
                             SCG.IEnumerable<NifLoadJob> otherjobs = candidates.SelectMany(e => e.Value);
                             lock (camPlaneLock)
                             {
-                                otherjobs = otherjobs.OrderBy(n =>
-                                {
-                                    return !TestPlanesAABB(camPlanes, n.parentPos);
-                                }
-                                ).ThenBy(n => Vector3.Distance(n.parentPos, camPos));
+                                otherjobs = otherjobs.OrderBy(n => !TestPlanesAABB(camPlanes, n.parentPos)).ThenBy(n => Vector3.Distance(n.parentPos, camPos));
                             }
                             foreach (NifLoadJob job in otherjobs)
                             {
@@ -258,12 +256,6 @@ namespace Assets
         private static long Combine(int x, int y)
         {
             return (long)(((ulong)x) | ((ulong)y) << 32);
-        }
-
-        public bool IsVisibleFrom(Vector3 v, Camera camera)
-        {
-            Plane[] planes = GeometryUtility.CalculateFrustumPlanes(camera);
-            return GeometryUtility.TestPlanesAABB(planes, new Bounds(v, Vector3.one));
         }
 
         [CallFromUnityUpdate]
@@ -356,7 +348,7 @@ namespace Assets
                 Vector3 pos = job.parentPos;
                 float[] floatf = new float[] { pos.x, pos.z };
                 SCG.List<NifLoadJob> nList;
-                if (job.filename.Contains("terrain") || job.filename.Contains("ocean"))
+                if (job.filename.Contains("terrain") )
                 {
                     lock (terraintree)
                     {

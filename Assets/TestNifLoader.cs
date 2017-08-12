@@ -16,17 +16,23 @@ public class TestNifLoader : MonoBehaviour {
     GameObject test;
     // Use this for initialization
     void Start () {
-        this.test = NIFLoader.loadNIF("N_ASF_rock_large_badlands_floating_02.nif");
+                NIFLoader.loadNIF("human_male_hide_helmet_307.nif");
     }
-	
-	// Update is called once per frame
-	void Update () {
+
+    // Update is called once per frame
+    void Update () {
+        /*
 #if UNITY_EDITOR
         if (Input.GetKeyDown(KeyCode.F))
         {
-            UnityEditor.PrefabUtility.CreatePrefab("Assets/x.prefab", test);
+            //UnityEditor.PrefabUtility.CreatePrefab("Assets/x.prefab", test);
+            if (this.test == null)
+                this.test = NIFLoader.loadNIF("world_terrain_5632_5376_split.nif");
+
         }
 #endif
+*/
+        /*
         if (true)
             return; 
 		if (mount == null)
@@ -93,5 +99,6 @@ public class TestNifLoader : MonoBehaviour {
             //mainPaperdoll.setAppearenceSet(623293935);
             mainPaperdoll.setAppearenceSet(1044454339);
         }
+        */
     }
 }

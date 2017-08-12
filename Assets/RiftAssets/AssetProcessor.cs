@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using UnityEngine;
+
 namespace Assets.RiftAssets
 {
     public class AssetProcessor
@@ -10,17 +12,23 @@ namespace Assets.RiftAssets
         public static AssetDatabase buildDatabase(Manifest manifest, String assetDirectory)
         {
             AssetDatabase assets = new AssetDatabase(manifest);
-
+            Debug.Log("manifest64:" + manifest.getIs64());
             string[] files = Directory.GetFiles(assetDirectory);
             foreach (string file in files)
             {
-                assets.add(buildAssetFileDatabase(file));
+                // ignore 32bit assets if using 64 bit manifest and vice versa
+                if (manifest.getIs64() && file.Contains("assets32"))
+                    continue;
+                else if (!manifest.getIs64() && file.Contains("assets64"))
+                    continue;
+
+                assets.add(buildAssetFileDatabase(file, manifest));
             }
             return assets;
         }
 
 
-        private static AssetFile buildAssetFileDatabase(string file)
+        private static AssetFile buildAssetFileDatabase(string file, Manifest manifest)
         {
             AssetFile assetFile = new AssetFile(file);
 
@@ -48,9 +56,12 @@ namespace Assets.RiftAssets
                         int offset = bis.ReadInt32();
                         int size1 = bis.ReadInt32();
                         int size2 = bis.ReadInt32();
+                        // not sure what size2 is, it is always the same as size1?
+
                         int filenum = bis.ReadInt16();
                         int flag = bis.ReadInt16(); //compressed?
                         byte[] hash = bis.ReadBytes(20);
+                        int sizeD = manifest.getFileSize(Util.bytesToHexString(id));
 
                         if (offset == 0)
                         {
@@ -61,7 +72,12 @@ namespace Assets.RiftAssets
                         }
                         else
                         {
-                            assetFile.addAsset(new AssetEntry(id, offset, size1, size2, flag != 0, hash, assetFile));
+                            if (sizeD < 0)
+                            {
+                                Debug.LogWarning("ID[" + Util.bytesToHexString(id) + "] does not have an entry in the manifest: assetFile:" + file + "@" + offset + ", size:" + size1);
+                                sizeD = size2;
+                            }
+                        assetFile.addAsset(new AssetEntry(id, offset, size1, sizeD, flag != 0, hash, assetFile));
                             actualFiles++;
                         }
 

@@ -12,31 +12,17 @@ public class telara_obj : MonoBehaviour {
     public bool doLoad = false;
     public bool loaded = false;
     public Assets.RiftAssets.AssetDatabase.RequestCategory cat = Assets.RiftAssets.AssetDatabase.RequestCategory.NONE;
-    telera_spawner spawner;
+   
 
     public void setFile(String str)
     {
         file = str;
     }
-    public void setProps(Assets.RiftAssets.AssetDatabase.RequestCategory cat, telera_spawner spawner)
+    public void setProps(Assets.RiftAssets.AssetDatabase.RequestCategory cat)
     {
-        this.spawner = spawner;
         this.cat = cat;
     }
-    /*
-    public void objectVisible()
-    {
-        if (doLoad || loaded)
-            return;
-        doLoad = true;
-        startJob();
-    }
-
-    void startJob()
-    {
-        spawner.addJob(this, file);
-    }
-    */
+   
 
     public void unload()
     {
@@ -46,7 +32,39 @@ public class telara_obj : MonoBehaviour {
     }
 
     void Start () {
+        
     }
 
-    
+#if UNITY_EDITOR1
+    Camera cam;
+    public float distanceTocam = 0;
+    void Update()
+    {
+        if (cam == null)
+            cam = GameObject.FindObjectOfType<Camera>();
+        distanceTocam = Vector3.Distance(cam.transform.position, this.transform.position);
+        if (distanceTocam > 100)
+            return;
+        Plane[] camPlanes = GeometryUtility.CalculateFrustumPlanes(cam);
+        if (TestPlanesAABB(camPlanes, this.transform.position))
+        {
+            Debug.DrawLine(this.transform.position, cam.transform.position, Color.green);
+        }
+        else
+        {
+            Debug.DrawLine(this.transform.position, cam.transform.position, Color.red);
+        }
+
+    }
+
+    private bool TestPlanesAABB(Plane[] camPlanes, Vector3 point)
+    {
+        foreach (Plane p in camPlanes)
+        {
+            if (!p.GetSide(point))
+                return false;
+        }
+        return true;
+    }
+#endif
 }

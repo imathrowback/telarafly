@@ -173,18 +173,47 @@ namespace Assets.RiftAssets
             for (int i = 0; i < manifestEntries.Count; i++)
             {
                 ManifestEntry e = manifestEntries[i];
-                List<int> indices;
-                filenameEntryIndexDict.TryGetValue(e.filenameHashStr, out indices);
-                if (indices == null)
-                {
-                    indices = new List<int>();
-                    filenameEntryIndexDict[e.filenameHashStr] = indices;
-                }
-
-                indices.Add(i);
-
+                putFilenameCacheEntry(e, i);
+                putIDCacheEntry(e, i);
             }
 
+        }
+
+        private void putIDCacheEntry(ManifestEntry e, int i)
+        {
+            List<int> indices;
+            idEntryIndexDict.TryGetValue(e.idStr, out indices);
+            if (indices == null)
+            {
+                indices = new List<int>();
+                idEntryIndexDict[e.idStr] = indices;
+            }
+
+            indices.Add(i);
+            
+        }
+
+        private void putFilenameCacheEntry(ManifestEntry e, int i )
+        {
+            List<int> indices;
+            filenameEntryIndexDict.TryGetValue(e.filenameHashStr, out indices);
+            if (indices == null)
+            {
+                indices = new List<int>();
+                filenameEntryIndexDict[e.filenameHashStr] = indices;
+            }
+
+            indices.Add(i);
+
+        }
+
+        internal int getFileSize(string id)
+        {
+            List<ManifestEntry> e = getEntriesForID(id);
+           
+            if (e.Count == 0)
+                return -1;
+            return e[0].size;
         }
 
         void reverse(byte[] arr)
@@ -198,6 +227,7 @@ namespace Assets.RiftAssets
         }
 
         Dictionary<string, List<int>> filenameEntryIndexDict = new Dictionary<string, List<int>>();
+        Dictionary<string, List<int>> idEntryIndexDict = new Dictionary<string, List<int>>();
 
         private List<ManifestEntry> getEntries(string filenameHash)
         {
@@ -209,6 +239,22 @@ namespace Assets.RiftAssets
                 filenameEntryIndexDict[filenameHash] = list;
             }
 
+            return list.Select(e => manifestEntries[e]).ToList();
+        }
+
+        private List<ManifestEntry> getEntriesForID(string id)
+        {
+          
+
+            List<int> list = new List<int>();
+            idEntryIndexDict.TryGetValue(id, out list);
+            if (list == null)
+            {
+                
+                list = new List<int>();
+                idEntryIndexDict[id] = list;
+            }
+            
             return list.Select(e => manifestEntries[e]).ToList();
         }
 

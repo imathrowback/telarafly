@@ -240,7 +240,7 @@ public class telera_spawner : MonoBehaviour
         }
 
         telara_obj tobj = go.GetComponent<telara_obj>();
-        tobj.setProps(category, this);
+        tobj.setProps(category);
 
         //go.transform.SetParent(meshRoot.transform);
 
@@ -334,6 +334,8 @@ public class telera_spawner : MonoBehaviour
         {
             worldLoader = new WorldLoadingThread();
             worldLoader.cam = mcamera.GetComponent<Camera>();
+            worldLoader.cameraWorldCamPos = mcamera.transform.position;
+            worldLoader.telaraWorldCamPos = getWorldCamPos();
             worldLoader.startThread();
         }
         worldLoader.cameraWorldCamPos = mcamera.transform.position;
