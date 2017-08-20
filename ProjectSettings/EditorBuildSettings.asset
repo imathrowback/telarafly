@@ -6,17 +6,23 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/MainScreen.unity
+    guid: b962d1ec45ceeca479fbb97b51119ac6
+  - enabled: 1
     path: Assets/test-decomp.unity
-    guid: 00000000000000000000000000000000
+    guid: 0130ab5bcee04de49a3432828a6d0f8c
   - enabled: 1
     path: Assets/scene1.unity
-    guid: 00000000000000000000000000000000
+    guid: 6ad7a5784d2e49a4db82743511ef231c
   - enabled: 1
     path: Assets/scene2.unity
-    guid: 00000000000000000000000000000000
+    guid: ba3adb24edded0948bd270baa39da8c7
   - enabled: 1
     path: Assets/model_viewer.unity
-    guid: 00000000000000000000000000000000
+    guid: 3d7126f29d67cc249a19da49de96ad60
   - enabled: 1
     path: Assets/wardrobe.unity
-    guid: 00000000000000000000000000000000
+    guid: 15d0908fb7632ca40a49b50e429eb38a
+  - enabled: 1
+    path: Assets/screenshot.unity
+    guid: a8d6ddd1f7cc3704d859c254d6402ce9

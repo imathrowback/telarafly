@@ -17,8 +17,6 @@
 		// Physically based Standard lighting model, and enable shadows on all light types
 #pragma surface surf StandardSpecular fullforwardshadows
 
-		// Use shader model 3.0 target, to get nicer looking lighting
-#pragma target 3.0
 
 		sampler2D _diffuseTexture;
 		sampler2D _normalTexture;
@@ -40,12 +38,14 @@
 			fixed4 normal = tex2D(_normalTexture, IN.uv_normalTexture);
 
 			o.Normal = normal;
+			o.Specular = (0.2, 0.2, 0.2);
 			o.Albedo = diffuse.rgb;
+			o.Emission = half3(1, 0, 0);
 			o.Alpha = diffuse.a;
 		}
 		ENDCG
-
-		Blend One One
+			
+		//Blend OneMinusDstColor One
 		CGPROGRAM
 		// Physically based Standard lighting model, and enable shadows on all light types
 		#pragma surface surf StandardSpecular fullforwardshadows
@@ -70,8 +70,8 @@
 			o.Alpha = diffuse2.a;
 		}
 		ENDCG
-
-			Blend OneMinusDstColor One
+			/*
+			//Blend OneMinusDstColor One
 			CGPROGRAM
 			// Physically based Standard lighting model, and enable shadows on all light types
 #pragma surface surf StandardSpecular fullforwardshadows
@@ -91,7 +91,7 @@
 			o.Albedo = c.rgb / 10;
 		}
 		ENDCG
-
+		*/
 	}
 	FallBack "Diffuse"
 }
