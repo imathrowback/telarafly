@@ -16,7 +16,7 @@ public class TestNifLoader : MonoBehaviour {
     GameObject test;
     // Use this for initialization
     void Start () {
-                NIFLoader.loadNIF("human_male_hide_helmet_307.nif");
+                NIFLoader.loadNIF("A_SLV_crucias_claw_01.nif");
     }
 
     // Update is called once per frame
