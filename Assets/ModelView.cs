@@ -12,16 +12,23 @@ using Assets.RiftAssets;
 using UnityEngine.UI;
 using Assets.DatParser;
 using Assets;
+using Assets.Wardrobe;
 
 public class ModelView : MonoBehaviour
 {
     public float animSpeed = 0.02f;
     public int animToUse = 0;
     int lastAnimToUse = -1;
+    bool mount = false;
+
     GameObject root;
+    GameObject character;
+    Paperdoll mainPaperdoll;
     GameObject nifmodel;
     private AnimatedNif animationNif;
-    Text progressText;
+    Text progressText; 
+
+
     Slider speedSlider;
     AssetDatabase adb;
     public GameObject ground;
@@ -37,7 +44,6 @@ public class ModelView : MonoBehaviour
         progressText = GameObject.Find("ProgressText").GetComponent<Text>();
         nIFModelDropdown = GameObject.Find("NIFmodelImaDropdown").GetComponent<ImaDropdown>();
         animationDropdown = GameObject.Find("AnimationDropdown").GetComponent<Dropdown>();
-
         speedSlider = GameObject.Find("SpeedSlider").GetComponent<Slider>();
         speedSlider.value = this.animSpeed;
       
@@ -162,7 +168,7 @@ public class ModelView : MonoBehaviour
             if (animNif == null)
                 animNif = gameObject.AddComponent<AnimatedNif>();
             animNif.setParams(adb, animNifModel.nifFile, animNifModel.kfmFile, animNifModel.kfbFile);
-
+            this.mount = animNifModel.mount;
             if (nifmodel != null)
                 GameObject.DestroyImmediate(nifmodel);
             Debug.Log("load nif");
@@ -175,6 +181,7 @@ public class ModelView : MonoBehaviour
             List<String> anims = new List<String>();
             foreach (KFAnimation ani in animNif.getAnimations())
             {
+                Debug.Log("Found anim [" + ani.id + "]:" + ani.sequenceFilename + ":" + ani.sequencename );
                 anims.Add(ani.sequencename);
             }
             anims.Sort();
@@ -193,17 +200,63 @@ public class ModelView : MonoBehaviour
         }
 
     }
+
+    private void updateAvatar()
+    {
+        if (character == null)
+            character = new GameObject();
+        character.SetActive(true);
+        mainPaperdoll = character.GetComponent<Paperdoll>();
+        if (mainPaperdoll == null)
+            mainPaperdoll = character.AddComponent<Paperdoll>();
+
+        KFAnimation kf = animationNif.getActiveAnimation();
+        string animString = kf.sequencename;
+        if (kf.sequencename.StartsWith("mount"))
+            animString = kf.sequencename;
+        else
+        {
+            if (kf.sequencename.Contains("mount_"))
+            {
+                animString = kf.sequencename.Substring(kf.sequencename.IndexOf("mount"));
+            }
+        }
+        Debug.Log("setting avatar animation to:" + animString);
+        mainPaperdoll.animOverride = animString;
+        mainPaperdoll.setKFBPostFix("mount");
+        mainPaperdoll.setGender("male");
+        mainPaperdoll.setRace("human");
+        mainPaperdoll.animSpeed = this.animationNif.animSpeed;
+        character.transform.parent = this.nifmodel.transform;
+        character.transform.localPosition = new Vector3(0, 0, 0);
+        character.transform.localRotation = Quaternion.identity;
+        mainPaperdoll.transform.localRotation = Quaternion.identity;
+        mainPaperdoll.setAppearenceSet(1044454339);
+        mainPaperdoll.zeroFrame();
+        this.animationNif.zeroFrame();
+        
+    }
     public void changeAnim()
     {
         changeNif(nIFModelDropdown.getSelected().text);
 
         string anim = this.animationDropdown.options[this.animationDropdown.value].text;
         animationNif.setActiveAnimation(anim);
+
+
+        if (character != null)
+            character.SetActive(false);
+        if (mount)
+        {
+            updateAvatar();
+        }
     }
 
     public void changeSpeed()
     {
         animSpeed = speedSlider.value;
+        if (this.mainPaperdoll != null)
+            mainPaperdoll.animSpeed = animSpeed;
     }
 
     public void changeNIF()

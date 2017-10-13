@@ -72,7 +72,7 @@ namespace Assets.Wardrobe
             
         }
 
-        string getBaseModel()
+        public string getBaseModel()
         {
             return string.Format("{0}_{1}", raceString, genderString);
         }
@@ -394,6 +394,12 @@ namespace Assets.Wardrobe
                 }
             }
 
+        }
+
+        public void zeroFrame()
+        {
+            if (animationNif != null)
+                this.animationNif.zeroFrame();
         }
     }
 }

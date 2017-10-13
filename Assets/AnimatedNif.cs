@@ -63,8 +63,8 @@ namespace Assets
                 kfmfile = new KFMFile(new MemoryStream(adb.extractUsingFilename(kfm)));
 
             anims = new List<KFAnimation>();
-            System.Diagnostics.Stopwatch sp = System.Diagnostics.Stopwatch.StartNew();
-            sp.Start();
+            //System.Diagnostics.Stopwatch sp = System.Diagnostics.Stopwatch.StartNew();
+            //sp.Start();
             foreach (KFAnimation anim in kfmfile.kfanimations)
             {
 
@@ -136,15 +136,25 @@ namespace Assets
                     setActiveAnimation(kfa.id);
                     return;
                 }
-            //Debug.Log("Unable to find animation " + anim);
+            Debug.Log("Unable to find animation " + anim);
+            //foreach (KFAnimation kfa in getAnimations())
+             //   Debug.Log("\t " + kfa.sequencename);
         }
 
         public void setActiveAnimation(int anim)
         {
-            //Debug.Log("set anim to " + anim);
+            Debug.Log("set anim to " + anim);
             nifanimation = loadKFB(anim);
             this.activeAnimation = anim;
             boneMap.Clear();
+        }
+
+        public KFAnimation getActiveAnimation()
+        {
+            foreach (KFAnimation kfa in getAnimations())
+                if (kfa.id == this.activeAnimation)
+                    return kfa;
+            return null;
         }
 
         /** Attempt to get an idle animation index. If no idle animation can be found, return 0 */
@@ -157,7 +167,10 @@ namespace Assets
             }
             return 0;
         }
-
+        public void zeroFrame()
+        {
+            this.tt = 0;
+        }
 
         public void doFrame(float t)
         {
