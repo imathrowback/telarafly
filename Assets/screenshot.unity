@@ -394,7 +394,7 @@ Camera:
   m_GameObject: {fileID: 1674616752}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
+  m_ClearFlags: 2
   m_BackGroundColor: {r: 0.60553634, g: 0.69031143, b: 0.8235294, a: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
@@ -412,7 +412,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 8400000, guid: 13136f2acb5c4fb4d93af4812b7ae4f1, type: 2}
+  m_TargetTexture: {fileID: 8400000, guid: 54cb895aa0e8eca408f293fc914aef00, type: 2}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -447,4 +447,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cam: {fileID: 1674616756}
-  texture: {fileID: 8400000, guid: 54cb895aa0e8eca408f293fc914aef00, type: 2}
+  texture: {fileID: 0}

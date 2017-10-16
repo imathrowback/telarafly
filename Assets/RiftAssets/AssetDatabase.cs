@@ -145,7 +145,13 @@ namespace Assets.RiftAssets
             List<ManifestEntry> entries = manifest.getEntriesForFilenameHash(Util.hashFileName(filename));
 
             if (entries.Count() == 0)
-                throw new Exception("Filename hash not found in manifest: '" + filename + "'");
+            {
+                // lets see if the filename is actually a hash (this shouldn't happen, but whatevers)
+                entries = manifest.getEntriesForFilenameHash(filename);
+                if (entries.Count() == 0)
+                    throw new Exception("Filename hash not found in manifest: '" + filename + "'");
+                Debug.LogWarning("Using filename[" + filename + "] as hash");
+            }
 
             // strip out duplicate patch paks
             entries.RemoveAll(e => {

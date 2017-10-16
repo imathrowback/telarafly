@@ -114,6 +114,8 @@ public class BatchScreenShot : MonoBehaviour {
             takeImage = false;
             Texture2D tex = new Texture2D(2048, 2048, TextureFormat.RGB24, false);
             tex.ReadPixels(new Rect(0, 0, 2048, 2048), 0, 0);
+
+            //RenderTexture tex = cam.targetTexture;
             byte[] data = tex.EncodeToPNG();
             string patch = @"screenshot-" + names[state] + ".png";
             File.WriteAllBytes(patch, data);
