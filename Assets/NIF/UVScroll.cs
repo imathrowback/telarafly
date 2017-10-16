@@ -22,17 +22,26 @@ namespace Assets.NIF
 
         }
 
+        public void stop()
+        {
+            this.xRate = 0;
+            this.yRate = 0;
+        }
+
         void FixedUpdate()
         {
-            Vector2 v = material.mainTextureOffset;
-            v.x += xRate / 480.0f;
-            v.y += yRate / 480.0f;
-            if (v.x > 1.0)
-                v.x = v.x - 1.0f;
-            if (v.y > 1.0)
-                v.y = v.y - 1.0f;
+            if (material != null)
+            {
+                Vector2 v = material.mainTextureOffset;
+                v.x += xRate / 480.0f;
+                v.y += yRate / 480.0f;
+                if (v.x > 1.0)
+                    v.x = v.x - 1.0f;
+                if (v.y > 1.0)
+                    v.y = v.y - 1.0f;
 
-            material.mainTextureOffset = v;
+                material.mainTextureOffset = v;
+            }
         }
 
     }

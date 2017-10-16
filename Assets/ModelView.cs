@@ -71,10 +71,16 @@ public class ModelView : MonoBehaviour
         }
     }
     bool mountsOnly = false;
+    public void toggleShowAvatar()
+    {
+        if (character != null)
+        {
+            character.SetActive(!character.activeInHierarchy);
+        }
 
+    }
     public void toggleShowMountsOnly(bool v)
     {
-        Debug.Log("v:" + v);
         mountsOnly = v;
         if (!v)
         {
@@ -250,6 +256,37 @@ public class ModelView : MonoBehaviour
         {
             updateAvatar();
         }
+        if (ground != null)
+            if (ground.activeInHierarchy)
+                updateGround();
+    }
+
+    public void updateGround()
+    {
+        string anim = this.animationDropdown.options[this.animationDropdown.value].text;
+
+        bool run = anim.Contains("run");
+        bool walk = anim.Contains("walk");
+        MeshRenderer mr = ground.GetComponent<MeshRenderer>();
+        Material mat = mr.material;
+        UVScroll uvScroll = ground.GetComponent<UVScroll>();
+        uvScroll.material = mat;
+        if (run || walk)
+        {
+
+            float speed = -animSpeed * 100;
+            if (run)
+                speed *= 2;
+
+            if (anim.Contains("backward"))
+                speed = -speed;
+
+            uvScroll.yRate = speed;
+        }
+        else
+        {
+            uvScroll.stop();
+        }
     }
 
     public void changeSpeed()
@@ -257,6 +294,8 @@ public class ModelView : MonoBehaviour
         animSpeed = speedSlider.value;
         if (this.mainPaperdoll != null)
             mainPaperdoll.animSpeed = animSpeed;
+        if (ground != null)
+            updateGround();
     }
 
     public void changeNIF()
