@@ -15,7 +15,7 @@ using System;
 
 public class telera_spawner : MonoBehaviour
 {
-    GameObject meshRoot;
+    public GameObject meshRoot;
 //    TreeDictionary<Guid, NifLoadJob> objsToCreateList;
     GameObject charC;
     ThirdPersonUserControl tpuc;
@@ -59,9 +59,13 @@ public class telera_spawner : MonoBehaviour
         // prime the GUID random number generator
         Guid.NewGuid();
 
-        Slider lodslider = GameObject.Find("LODSlider").GetComponent<Slider>();
-        this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.9f);
-        lodslider.value = this.LODCutoff;
+        GameObject lodSliderObj = GameObject.Find("LODSlider");
+        if (lodSliderObj != null)
+        {
+            Slider lodslider = lodSliderObj.GetComponent<Slider>();
+            this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.9f);
+            lodslider.value = this.LODCutoff;
+        }
 
 
         charC = GameObject.Find("ThirdPersonController");
@@ -71,63 +75,68 @@ public class telera_spawner : MonoBehaviour
             tpucRB = charC.GetComponent<Rigidbody>();
             charC.SetActive(false);
         }
-        dropdown = GameObject.Find("SpawnDropdown").GetComponent<Dropdown>();
-        mcamera = GameObject.Find("Main Camera");
-        meshRoot = GameObject.Find("NIFRotationRoot");
-
+        GameObject dropdownObj = GameObject.Find("SpawnDropdown");
         MAX_NODE_PER_FRAME = ProgramSettings.get("MAX_NODE_PER_FRAME", 15000);
-
         setCameraLoc(GameWorld.initialSpawn);
         map = CDRParse.getMap(GameWorld.worldName);
-        zoneText = GameObject.Find("ZoneText").GetComponent<Text>();
-        foreach (Zone z in map.zones)
-        {
-            //Debug.Log("creating zone:" + z._113Key);
-            SCG.List<Vector3> points = z.points;
-            GameObject zone = new GameObject("zone:" + z._113Key);
-            
-            PolygonCollider2D p = zone.AddComponent<PolygonCollider2D>();
-            p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
-            z.collider = p;
-            
 
+        if (dropdownObj != null)
+        {
+            dropdown = dropdownObj.GetComponent<Dropdown>();
+
+
+            zoneText = GameObject.Find("ZoneText").GetComponent<Text>();
+            foreach (Zone z in map.zones)
+            {
+                //Debug.Log("creating zone:" + z._113Key);
+                SCG.List<Vector3> points = z.points;
+                GameObject zone = new GameObject("zone:" + z._113Key);
+
+                PolygonCollider2D p = zone.AddComponent<PolygonCollider2D>();
+                p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
+                z.collider = p;
+
+
+            }
+            foreach (Scene z in map.scenes)
+            {
+                SCG.List<Vector3> points = z.points;
+                GameObject zone = new GameObject("scene:" + z._114Key);
+
+                PolygonCollider2D p = zone.AddComponent<PolygonCollider2D>();
+                p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
+                z.collider = p;
+
+
+            }
+
+            dropdown.gameObject.SetActive(false);
+            dropdown.options.Clear();
+            int startIndex = 0;
+            int i = 0;
+            foreach (WorldSpawn spawn in GameWorld.getSpawns())
+            {
+                if (spawn.spawnName.Equals(GameWorld.initialSpawn.spawnName))
+                    startIndex = i;
+                DOption option = new DOption(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos, false);
+                dropdown.options.Add(option);
+                i++;
+            }
+            dropdown.value = startIndex;
+            dropdown.gameObject.SetActive(true);
+            dropdown.GetComponent<FavDropDown>().doOptions();
+            dropdown.RefreshShownValue();
         }
-        foreach (Scene z in map.scenes)
+        if (bigMap != null)
         {
-            SCG.List<Vector3> points = z.points;
-            GameObject zone = new GameObject("scene:" + z._114Key);
+            bigMap.setWorld(GameWorld.worldName);
 
-            PolygonCollider2D p = zone.AddComponent<PolygonCollider2D>();
-            p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
-            z.collider = p;
+            bigMap.OnSpawnClick += (s) =>
+            {
+                setCameraLoc(s);
 
-
+            };
         }
-
-        dropdown.gameObject.SetActive(false);
-        dropdown.options.Clear();
-        int startIndex = 0;
-        int i = 0;
-        foreach (WorldSpawn spawn in GameWorld.getSpawns())
-        {
-            if (spawn.spawnName.Equals(GameWorld.initialSpawn.spawnName))
-                startIndex = i;
-           DOption option = new DOption(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos, false);
-            dropdown.options.Add(option);
-            i++;
-        }
-        dropdown.value = startIndex;
-        dropdown.gameObject.SetActive(true);
-        dropdown.GetComponent<FavDropDown>().doOptions();
-        dropdown.RefreshShownValue();
-
-        bigMap.setWorld(GameWorld.worldName);
-
-        bigMap.OnSpawnClick += (s) =>
-        {
-            setCameraLoc(s);
-           
-        };
     }
 
 
