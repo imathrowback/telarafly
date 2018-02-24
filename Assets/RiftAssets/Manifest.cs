@@ -156,7 +156,7 @@ namespace Assets.RiftAssets
            // Debug.Log("read table 2");
 
             /** TABLE 2 - Manifest entries */
-            int entrySize = 56;
+            int entrySize = b.stride;
             for (int i = 0; i < count; i++)
             {
                 int start = tableOffset + (i * entrySize);
