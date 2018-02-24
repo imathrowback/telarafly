@@ -56,6 +56,8 @@ namespace Assets.RiftAssets
             return getEntry(Util.bytesToHexString(id));
         }
 
+
+      
         static AssetCache cache = AssetCache.inst;
         /**
          * Attempt to extract the given assetentry into a byte array. Because the content may be compressed the returned byte array
@@ -73,7 +75,7 @@ namespace Assets.RiftAssets
                 throw new Exception(
                         "Extract called on wrong asset file[" + file + "] for asset:" + entry);
 
-            byte[] data = cache.GetOrAdd(entry.strID + ":" + maxBytesToRead + ":" + nodecomp, () => extractPart1(entry, maxBytesToRead,  nodecomp));
+             byte []data = cache.GetOrAdd(entry.strID + ":" + maxBytesToRead + ":" + nodecomp, () => extractPart1(entry, maxBytesToRead,  nodecomp));
             if (os != null)
                 os.Write(data, 0, data.Length);
             return data;

@@ -161,9 +161,10 @@ namespace Assets.Wardrobe
             refModel = go;
 
 
-            animationNif.setActiveAnimation(string.Format("{0}_{1}_idle", getBaseModel(), animationSet));
             if (!"".Equals(animOverride))
                 animationNif.setActiveAnimation(animOverride);
+            else
+                animationNif.setActiveAnimation(string.Format("{0}_{1}_idle", getBaseModel(), animationSet));
             animationNif.setSkeletonRoot(refModel);
                 
             costumeParts = new GameObject("CostumeParts");
@@ -175,7 +176,13 @@ namespace Assets.Wardrobe
         }
 
    
+        public void clearGearSlot(GearSlot slot)
+        {
+            gearSlotKeys.Remove(slot);
+            if (state == ClassState.IDLE)
+                state = ClassState.UPDATE;
 
+        }
 
         public void setGearSlotKey(GearSlot slot, long key)
         {
@@ -205,8 +212,15 @@ namespace Assets.Wardrobe
                 int race = WardrobeStuff.raceMap[raceString];
                 int sex = WardrobeStuff.genderMap[genderString];
                 long key = gearSlotKeys[slot];
+                string nif = "";
                 ClothingItem item = new ClothingItem(DBInst.inst, key);
-                string nif = item.nifRef.getNif(race, sex);
+                if (item.nifRef != null)
+                {
+                    nif = item.nifRef.getNif(race, sex);
+                }
+                else
+                    nif = new NIFReference(DBInst.inst, key).getNif(race, sex);
+
                 //Debug.Log("load nif[" + nif + "] for slot:" + slot);
                 gearSlotObjects[slot] = loadNIFForSlot(slot, refModel, costumeParts, Path.GetFileName(nif), "");
             }
@@ -272,6 +286,7 @@ namespace Assets.Wardrobe
                     NIFLoader.linkBonesToMesh(file, skeleton);
                 else
                 {
+                    Debug.Log("Treating slot (" + slot + ") as weapon");
                     /*
                     switch (slot)
                     {

@@ -318,13 +318,13 @@ namespace DDSLoader
             return bytes[0] == s[0] && bytes[1] == s[1] && bytes[2] == s[2] && bytes[3] == s[3];
         }
 
-#if UNITY_64
+//#if UNITY_64
         [DllImport(@"squish_x64")]
         static extern void DecompressImage(IntPtr rgba, int width, int height, IntPtr blocks, int flag);
-#elif UNITY_32
-        [DllImport(@"squish_x86")]
-        static extern void DecompressImage(IntPtr rgba, int width, int height, IntPtr blocks, int flag);
-#endif
+//#elif UNITY_32
+//        [DllImport(@"squish_x86")]
+//        static extern void DecompressImage(IntPtr rgba, int width, int height, IntPtr blocks, int flag);
+//#endif
         public static void DecompressImageA(byte[] blocksIn, byte[] dataOut, int width, int height, int flags)
         {
             int inSize = dataOut.Length;

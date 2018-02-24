@@ -16,7 +16,32 @@ public class TestNifLoader : MonoBehaviour {
     GameObject test;
     // Use this for initialization
     void Start () {
-                NIFLoader.loadNIF("A_SLV_crucias_claw_01.nif");
+
+
+        this.test = NIFLoader.loadNIFFromFile(@"L:\Projects\riftools\RiftTools\build\jar\output\6d47e1fe-4335199f4d6c1214-B.nif");
+
+
+        /*
+        GameObject character = new GameObject();
+
+        Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
+
+        mainPaperdoll.animOverride = "human_male_mount_ape_idle";
+        mainPaperdoll.kfbOverride = "human_male_mount.kfb";
+        //mainPaperdoll.setKFBPostFix("mount");
+        mainPaperdoll.setGender("male");
+        mainPaperdoll.setRace("human");
+        //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.001f;
+        mainPaperdoll.animSpeed = 0.005f;
+        //character.transform.parent = mount.transform;
+        character.transform.localPosition = new Vector3(0, 0, 0);
+        character.transform.localRotation = Quaternion.identity;
+        mainPaperdoll.transform.localRotation = Quaternion.identity;
+        mainPaperdoll.setAppearenceSet(1044454339);
+        //mainPaperdoll.setGearSlotKey(GearSlot.CAPE, 2131680782);
+        //mainPaperdoll.setGearSlotKey(GearSlot.MAIN_HAND, 2131680782);
+        //mainPaperdoll.clearGearSlot(GearSlot.HEAD);
+        */
     }
 
     // Update is called once per frame

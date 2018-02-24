@@ -72,6 +72,16 @@ public class NIFLoader
 
     public static NIFFile getNIF(String fname, AssetDatabase.RequestCategory requestCategory = AssetDatabase.RequestCategory.NONE)
     {
+        if (File.Exists(fname))
+        {
+            using (FileStream nifStream = new FileStream(fname, FileMode.Open))
+            {
+                NIFFile niffile = new NIFFile(nifStream);
+                prepTextures(niffile);
+                return niffile;
+            }
+        }
+
         lock (nifCache)
         {
             string key = fname + ":" + requestCategory.ToString();
@@ -134,7 +144,7 @@ public class NIFLoader
 
     static public void linkBonesToMesh(NIFFile nf, GameObject skeletonRoot)
     {
-        //Debug.Log("link bones to mesh[" + skeletonRoot.GetInstanceID());
+       // Debug.Log("link bones to mesh[" + skeletonRoot.GetInstanceID() + "]");
         List<NiSkinningMeshModifier> skinMods = getSkinMods(nf);
         foreach (NiSkinningMeshModifier skinMod in skinMods)
         {
@@ -144,6 +154,7 @@ public class NIFLoader
                 List<Matrix4x4> bindPoses = new List<Matrix4x4>();
 
                 NIFObject rootBoneNode = nf.getObject(skinMod.rootBoneLinkID);
+               // Debug.Log("looking for root bone:" + rootBoneNode.name + " in skeleton root");
                 Transform rootBone = skeletonRoot.transform.FindDeepChild(rootBoneNode.name);
 
                 List<int> boneLinkIds = skinMod.boneLinkIDs;
@@ -688,7 +699,7 @@ public class NIFLoader
         {
             try
             {
-                String testPath = @"d:\rift_stuff\dds\" + name;
+                String testPath = @"L:\Projects\riftools\RiftTools\build\jar\output\x\" + name;
                 byte[] data;
                 if (File.Exists(testPath))
                 {

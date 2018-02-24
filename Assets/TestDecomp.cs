@@ -103,7 +103,7 @@ public class TestDecomp : MonoBehaviour
             worlds.Clear();
 
             worlds.AddRange(CDRParse.getSpawns(adb, db, null));
-
+            worlds.Add(new WorldSpawn("warfront_13", "unknown", Vector3.zero, 0));
             favs.Add("tm_Meridian_EpochPlaza");
 
 

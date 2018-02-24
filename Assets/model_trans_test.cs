@@ -11,7 +11,7 @@ public class model_trans_test : MonoBehaviour {
 
 
 
-        GameObject go = NIFLoader.loadNIF("N_SF_rock_water_rapids_01.nif");
+        GameObject go = NIFLoader.loadNIF("human_male_wings_016.nif");
         go.transform.parent = this.transform;
         /*
         string x = "A_TNB_embassy_01.nif";

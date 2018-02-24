@@ -27,8 +27,9 @@ public class telera_spawner : MonoBehaviour
     public GameObject telaraObjectPrefab;
     Map map;
     Text zoneText;
+    GameObject zoneMeshes;
 
-  
+
     int MAX_NODE_PER_FRAME = 15025;
 
     public void purgeObjects()
@@ -84,6 +85,9 @@ public class telera_spawner : MonoBehaviour
         {
             dropdown = dropdownObj.GetComponent<Dropdown>();
 
+            zoneMeshes = GameObject.Find("ZoneMeshes");
+            zoneMeshes.SetActive(false);
+            Material zoneBlockMaterial = Material.Instantiate(Resources.Load<Material>("borderzone"));
 
             zoneText = GameObject.Find("ZoneText").GetComponent<Text>();
             foreach (Zone z in map.zones)
@@ -96,6 +100,21 @@ public class telera_spawner : MonoBehaviour
                 p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
                 z.collider = p;
 
+                GameObject zoneMesh = new GameObject("zone:" + z._113Key);
+                if (z._113Key == 1802934646)
+                {
+                    MeshFilter mf = zoneMesh.AddComponent<MeshFilter>();
+                    MeshRenderer mr = zoneMesh.AddComponent<MeshRenderer>();
+                    Mesh mesh = ExtrudeSprite.CreateMesh(p.points, -10000.2f, 10000.2f);
+                    
+                    mf.sharedMesh = mesh;
+                    mr.sharedMaterial = zoneBlockMaterial;
+
+
+                    zoneMesh.transform.SetParent(zoneMeshes.transform);
+                    zoneMesh.transform.localRotation = Quaternion.identity;
+                    zoneMesh.transform.localPosition = Vector3.zero;
+                }
 
             }
             foreach (Scene z in map.scenes)
@@ -106,7 +125,7 @@ public class telera_spawner : MonoBehaviour
                 PolygonCollider2D p = zone.AddComponent<PolygonCollider2D>();
                 p.points = points.Select(x => new Vector2(x.x, x.z)).ToArray();
                 z.collider = p;
-
+                
 
             }
 
@@ -192,6 +211,7 @@ public class telera_spawner : MonoBehaviour
         //    go.SetActive(v);
         foreach (GameObject go in invisibleObjects)
             go.SetActive(v);
+        zoneMeshes.SetActive(v);
     }
 
     void addCDR(ObjectPosition op, GameObject go)
@@ -297,7 +317,9 @@ public class telera_spawner : MonoBehaviour
     GameObject zoneSky = null;
     void handleZone()
     {
-        Vector3 camPos = getWorldCamPos();
+        if (zoneText == null)
+            return;
+            Vector3 camPos = getWorldCamPos();
         Vector2 cPos = new Vector2(camPos.x, camPos.z);
         Zone zone = null;
         Scene scene = null;
@@ -510,4 +532,7 @@ public class telera_spawner : MonoBehaviour
         }
 
     }
+
+
+
 }

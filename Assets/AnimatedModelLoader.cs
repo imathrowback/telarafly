@@ -90,7 +90,7 @@ namespace Assets
                     string kfbFile = Path.GetFileNameWithoutExtension(kfm) + postfix + ".kfb";
                     bool nifexists = adb.filenameExists(nifFile);
                     bool kfbexists = adb.filenameExists(kfbFile);
-                    if (!(!nifexists || !kfbexists))
+                    if (nifexists)
                     {
                         string displayName = nifFile;
                         // special handling for mounts as we want them grouped together

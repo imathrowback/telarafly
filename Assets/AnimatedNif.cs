@@ -130,6 +130,7 @@ namespace Assets
 
         public void setActiveAnimation(string anim)
         {
+            Debug.Log("set anim to " + anim);
             foreach (KFAnimation kfa in getAnimations())
                 if (kfa.sequencename.Equals(anim))
                 {
@@ -137,8 +138,8 @@ namespace Assets
                     return;
                 }
             Debug.Log("Unable to find animation " + anim);
-            //foreach (KFAnimation kfa in getAnimations())
-             //   Debug.Log("\t " + kfa.sequencename);
+            foreach (KFAnimation kfa in getAnimations())
+                Debug.Log("\t " + kfa.sequencename);
         }
 
         public void setActiveAnimation(int anim)
@@ -195,9 +196,10 @@ namespace Assets
                 for (int i = 0; i < data.seqEvalIDList.Count; i++)
                 {
                     int evalID = (int)data.seqEvalIDList[i];
+                    NIFObject evalObjA = nifanimation.getObject(evalID);
                     if (nifanimation.getObject(evalID) is NiBSplineCompTransformEvaluator)
                     {
-                        NiBSplineCompTransformEvaluator evalObj = (NiBSplineCompTransformEvaluator)nifanimation.getObject(evalID);
+                        NiBSplineCompTransformEvaluator evalObj = (NiBSplineCompTransformEvaluator)evalObjA;
                         string boneName = nifanimation.getStringFromTable(evalObj.m_kAVObjectName);
                         GameObject go;
                         // cache game objects for bones
@@ -207,15 +209,15 @@ namespace Assets
                             Transform bone = skeletonRoot.transform.FindDeepChild(boneName);
                             if (bone == null)
                             {
-                                //Debug.LogWarning("unable to find bone in skeleton for " + boneName);
+//                                Debug.LogWarning("unable to find bone in skeleton for " + boneName);
                                 continue;
                             }
                             go = boneMap[boneName] = bone.gameObject;
-                                //GameObject.Find(boneName);
+                            //GameObject.Find(boneName);
                         }
                         if (go == null)
                         {
-                            //Debug.Log("unable to get gameobject for bone " + boneName);
+  //                          Debug.Log("unable to get gameobject for bone " + boneName);
                             continue;
                         }
                         int splineDataIndex = evalObj.splineDataIndex;
@@ -254,6 +256,8 @@ namespace Assets
                         Debug.DrawLine(go.transform.position, go.transform.parent.position);
 
                     }
+                    else
+                        Debug.LogWarning("Unknown animation type:" + evalObjA.GetType());
                 }
             }
 

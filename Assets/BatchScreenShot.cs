@@ -112,8 +112,8 @@ public class BatchScreenShot : MonoBehaviour {
         if (state < vecs.Length && takeImage)
         {
             takeImage = false;
-            Texture2D tex = new Texture2D(2048, 2048, TextureFormat.RGB24, false);
-            tex.ReadPixels(new Rect(0, 0, 2048, 2048), 0, 0);
+            Texture2D tex = new Texture2D(4096, 4096, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, 4096, 4096), 0, 0);
 
             //RenderTexture tex = cam.targetTexture;
             byte[] data = tex.EncodeToPNG();
