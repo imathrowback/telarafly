@@ -9,6 +9,7 @@ using System.Text;
 using UnityEngine;
 using Assets.WorldStuff;
 using Assets.Database;
+using System.Threading;
 
 namespace Assets
 {
@@ -108,7 +109,7 @@ namespace Assets
                             objs.Add(p);
                         });
                         lock (objectPositions)
-                        {
+                        { 
                             objectPositions.AddRange(objs);
                         }
                     }
@@ -121,6 +122,10 @@ namespace Assets
                 m_Thread.Start();
             }
         }
+
+        bool objPos_canConsume = false;
+        bool objPos_canProduce = true;
+
         void submitCDRJob(int tx, int ty)
         {
             long key = Combine(tx, ty);
@@ -259,24 +264,24 @@ namespace Assets
         }
 
         [CallFromUnityUpdate]
-        void processLoadingQueue()
+        void processLoadingQueue(DateTime fend)
         {
             // Handle loading capsule queue
-            lock (loadingCapsuleQueue)
+            TryWithLock(loadingCapsuleQueue, () =>
             {
-                while (!loadingCapsuleQueue.IsEmpty)
+                while (!loadingCapsuleQueue.IsEmpty && fend > DateTime.Now)
                     addLoading(loadingCapsuleQueue.Dequeue());
 
-            }
+            });
         }
         IQueue<NifLoadJob> loadingCapsuleQueue = new CircularQueue<NifLoadJob>();
         void startJob(NifLoadJob job, TreeDictionary<long, NifLoadJob> runningList, KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates)
         {
-            lock (loadingCapsuleQueue)
+            lock(loadingCapsuleQueue)
             {
                 loadingCapsuleQueue.Enqueue(job);
-            }
-            lock (runningList)
+            };
+            lock(runningList)
             {
                 runningList.Add(job.uid, job);
             }
@@ -287,39 +292,64 @@ namespace Assets
 
         }
 
-        [CallFromUnityUpdate]
-        internal void processThreadsUnityUpdate(Action<TreeDictionary<long, NifLoadJob>> processRunningList, Func<ObjectPosition, GameObject> process)
+        /** Try to lock the object and then perform the action. If the object cannot be locked within 5ms, then don't run the action
+         */ 
+        private void TryWithLock(object lockObj, Action a)
         {
-            lock (camPlaneLock)
+            if (Monitor.TryEnter(lockObj, 5))
             {
-                camPlanes = GeometryUtility.CalculateFrustumPlanes(cam);
-            }
-            processLoadingQueue();
-            lock (objectRunningList)
-            {
-                processRunningList(objectRunningList);
-                oListCountEstimate = objectRunningList.Count;
-            }
-            lock (terrainRunningList)
-            { 
-                processRunningList(terrainRunningList);
-                tListCountEstimate = terrainRunningList.Count;
-            }
-            lock (objectPositions)
-            {
-                DateTime end = DateTime.Now.AddMilliseconds(100);
-                while (objectPositions.Count() > 0)
+                try
                 {
-                    ObjectPosition p = objectPositions[0];
-                    objectPositions.RemoveAt(0);
-                    GameObject go = process(p);
-                    // don't stay here too long
-                    if (DateTime.Now > end)
-                        break;
+                    a.Invoke();
+                }
+                finally
+                {
+                    Monitor.Exit(lockObj);
                 }
             }
         }
+
+        [CallFromUnityUpdate]
+        internal void processThreadsUnityUpdate(Action<TreeDictionary<long, NifLoadJob>, DateTime> processRunningList, Func<ObjectPosition, GameObject> process)
+        {
+            /** Create an end time, if we pass that end time we should abort immediately */
+            // 33ms = 30fps
+            DateTime fend = DateTime.Now.AddMilliseconds(15);
+
+            TryWithLock(camPlaneLock, () => camPlanes = GeometryUtility.CalculateFrustumPlanes(cam));
+            if (DateTime.Now > fend)
+                return;
+            processLoadingQueue(fend);
+            if (DateTime.Now > fend)
+                return;
+            TryWithLock(objectRunningList, () =>
+            {
+                processRunningList(objectRunningList, fend);
+                oListCountEstimate = objectRunningList.Count;
+            });
+            if (DateTime.Now > fend)
+                return;
+            TryWithLock(terrainRunningList, () =>
+            {
+                processRunningList(terrainRunningList, fend);
+                tListCountEstimate = terrainRunningList.Count;
+            });
+
+            if (DateTime.Now > fend)
+                return;
+            TryWithLock(objectPositions, () =>
+             {
+                 while (objectPositions.Count() > 0 && fend > DateTime.Now)
+                 {
+                     ObjectPosition p = objectPositions[0];
+                     objectPositions.RemoveAt(0);
+                     GameObject go = process(p);
+                 }
+             });
+        }
         IQueue<NifLoadJob> jobsToAdd = new CircularQueue<NifLoadJob>();
+
+        [CallFromUnityUpdate]
         public void addJob(telara_obj parent, string filename)
         {
             NifLoadJob job = new NifLoadJob(filename);

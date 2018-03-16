@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace cam
 {
@@ -36,6 +38,11 @@ namespace cam
         }
         void Update()
         {
+            /** Don't do camera if an input field is active */
+            if (EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.GetComponent<InputField>() != null)
+            {
+                return;
+            }
 
             // Angryboy: Hold right-mouse button to rotate
             if (Input.GetMouseButtonDown(1))

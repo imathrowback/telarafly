@@ -21,8 +21,9 @@ namespace DDSLoader
             if (data == null)
                 throw new Exception("Attempt to use texture data after it was purged");
             Texture2D texture2 = new Texture2D(width, height, format, mip);
-            texture2.LoadRawTextureData(data);
-            texture2.Apply(true, false);
+            Assets.NIF.NIFTexturePool.inst.add(new Assets.NIF.TexInfo(texture2, data));
+            //texture2.LoadRawTextureData(data);
+            //texture2.Apply(true, false);
             return texture2;
         }
 
@@ -80,19 +81,7 @@ namespace DDSLoader
                 return dataX.getTexture();
             }
         }
-        /*
-        public static Texture2D LoadDDS(string path, bool keepReadable = false, bool asNormal = false, int mipmapBias = -1, bool apply = true)
-        {
-            lock (lockObj)
-            {
-                if (!File.Exists(path))
-                {
-                    throw new Exception("File [" + path + "] does not exist");
-                }
-                return LoadDDS(File.Open(path, FileMode.Open, FileAccess.Read), keepReadable, asNormal, mipmapBias, apply);
-            }
-        }
-        */
+       
 
         static DataReader reader = new DataReader(null);
         static byte[] textureDataIn = new byte[0];

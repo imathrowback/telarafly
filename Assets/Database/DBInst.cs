@@ -105,10 +105,9 @@ namespace Assets.Database
                     Debug.Log("get asset database inst");
                     AssetDatabase adb = AssetDatabaseInst.DB;
                     Debug.Log("get telara.db");
-                    AssetEntry ae = adb.getEntryForFileName("telara.db");
                     Debug.Log("done get telara.db");
 
-                    string entryHash = Util.bytesToHexString(ae.hash);
+                    //string entryHash = Util.bytesToHexString(ae.hash);
 
                     string namePath = System.IO.Path.GetTempPath() + "telaraflydb" + Guid.NewGuid();
                     string compressedSQLDB = namePath + ".db3";
@@ -132,29 +131,7 @@ namespace Assets.Database
                         }
 
                     };
-
-                    /*
-                    string foundHash = "";
-                    Debug.Log("check telaradb hash");
-                    if (File.Exists(dbHashname) && File.Exists(compressedSQLDB))
-                    {
-                        string[] lines = File.ReadAllLines(dbHashname);
-                        if (lines.Length == 1)
-                            foundHash = lines[0];
-                    }
-
-                    if (!foundHash.Equals(entryHash))
-                    {
-                        db = readDB(adb.extract(ae), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
-                        File.WriteAllLines(dbHashname, new String[] { entryHash });
-                    }
-                    else
-                    {
-                    */
-                    //                        db = new DB();
-                    //                        processSQL(db, compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
-                    //}
-                    DB db = readDB(adb.extract(ae), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+                    DB db = readDB(adb.extractUsingFilename("telara.db"), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
 
                     progress.Invoke("[Phase 1 of 2] Reading language database");
                     langdb = new DBLang(adb, "english", (s) => { progress.Invoke("[Phase 1 of 2]" + s); });

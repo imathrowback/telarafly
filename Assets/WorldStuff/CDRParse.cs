@@ -260,8 +260,7 @@ namespace Assets.WorldStuff
         {
             if (!adb.filenameExists(str))
                 return;
-            AssetEntry ae = adb.getEntryForFileName(str);
-            byte[] data = adb.extract(ae);
+            byte[] data = adb.extractUsingFilename(str);
             if (data[0] != 0x6B)
             {
                 UnityEngine.Debug.Log("Unknown code " + data[0] + ", expected:" + 0x6b);

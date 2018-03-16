@@ -126,16 +126,7 @@ public class NIFLoader
         root.name = Path.GetFileNameWithoutExtension(fname);
         root.transform.localPosition = Vector3.zero;
 
-        List<NIFObject> rootObjects = nf.getChildren(-1);
-       
-        foreach (NIFObject obj in rootObjects)
-        {
-            if (obj is NiNode)
-            {
-                NiNode niNode = (NiNode)obj;
-                GameObject node = processNodeAndLinkToParent(nf, (NiNode)obj, root, skinMesh);
-            }
-        }
+        nf.forEachChildNode(-1, (obj) => processNodeAndLinkToParent(nf, obj, root, skinMesh));
 
         if (skinMesh)
             linkBonesToMesh(nf, root);
@@ -239,14 +230,7 @@ public class NIFLoader
             }
             }
 
-        List<NIFObject> children = nf.getChildren(niNode.index);
-        foreach (NIFObject obj in children)
-        {
-            if (obj is NiNode)
-            {
-                GameObject go = processNodeAndLinkToParent(nf, (NiNode)obj, goM, skinMesh);
-            }
-        }
+        nf.forEachChildNode(niNode.index, (obj) => processNodeAndLinkToParent(nf, obj, goM, skinMesh));
 
         goM.transform.parent = parent.transform;
 
@@ -699,24 +683,15 @@ public class NIFLoader
         {
             try
             {
-                String testPath = @"L:\Projects\riftools\RiftTools\build\jar\output\x\" + name;
                 byte[] data;
-                if (File.Exists(testPath))
+                AssetDatabase db = AssetDatabaseInst.DB;
+                if (db == null)
                 {
-                    data = File.ReadAllBytes(testPath);
+                    //Debug.Log("db was null");
+                    return new Texture2D(2, 2);
                 }
-                else
-                {
-                    AssetDatabase db = AssetDatabaseInst.DB;
-                    if (db == null)
-                    {
-                        //Debug.Log("db was null");
-                        return new Texture2D(2, 2);
-                    }
-                    data = db.extractUsingFilename(name, AssetDatabase.RequestCategory.TEXTURE);
-                }
+                data = db.extractUsingFilename(name, AssetDatabase.RequestCategory.TEXTURE);
                 tex = DDSLoader.DatabaseLoaderTexture_DDS.LoadDDS(data);
-
             }
             catch (Exception ex)
             {

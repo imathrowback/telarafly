@@ -237,7 +237,11 @@ public class ModelView : MonoBehaviour
         character.transform.localPosition = new Vector3(0, 0, 0);
         character.transform.localRotation = Quaternion.identity;
         mainPaperdoll.transform.localRotation = Quaternion.identity;
-        mainPaperdoll.setAppearenceSet(1044454339);
+        //mainPaperdoll.setAppearenceSet(1044454339);
+
+           int key = ProgramSettings.get("MOUNT_AVATAR_KEY", 736798136); //
+
+        mainPaperdoll.setAppearenceSet(key);
         mainPaperdoll.zeroFrame();
         this.animationNif.zeroFrame();
         
@@ -320,6 +324,8 @@ public class ModelView : MonoBehaviour
         }
         if (animationNif != null)
             animationNif.animSpeed = this.animSpeed;
+
+        NIFTexturePool.inst.process();
     }
 
 

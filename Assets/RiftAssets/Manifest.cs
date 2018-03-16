@@ -48,6 +48,7 @@ namespace Assets.RiftAssets
 
         public Manifest(String assetsManifest)
         {
+            Debug.Log("Reading manifest:" + assetsManifest);
             is64 = (assetsManifest.Contains("64"));
             byte[] manifestData = File.ReadAllBytes(assetsManifest);
             processTable(manifestData);

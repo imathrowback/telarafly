@@ -10,7 +10,7 @@ namespace Assets.RiftAssets
    public class AssetDatabase
     {
         
-        List<AssetFile> assets = new List<AssetFile>();
+        private List<AssetFile> assets = new List<AssetFile>();
         Manifest manifest;
         bool is64;
 
@@ -25,17 +25,19 @@ namespace Assets.RiftAssets
             return manifest;
         }
 
+        /*
         public List<AssetFile> getAssetFiles()
         {
             return assets;
         }
+        */
 
         public void add( AssetFile assetFile)
         {
             assets.Add(assetFile);
         }
 
-        public List<AssetEntry> getEntries()
+        private List<AssetEntry> getEntries()
         {
             List<AssetEntry> entries = new List<AssetEntry>();
             foreach (AssetFile file in assets)
@@ -52,6 +54,8 @@ namespace Assets.RiftAssets
 
         Dictionary<string, List<AssetFile>> assetFiles;
         System.Object locko = new System.Object();
+        internal string overrideDirectory;
+
         private AssetFile findAssetFileForID( string id)
         {
             if (assetFiles == null)
@@ -139,7 +143,7 @@ namespace Assets.RiftAssets
             PATCH,
         }
 
-        public AssetEntry getEntryForFileName( string filename, RequestCategory requestCategory = RequestCategory.NONE)
+        private AssetEntry getEntryForFileName( string filename, RequestCategory requestCategory = RequestCategory.NONE)
         {
             //Debug.Log("get entry for filename:" + filename + " with request category " + requestCategory);
             List<ManifestEntry> entries = manifest.getEntriesForFilenameHash(Util.hashFileName(filename));
@@ -222,10 +226,29 @@ namespace Assets.RiftAssets
         /** Attempt to extract the asset with the given filename */
         public byte[] extractUsingFilename( string filename, RequestCategory requestCategory = RequestCategory.NONE)
         {
+            if (overrideDirectory != null)
+            {
+                string bfilename = Path.GetFileName(filename);
+                string overriddenFilename1 = overrideDirectory + Path.DirectorySeparatorChar + bfilename;
+                string overriddenFilename2 = overrideDirectory + Path.DirectorySeparatorChar + Util.hashFileName(bfilename);
+
+                if (File.Exists(overriddenFilename1))
+                {
+                    Debug.Log("read override file:" + filename + " => " + overriddenFilename1);
+                    return File.ReadAllBytes(overriddenFilename1);
+                }
+                else if (File.Exists(overriddenFilename2))
+                {
+                    Debug.Log("read override file: " + filename + " => " + overriddenFilename2);
+                    return File.ReadAllBytes(overriddenFilename2);
+                }
+            }
+
             return extract(getEntryForFileName(filename, requestCategory));
         }
 
         /** Attempt to extract the asset with the given filename */
+        /*
         public void extractToFilename( String filename,  String outputfilename)
         {
             try 
@@ -243,13 +266,14 @@ namespace Assets.RiftAssets
                 Console.WriteLine(e);
             }
         }
+        */
 
-        public byte[] extract( AssetEntry ae)
+        private byte[] extract( AssetEntry ae)
         {
             return ae.file.extract(ae);
         }
 
-        public byte[] extractPart( AssetEntry ae,  int size)
+        private byte[] extractPart( AssetEntry ae,  int size)
         {
             AssetFile af = ae.file;
             if (af != ae.file)
@@ -263,14 +287,14 @@ namespace Assets.RiftAssets
             return BitConverter.ToString(ae.hash);
         }
 
-        public void extract( AssetEntry ae,  Stream fos)
+        private void extract( AssetEntry ae,  Stream fos)
         {
             byte[] data = extract(ae);
             fos.Write(data, 0, data.Length);
             fos.Flush();
         }
 
-        public AssetEntry getEntryForID( byte[] id)
+        private AssetEntry getEntryForID( byte[] id)
         {
             AssetFile file = findAssetFileForID(id);
             if (file != null)
@@ -278,7 +302,7 @@ namespace Assets.RiftAssets
             return null;
         }
 
-        public AssetFile getAssetFile( AssetEntry ae)
+        private AssetFile getAssetFile( AssetEntry ae)
         {
             return ae.file;
         }

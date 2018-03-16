@@ -67,6 +67,15 @@ namespace Assets.Wardrobe
         }
         public static GearSlot getSlot(int i)
         {
+            if (!Enum.IsDefined(typeof(GearSlot), i))
+            {
+                Debug.Log("Undefined gear slot:" + i);
+
+                if (i == 23)
+                // Assume gear slot 23 is slot 20
+                    i = 20;
+            }
+
             return (GearSlot)i;
         }
 
@@ -80,7 +89,15 @@ namespace Assets.Wardrobe
     {
         public static IEnumerable<ClothingItem> getClothing(this DB db)
         {
-            return db.getEntriesForID(7629).Select(e => new ClothingItem(db, e.key));
+            ClothingItem[] wardrobeItems = db.getEntriesForID(7629).Select(e => new ClothingItem(db,7629, e.key)).ToArray();
+            Debug.Log("found " + wardrobeItems.Count() + " wardrobe items");
+            HashSet<long> usedKeys = new HashSet<long>(wardrobeItems.Select(c => c.nifKey));
+
+            ClothingItem[] modelItems = db.getEntriesForID(7305).Where(e => !usedKeys.Contains(e.key)).Select(e => new ClothingItem(db, 7305,e.key)).Where(ci => ci.allowedSlots.Count > 0).ToArray();
+            Debug.Log(" found " + modelItems.Count() + " model items that could be wardrobe items");
+
+            return wardrobeItems.Concat(modelItems);
+
         }
     }
 
@@ -91,6 +108,7 @@ namespace Assets.Wardrobe
         public long key { get; }
         public int langKey { get; }
         public string name { get; }
+        public long nifKey;
         public NIFReference nifRef { get; }
         public List<GearSlot> allowedSlots = new List<GearSlot>();
         public GearType type = GearType.UNK;
@@ -100,34 +118,64 @@ namespace Assets.Wardrobe
         {
             return "[" + id + "][" + key + "]:" + name;
         }
-        public ClothingItem(DB db, long key)
+        public ClothingItem(DB db,  long key) : this(db, 7629, key)
+        {
+            
+        }
+        public ClothingItem(DB db, long id, long key)
         {
             this.key = key;
-            this.id = 7629;
+            this.id = id;
             try
             {
-                CObject gearDef = db.toObj(7629, key);
-                this.name = gearDef.getMember(0).convert() + "";
-                if (gearDef.hasMember(1))
+
+                CObject gearDef = db.toObj(id, key);
+                if (id == 7629)
                 {
-                    this.langKey = gearDef.getMember(1).getIntMember(0);
-                }
-                if (gearDef.hasMember(5))
-                {
-                    CObject allowedSlotsArray = gearDef.getMember(5);
-                    foreach (CObject o in allowedSlotsArray.members)
+                    this.name = gearDef.getMember(0).convert() + "";
+                    if (gearDef.hasMember(1))
                     {
-                        int slot = int.Parse(o.convert() + "");
-                        allowedSlots.Add(WardrobeStuff.getSlot(slot));
+                        this.langKey = gearDef.getMember(1).getIntMember(0);
                     }
+                    if (gearDef.hasMember(5))
+                    {
+                        CObject allowedSlotsArray = gearDef.getMember(5);
+                        foreach (CObject o in allowedSlotsArray.members)
+                        {
+                            int slot = int.Parse(o.convert() + "");
+                            allowedSlots.Add(WardrobeStuff.getSlot(slot));
+                        }
+                    }
+
+                    if (gearDef.hasMember(6))
+                        type = WardrobeStuff.getGearType(gearDef.getIntMember(6));
+
+                    nifKey = gearDef.getIntMember(2);
+                    nifRef = new NIFReference(db, nifKey);
                 }
+                else if (id == 7305)
+                {
+                    nifRef = new NIFReference(db, key);
+                    nifKey = key;
+                    if (gearDef.hasMember(2))
+                    {
+                        string nifPath = gearDef.getMember(2).convert() + "";
+                        this.name = System.IO.Path.GetFileName(nifPath);
+                    }
+                    if (gearDef.hasMember(15))
+                    {
+                        CObject allowedSlotsArray = gearDef.getMember(15);
+                        foreach (CObject o in allowedSlotsArray.members)
+                        {
+                            int slot = int.Parse(o.convert() + "");
+                            allowedSlots.Add(WardrobeStuff.getSlot(slot));
+                        }
+                    }
 
-                if (gearDef.hasMember(6))
-                    type = WardrobeStuff.getGearType(gearDef.getIntMember(6));
-
-           
-                nifRef = new NIFReference(db, gearDef.getIntMember(2));
-            }catch (Exception ex)
+                }
+                else throw new Exception("Bad id:" + id);
+            }
+            catch (Exception ex)
             {
                 Debug.Log("Unable to process [" + this + "] nif reference:" + ex);
             }

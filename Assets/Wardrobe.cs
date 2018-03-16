@@ -22,6 +22,7 @@ public class Wardrobe : MonoBehaviour
     string progress;
     WardrobePreviewPanelUpdater panelUpdater;
     public Paperdoll paperDoll;
+    public InputField filterField;
     public Dropdown slotChangeDropdown;
     public Dropdown appearanceDropdown;
     public Dropdown genderDropdown;
@@ -39,7 +40,7 @@ public class Wardrobe : MonoBehaviour
     {
         panelUpdater = this.GetComponent<WardrobePreviewPanelUpdater>();
         pageText = GameObject.Find("PageText").GetComponent<Text>();
-
+        filterField = GameObject.Find("FilterField").GetComponent<InputField>();
 
         raceString = "human";
         genderString = "male";
@@ -82,15 +83,42 @@ public class Wardrobe : MonoBehaviour
             previewIndex = clothingItems.Count() - panelUpdater.getVisiblePanels();
         updatePreview();
     }
+    bool shouldShow(GearSlot slot, ClothingItem c)
+    {
+        if (c.allowedSlots.Contains(slot))
+        {
+            if (filter != null && filter.Length > 0)
+                return c.name.ToLower().Contains(filter);
+            return true;
+        }
+        return false;
+    }
+    ClothingItem[] originals;
+
     public void changeSlot()
     {
         DOption option = (DOption)slotChangeDropdown.options[slotChangeDropdown.value];
         GearSlot slot = (GearSlot)option.userObject;
-        clothingItems = db.getClothing().Where(c => c.allowedSlots.Contains(slot)).ToArray();
+        if (originals == null)
+            originals = db.getClothing().ToArray();
+        clothingItems = originals.Where(c => shouldShow(slot, c)).ToArray();
+        panelUpdater.panelItems = clothingItems.Count();
+
         previewIndex = 0;
         updatePageText();
         updatePreview();
     }
+
+    string filter = null;
+    string filterToSet = null;
+    DateTime filterSetTime = DateTime.Now;
+    public void updateFilter()
+    {
+        
+        this.filterSetTime = DateTime.Now.AddSeconds(1);
+        this.filterToSet = filterField.text.ToLower();
+    }
+
 
     void updatePageText()
     {
@@ -145,6 +173,15 @@ public class Wardrobe : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (filterToSet != null && DateTime.Now > filterSetTime)
+        {
+            filter = filterToSet;
+            filterToSet = null;
+            changeSlot();
+
+        }
+
+        NIFTexturePool.inst.process();
         if (text != null)
             text.text = progress;
         if (db != null && !first)
@@ -153,6 +190,7 @@ public class Wardrobe : MonoBehaviour
             // finally everything is loaded and ready so lets load an appearence set
             try
             {
+                // fill the "appearence" sets
                 List<DOption> options = new List<DOption>();
                 options.Add(new DOption("", null));
 

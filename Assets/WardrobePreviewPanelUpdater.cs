@@ -7,7 +7,8 @@ using UnityEngine.UI;
 
 public class WardrobePreviewPanelUpdater : MonoBehaviour {
 
-    int panelCount = 9;
+    int max_panelCount = 9;
+    public int panelItems = 9999;
     Text loadingText;
     public GameObject previewPanel;
     public GameObject previewsRoot;
@@ -20,7 +21,8 @@ public class WardrobePreviewPanelUpdater : MonoBehaviour {
         RectTransform rtPanel = this.GetComponent<RectTransform>();
         Canvas canvas = this.GetComponentInParent<Canvas>();
         float canvaswidth = ((rtPanel.rect.width * canvas.scaleFactor));
-        return Mathf.FloorToInt(canvaswidth / 128);
+        int panels =  Mathf.FloorToInt(canvaswidth / 128);
+        return Math.Min(panelItems, panels);
     }
     // Use this for initialization
     void Start () {
@@ -33,7 +35,7 @@ public class WardrobePreviewPanelUpdater : MonoBehaviour {
     void buildPanels()
     {
 
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < max_panelCount; i++)
         {
             int index = i + 1;
             GameObject go = GameObject.Instantiate(previewTemplatePrefab);
@@ -71,7 +73,7 @@ public class WardrobePreviewPanelUpdater : MonoBehaviour {
         if (DBInst.loaded && lastVisible != getVisiblePanels())
         {
             //Debug.Log("lastVisible[" + lastVisible + "], vis[" + getVisiblePanels() + "]");
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < max_panelCount; i++)
             {
                 GameObject go = this.panels[i];
                 ClothingItemRenderer renderer = go.GetComponent<ClothingItemRenderer>();

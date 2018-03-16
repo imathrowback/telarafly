@@ -9,9 +9,10 @@ namespace Assets.RiftAssets
 {
     public class AssetProcessor
     {
-        public static AssetDatabase buildDatabase(Manifest manifest, String assetDirectory)
+        public static AssetDatabase buildDatabase(Manifest manifest, String assetDirectory, string overrideDirectory)
         {
             AssetDatabase assets = new AssetDatabase(manifest);
+            assets.overrideDirectory = overrideDirectory;
             Debug.Log("manifest64:" + manifest.getIs64());
             string[] files = Directory.GetFiles(assetDirectory);
             foreach (string file in files)

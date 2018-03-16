@@ -18,7 +18,7 @@ public class TestNifLoader : MonoBehaviour {
     void Start () {
 
 
-        this.test = NIFLoader.loadNIFFromFile(@"L:\Projects\riftools\RiftTools\build\jar\output\6d47e1fe-4335199f4d6c1214-B.nif");
+        this.test = NIFLoader.loadNIFFromFile(@"C:\workspace\guidiff\output\added\a1a6f94a");
 
 
         /*
@@ -46,6 +46,7 @@ public class TestNifLoader : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
+        NIFTexturePool.inst.process();
         /*
 #if UNITY_EDITOR
         if (Input.GetKeyDown(KeyCode.F))

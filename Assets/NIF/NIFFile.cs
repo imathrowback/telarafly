@@ -45,7 +45,7 @@ namespace Assets.NIF
         {
             parseFile(stream);
             prepMeshes();
-            prepChildrenLists();
+            //prepChildrenLists();
         }
 
 
@@ -61,38 +61,61 @@ namespace Assets.NIF
             }
         }
 
-        Dictionary<int, List<NIFObject>> childrenLists = new Dictionary<int, List<NIFObject>>();
 
+        //C5.HashDictionary<int, List<NIFObject>> childrenLists = new C5.HashDictionary<int, List<NIFObject>>();
+        /*
         void prepChildrenLists()
         {
             foreach(NIFObject obj in getObjects())
             {
                 int p = obj.parentIndex;
                 List<NIFObject> children;
-                if (!childrenLists.TryGetValue(p, out children))
+                if (!childrenLists.Contains(p))
                 {
                     children = new List<NIFObject>();
                     childrenLists.Add(p, children);
                 }
+                else
+                    children = childrenLists[p];
                 children.Add(obj);
             }
         }
-        public List<NIFObject> getChildren(int parentIndex)
+        */
+        public void forEachChildNode(int parentIndex, Action<NiNode> action)
         {
-         //   return childrenLists[parentIndex];
-            
-            List<NIFObject> list = new List<NIFObject>();
-            foreach (NIFObject obj in getObjects())
-                if (obj.parentIndex == parentIndex)
-                    list.Add(obj);
-            return list;
-            
+            if (objCache == null)
+                getObjects();
+
+            for (int i = 0; i < objCache.Count; i++)
+            {
+                NIFObject obj = objCache[i];
+                if (obj.parentIndex == parentIndex && obj is NiNode)
+                    action.Invoke((NiNode)obj);
+            }
         }
 
+        /*
+        public List<NIFObject> getChildren(int parentIndex)
+        {
+            if (objCache == null)
+                getObjects();
+
+            for (int i = 0; i < objCache.Count; i++)
+            {
+                NIFObject obj = objCache[i];
+                if (obj.parentIndex == parentIndex)
+                    list.Add(obj);
+                return list;
+            }
+        }
+        */
+
+        /*
         public List<NIFObject> getChildren(NIFObject obj)
         {
             return getChildren(obj.index);
         }
+        */
 
         public MeshData getMeshData(NiMesh ni)
         {
@@ -109,11 +132,15 @@ namespace Assets.NIF
             return stringTable[i];
         }
 
-        List<NIFObject> objCache = null;
-        public List<NIFObject> getObjects()
+        
+        C5.ArrayList<NIFObject> objCache = null;
+        public IList<NIFObject> getObjects()
         {
             if (objCache == null)
-                objCache = objects.Values.ToList();
+            {
+                objCache = new C5.ArrayList<NIFObject>(objects.Count);
+                objCache.AddAll(objects.Values);
+            }
             return objCache;
         }
 

@@ -372,15 +372,19 @@ public class telera_spawner : MonoBehaviour
         worldLoader.cameraWorldCamPos = mcamera.transform.position;
         worldLoader.telaraWorldCamPos = getWorldCamPos();
         worldLoader.processThreadsUnityUpdate(processRunningList, process);
+
+        Assets.NIF.NIFTexturePool.inst.process();
     }
 
 
 
     [CallFromUnityUpdate]
-    public void processRunningList(TreeDictionary<long, NifLoadJob> runningList)
+    public void processRunningList(TreeDictionary<long, NifLoadJob> runningList, DateTime fend)
     {
         foreach (NifLoadJob job in runningList.Values.ToArray())
         {
+            if (DateTime.Now > fend)
+                break;
             if (job.Update())
             {
                 //Debug.Log("finalize load:" + job.filename);
