@@ -37,7 +37,7 @@
 			fixed4 n = tex2D(_normalTexture, IN.uv_normalTexture);
 			o.Albedo = c.rgb;
 			o.Alpha = 0.5;
-			o.Normal = n;
+			//o.Normal = n;
 		}
 		ENDCG
 	}
