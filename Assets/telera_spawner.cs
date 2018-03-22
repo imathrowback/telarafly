@@ -65,8 +65,9 @@ public class telera_spawner : MonoBehaviour
         if (lodSliderObj != null)
         {
             Slider lodslider = lodSliderObj.GetComponent<Slider>();
-            this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.9f);
+            this.LODCutoff = PlayerPrefs.GetFloat("worldLodSlider", 0.033f);
             lodslider.value = this.LODCutoff;
+            Debug.Log("Read lodcutoff:" + LODCutoff);
         }
 
 
@@ -436,7 +437,7 @@ public class telera_spawner : MonoBehaviour
     [SerializeField]
     bool useLOD = true;
     [SerializeField]
-    float LODCutoff = 0.9f;
+    float LODCutoff = 0.033f;
 
     /// <summary>
     /// Update the LOD on all objects
@@ -470,6 +471,7 @@ public class telera_spawner : MonoBehaviour
             lodObj = GameObject.Find("LODSlider");
         Slider lodslider = lodObj.GetComponent<Slider>();
         this.LODCutoff = lodslider.value;
+        Debug.Log("New lodcutoff:" + this.LODCutoff);
         PlayerPrefs.SetFloat("worldLodSlider", this.LODCutoff);
         PlayerPrefs.Save();
         updateLOD(useLOD);
