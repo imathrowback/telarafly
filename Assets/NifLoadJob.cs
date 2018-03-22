@@ -165,7 +165,8 @@ public class NifLoadJob : ThreadedJob
                 go.transform.localPosition = Vector3.zero;
                 go.transform.localRotation = Quaternion.identity;
 
-                parent.gameObject.GetComponent<LODGroup>().RecalculateBounds();
+                if (parent.gameObject.GetComponent<LODGroup>() != null)
+                    parent.gameObject.GetComponent<LODGroup>().RecalculateBounds();
             }
         }
         catch (Exception ex)

@@ -25,7 +25,7 @@ namespace Assets.NIF
         public class MeshData
         {
             public List<Vector3> verts = new List<Vector3>();
-            public List<int> tristest = new List<int>();
+            public int[] tristest;
             public List<Vector2> uvs = new List<Vector2>();
             public List<List<int>> triangles = new List<List<int>>();
             public List<Vector3> inNormals = new List<Vector3>();
@@ -489,7 +489,6 @@ namespace Assets.NIF
 
             MeshData meshData = new MeshData();
             List<Vector3> verts = meshData.verts;
-            List<int> tristest = meshData.tristest;
             List<Vector2> uvs = meshData.uvs;
             List<List<int>> triangles = meshData.triangles;
             List<Vector3> inNormals = meshData.inNormals;
@@ -687,9 +686,12 @@ namespace Assets.NIF
                 }
             }
 
+            //int[] tristest = meshData.tristest;
             for (int i = 0; i < triangles.Count; i++)
             {
-                tristest.AddRange(triangles[i]);
+                List<int> tris = triangles[i];
+                meshData.tristest = triangles[i].ToArray();
+                //tristest.AddRange(tris);
             }
             return meshData;
 

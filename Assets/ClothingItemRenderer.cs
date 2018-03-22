@@ -69,9 +69,9 @@ public class ClothingItemRenderer : MonoBehaviour {
     {
         ClothingItem t = this.item;
         this.item = null;
-        setItem(t);
+        setItem(t, mainPaperdoll);
     }
-    public void setItem(ClothingItem item)
+    public void setItem(ClothingItem item, Paperdoll mainDoll)
     {
         if (this.item == item)
             return;
@@ -89,7 +89,10 @@ public class ClothingItemRenderer : MonoBehaviour {
         string nifstr = Path.GetFileName(item.nifRef.getNif(1, 0));
         ourPreview.name = item.name;
 
+        previewPaperdoll.copy(mainDoll);
         previewPaperdoll.setGearSlotKey(item.allowedSlots.First(), item.key);
+
+
         SetLayerRecursively(ourPreview, LayerMask.NameToLayer("Preview" + previewIndex));
     }
     // Update is called once per frame

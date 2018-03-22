@@ -20,8 +20,9 @@ namespace DDSLoader
         {
             if (data == null)
                 throw new Exception("Attempt to use texture data after it was purged");
-            Texture2D texture2 = new Texture2D(width, height, format, mip);
-            Assets.NIF.NIFTexturePool.inst.add(new Assets.NIF.TexInfo(texture2, data));
+            //Texture2D texture2 = new Texture2D(width, height, format, mip);
+            //Assets.NIF.NIFTexturePool.inst.add(new Assets.NIF.TexInfo(texture2, data));
+            Texture2D texture2 = Assets.NIF.NIFTexturePool.inst.add(width, height, format, mip, data);
             //texture2.LoadRawTextureData(data);
             //texture2.Apply(true, false);
             return texture2;

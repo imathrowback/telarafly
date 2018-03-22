@@ -135,12 +135,11 @@ public class Wardrobe : MonoBehaviour
        // Debug.Log("update preview");
         updatePageText();
         ClothingItemRenderer[] renderers = panelUpdater.getPanelRenderers();
-        //Debug.Log("update preview: renderers[" + renderers.Count() + "]");
         for (int i = 0; i < renderers.Length; i++)
         {
             ClothingItem item = clothingItems[previewIndex + i];
-            //Debug.Log("set panel[" + i + "] to " + item);
-            renderers[i].setItem(item);
+            
+            renderers[i].setItem(item, this.paperDoll);
         }
         lastVisible = panelUpdater.getVisiblePanels();
     }

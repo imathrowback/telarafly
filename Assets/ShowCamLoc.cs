@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -34,23 +35,25 @@ public class ShowCamLoc : MonoBehaviour
         te.SelectAll();
         te.Copy();
     }
-
+    Vector3 lastV = Vector3.zero;
+    string lastC = "";
     // Update is called once per frame
     void Update() {
-        string x = "";
+        StringBuilder x = new StringBuilder(30);
 
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
         RaycastHit hit = new RaycastHit();
         if (Physics.Raycast(ray, out hit)) 
         {
-            x += "Object: " + hit.collider.name;
+            x.Append("Object: " + hit.collider.name);
         }
 
 
 
-        
-        x +="\nCamera position: " + getCamPos() ;
+
+        x.Append("\nCamera position: ");
+        x.Append(getCamPos());
 
         if (spawner.ObjJobLoadQueueSize() > 0 )
         {
@@ -58,11 +61,14 @@ public class ShowCamLoc : MonoBehaviour
             string paused = "";
             //if (camMov.isRotating)
             //    paused = " (paused) ";
-            
-            x += "\nMeshes loading: " + spawner.ObjJobLoadQueueSize() + "" + paused ;
+
+            x.Append("\nMeshes loading: ");
+            x.Append(spawner.ObjJobLoadQueueSize());
+            x.Append("");
+            x.Append(paused);
         }
         //rt.position = pos;
-        text.text = x;
+        text.text = x.ToString();
       //  background.wi
         //background.bott
         //text.
@@ -70,6 +76,12 @@ public class ShowCamLoc : MonoBehaviour
 
     private string getCamPos()
     {
-        return meshRoot.transform.InverseTransformPoint(mcamera.transform.position).ToString();
+        Vector3 cPos = mcamera.transform.position;
+        if (cPos.Equals(lastV))
+            return lastC;
+        Vector3 v = meshRoot.transform.InverseTransformPoint(cPos);
+        this.lastV = v;
+        this.lastC = v.ToString();
+        return lastC;
     }
 }

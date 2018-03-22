@@ -8,6 +8,7 @@ using UnityEngine;
 
 namespace Assets.RiftAssets
 {
+    /** Cache asset data for a short period */
     class AssetCache
     {
         static AssetCache _inst;
@@ -39,17 +40,33 @@ namespace Assets.RiftAssets
 
         Dictionary<string, int> stats = new Dictionary<string, int>();
 
-        int EXPIRE_MINUTES = 3;
+        int EXPIRE_SECONDS = 30;
         Timer timer;
-        private AssetCache()
+        int expiredLast = 0;
+
+        void stopTimer()
+        {
+            if (timer != null)
+            {
+                timer.Dispose();
+                timer = null;
+            }
+        }
+        void startTimer()
         {
             try
             {
-                timer = new Timer(purgeExpired, null, 25000, Timeout.Infinite);
-            }catch (Exception ex)
+                if (timer == null)
+                    timer = new Timer(purgeExpired, null, 5000, 5000);
+
+            }
+            catch (Exception ex)
             {
 
             }
+        }
+        private AssetCache()
+        {
             stats["miss"] = 0;
             stats["hit"] = 0;
             stats["purged"] = 0;
@@ -75,16 +92,17 @@ namespace Assets.RiftAssets
                     //Debug.Log("[" + strID + "] cache hit");
                     addStat("hit", 1);
                 }
-                entry.expires = DateTime.Now.AddMinutes(EXPIRE_MINUTES);
+                entry.expires = DateTime.Now.AddSeconds(EXPIRE_SECONDS);
+                startTimer();
             }
             return entry.getData();
         }
 
         void writeStats()
         {
-            if (false)
+            if (true)
             {
-               // Debug.Log("write cache stats");
+               //Debug.Log("write cache stats");
 
                 using (StreamWriter fs = File.CreateText("asset-cache.txt"))
                 {
@@ -106,12 +124,13 @@ namespace Assets.RiftAssets
                 {
                     if (DateTime.Now > entry.expires)
                     {
-                        //Debug.Log("purge " + entry.id);
                         entries.Remove(entry.id);
                         addStat("purged", 1);
                     }
                 }
                 writeStats();
+                if (entries.Count == 0)
+                    stopTimer();
             }
         }
 

@@ -12,6 +12,7 @@ using Assets.Database;
 using Assets.Wardrobe;
 using Assets.WorldStuff;
 using System;
+using System.Text;
 
 public class telera_spawner : MonoBehaviour
 {
@@ -220,6 +221,7 @@ public class telera_spawner : MonoBehaviour
         CDRItem cdrItem = go.GetComponent<CDRItem>();
         if (cdrItem == null)
             cdrItem = go.AddComponent<CDRItem>();
+        cdrItem.pos = op.max;
         cdrItem.cdrFile = op.cdrfile;
         cdrItem.index = op.index;
         cdrItem.name = op.entityname;
@@ -231,9 +233,9 @@ public class telera_spawner : MonoBehaviour
         {
             GameObject lgo = new GameObject();
 
-#if UNITY_EDITOR
+//#if UNITY_EDITOR
             addCDR(op, lgo);
-#endif
+//#endif
             LightPosition lp = (LightPosition)op;
             lgo.transform.SetParent(meshRoot.transform);
             lgo.transform.localScale = new Vector3(op.scale, op.scale, op.scale);
@@ -324,18 +326,35 @@ public class telera_spawner : MonoBehaviour
         Zone zone = null;
         Scene scene = null;
         foreach (Zone z in map.zones)
+        {
             if (z.collider.OverlapPoint(cPos))
+            {
                 zone = z;
+                break;
+            }
+        }
         foreach (Scene s in map.scenes)
+        {
             if (s.collider.OverlapPoint(cPos))
+            {
                 scene = s;
+                break;
+            }
+        }
         string zstr = "";
         string cstr = "";
         if (zone != null)
             zstr = zone.name;
         if (scene != null)
             cstr = scene.name;
-        zoneText.text = "Zone:" + zstr + ", scene:" + cstr;
+        StringBuilder sb = new StringBuilder(100);
+        sb.Append("Zone:");
+        sb.Append(zstr);
+        sb.Append(", scene:");
+        sb.Append(cstr);
+        //zoneText.text = String.Concat("Zone:", zstr, ", scene:", cstr);)
+        //zoneText.text = "Zone:" + zstr + ", scene:" + cstr;
+        zoneText.text = sb.ToString();
         if (zone != lastZone)
         {
             if (zoneSky != null)
@@ -430,6 +449,9 @@ public class telera_spawner : MonoBehaviour
         {
             if (!useLOD)
             {
+                // don't touch terrain
+                if (obj.GetComponent<TerrainObj>() != null && obj.GetComponent<TerrainObj>().enabled)
+                    continue;
                 LODGroup group = obj.gameObject.GetComponent<LODGroup>();
                 if (group != null)
                     GameObject.Destroy(group);

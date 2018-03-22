@@ -169,18 +169,29 @@ namespace Assets.RiftAssets
                     manifestEntries.Add(entry);
                 }
             }
-           // Debug.Log("build cache");
+            // Debug.Log("build cache");
+            Dictionary<string, List<int>> filenameEntryIndexDictT = new Dictionary<string, List<int>>();
+            Dictionary<string, List<int>> idEntryIndexDictT = new Dictionary<string, List<int>>();
 
             for (int i = 0; i < manifestEntries.Count; i++)
             {
                 ManifestEntry e = manifestEntries[i];
-                putFilenameCacheEntry(e, i);
-                putIDCacheEntry(e, i);
+                putFilenameCacheEntry(e, i, filenameEntryIndexDictT);
+                putIDCacheEntry(e, i, idEntryIndexDictT);
             }
+            foreach(string x in filenameEntryIndexDictT.Keys)
+            {
+                this.filenameEntryIndexDict.Add(x, filenameEntryIndexDictT[x].ToArray());
+            }
+            foreach (string x in idEntryIndexDictT.Keys)
+            {
+                this.idEntryIndexDict.Add(x, idEntryIndexDictT[x].ToArray());
+            }
+
 
         }
 
-        private void putIDCacheEntry(ManifestEntry e, int i)
+        static private void putIDCacheEntry(ManifestEntry e, int i, Dictionary<string, List<int>> idEntryIndexDict)
         {
             List<int> indices;
             idEntryIndexDict.TryGetValue(e.idStr, out indices);
@@ -194,7 +205,7 @@ namespace Assets.RiftAssets
             
         }
 
-        private void putFilenameCacheEntry(ManifestEntry e, int i )
+        static private void putFilenameCacheEntry(ManifestEntry e, int i, Dictionary<string, List<int>> filenameEntryIndexDict)
         {
             List<int> indices;
             filenameEntryIndexDict.TryGetValue(e.filenameHashStr, out indices);
@@ -227,16 +238,16 @@ namespace Assets.RiftAssets
             }
         }
 
-        Dictionary<string, List<int>> filenameEntryIndexDict = new Dictionary<string, List<int>>();
-        Dictionary<string, List<int>> idEntryIndexDict = new Dictionary<string, List<int>>();
+        Dictionary<string, int[]> filenameEntryIndexDict = new Dictionary<string, int[]>();
+        Dictionary<string, int[]> idEntryIndexDict = new Dictionary<string, int[]>();
 
         private List<ManifestEntry> getEntries(string filenameHash)
         {
-            List<int> list = new List<int>();
+            int[] list = null;
             filenameEntryIndexDict.TryGetValue(filenameHash, out list);
             if (list == null)
             {
-                list = new List<int>();
+                list = new int[0];
                 filenameEntryIndexDict[filenameHash] = list;
             }
 
@@ -245,14 +256,14 @@ namespace Assets.RiftAssets
 
         private List<ManifestEntry> getEntriesForID(string id)
         {
-          
 
-            List<int> list = new List<int>();
+
+            int[] list = null;
             idEntryIndexDict.TryGetValue(id, out list);
             if (list == null)
             {
-                
-                list = new List<int>();
+
+                list = new int[0];
                 idEntryIndexDict[id] = list;
             }
             

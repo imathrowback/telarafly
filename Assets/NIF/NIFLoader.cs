@@ -10,6 +10,7 @@ using System.Xml.Serialization;
 using System.Linq;
 using Assets;
 using DDSLoader;
+using System.Text;
 
 public class NIFLoader
 {
@@ -344,16 +345,18 @@ public class NIFLoader
                 newMesh.SetUVs(0, meshData.uvs);
             if (meshData.boneWeights.Count > 0 && !IS_TERRAIN && skinMesh)
                 newMesh.boneWeights = meshData.boneWeights.ToArray();
-            newMesh.triangles = meshData.tristest.ToArray();
+            // huge memory GC issue here....
+            newMesh.triangles = meshData.tristest;
             r.material = doMaterials(nf, mesh, go);
         }
         return go;
     }
 
-    static Shader standardShader = null;
+     static Shader standardShader = null;
     static Material standardMaterial = null;
     static Material doMaterials(NIFFile nf, NiMesh mesh, GameObject go)
     {
+        StringBuilder strB = new StringBuilder(20);
         if (standardShader == null)
             standardShader = Shader.Find("Standard");
 
@@ -363,9 +366,19 @@ public class NIFLoader
         string materialName = null;
         Material mat = null;
 
-        Material mat2 = Resources.Load<Material>("materials/" + mesh.materialNames[0]);
-        if (mat2 != null)
-            mat = Material.Instantiate<Material>(mat2);
+
+        Material mat2 = null;
+        if (mesh.materialNames.Count > 0)
+        {
+            strB.Length = 0;
+            strB.Append("materials/");
+            strB.Append(mesh.materialNames[0]);
+            mat2 = Resources.Load<Material>(strB.ToString());
+            if (mat2 != null)
+                mat = Material.Instantiate<Material>(mat2);
+        }
+        else
+            Debug.LogWarning("No mesh materials found in mesh :" + mesh.name);
 
         if (mat == null)
         {
@@ -424,12 +437,13 @@ public class NIFLoader
                 mat = Material.Instantiate(Resources.Load<Material>(materialName));
             //Debug.Log("Using guessed material[" + materialName + "] for " + mesh.name + " from list of materials: " + string.Join(",", mesh.materialNames.ToArray()), go);
         }
-        else
+        else if (mat2 != null)
         {
             materialName = mat2.name;
             presetMaterial = true;
             //Debug.Log("Using actual material[" + materialName + "] for " + mesh.name + " from list of materials: " + string.Join(",", mesh.materialNames.ToArray()), go);
         }
+        else Debug.LogWarning("No material found!?");
 #if UNITY_EDITOR
         MeshOriginalMaterial mom = go.AddComponent<MeshOriginalMaterial>();
         mom.materialName = mesh.materialNames[0];
@@ -447,9 +461,14 @@ public class NIFLoader
             {
                 if (mat.GetInt("doAlphaTest") == 0)
                 {
-                    string shaderName = "materials/" + mat2.name + "_shader_opaque";
+                    strB.Length = 0;
+                    strB.Append("materials/");
+                    strB.Append(mat2.name);
+                    strB.Append("_shader_opaque");
+
+                    string shaderName = strB.ToString();
                     //Debug.Log("loading opaque shader:" + shaderName, go);
-                    Shader shader = Resources.Load<Shader>(shaderName); ;
+                    Shader shader = Resources.Load<Shader>(shaderName);
                     if (shader != null)
                         mat.shader = shader;
                 }
@@ -488,10 +507,34 @@ public class NIFLoader
                 switch (fExtra.extraDataString)
                 {
                     case "scaleY":
-                        mat.mainTextureScale = new Vector2(mat.mainTextureScale.x, fExtra.floatData);
+                        if (mat.HasProperty("_MainTex"))
+                        {
+                            mat.mainTextureScale = new Vector2(mat.mainTextureScale.x, fExtra.floatData);
+                        }
+                        else
+                        {
+                            if (mat.HasProperty("scaleY"))
+                            {
+                                mat.SetFloat("scaleY", fExtra.floatData);
+                            }
+                            else
+                                Debug.LogWarning("While trying to set scaleY, material[" + mat.name + "][" + materialName + "] doesn't have an appropriate texture property");
+                        }
                         break;
                     case "scale":
-                        mat.mainTextureScale = new Vector2(fExtra.floatData, mat.mainTextureScale.y);
+                        if (mat.HasProperty("_MainTex"))
+                        {
+                            mat.mainTextureScale = new Vector2(fExtra.floatData, mat.mainTextureScale.y);
+                        }
+                        else
+                        {
+                            if (mat.HasProperty("scale"))
+                            {
+                                mat.SetFloat("scale", fExtra.floatData);
+                            }
+                            else
+                                Debug.LogWarning("While trying to set scale, material[" + mat.name + "][" + materialName + "] doesn't have an appropriate texture property");
+                        }
                         break;
                     default:
                         break;
@@ -540,53 +583,83 @@ public class NIFLoader
                             texName = sourceTex.texFilename;
                             if (presetMaterial)
                             {
-                                string propertyName = "_" + textureNameIds[i];
-                                if(IS_TERRAIN)
-                                    propertyName = "_terrain" + i;
-                               // Debug.Log("attempt to set texture property :" + propertyName + " with texure:" + texName);
+                                strB.Length = 0;
+                                if (IS_TERRAIN)
+                                {
+                                    strB.Append("_terrain");
+                                    strB.Append(i);
+                                }
+                                else
+                                {
+                                    strB.Append("_");
+                                    strB.Append(textureNameIds[i]);
+                                }
+                                
+                                // Debug.Log("attempt to set texture property :" + propertyName + " with texure:" + texName);
 
-                                mat.SetTexture(propertyName, loadTexture(nf, texName));
+                                enqueSetTexture(mat, strB.ToString(), nf, texName);
+                                //mat.SetTexture(propertyName, loadTexture(nf, texName));
                             }
                             else if (IS_TERRAIN)
                             {
-                                string param = "_terrain" + i;
+                                strB.Length = 0;
+                                strB.Append("_terrain");
+                                strB.Append(i);
+                                string param = strB.ToString();
+                                    //"_terrain" + i;
                                 //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
-                                mat.SetTexture(param, loadTexture(nf, texName));
+                                enqueSetTexture(mat, param, nf, texName);
+                                //mat.SetTexture(param, loadTexture(nf, texName));
                             }
                             else
                             {
                                 //Debug.Log("texName[" + texName + "]: id:" + textureNameIds[i]);
-                                switch (textureNameIds[i])
+                                try
                                 {
-                                    case "skyGradientTexture0":
-                                    case "diffuseTexture":
-                                    case "diffuseTextureXZ":
-                                        mat.SetTexture("_MainTex", loadTexture(nf, texName));
-                                        break;
-                                    case "decalNormalTexture":
-                                        mat.SetTexture("_DetailNormalMap", loadTexture(nf, texName));
-                                        break;
-                                    case "normalTexture":
-                                        mat.SetTexture("_BumpMap", loadTexture(nf, texName));
-                                        break;
-                                    case "glowTexture":
-                                        mat.EnableKeyword("_EMISSION");
-                                        if (mesh.materialNames.Contains("Lava_Flow_Decal"))
-                                            mat.SetColor("_EmissionColor", Color.red);
-                                        else
-                                            mat.SetColor("_EmissionColor", Color.white*0.5f);
-                                        mat.SetTexture("_EmissionMap", loadTexture(nf, texName));
-                                        break;
-                                    case "glossTexture":
-                                        mat.SetTexture("_MetallicGlossMap", loadTexture(nf, texName));
-                                        break;
-                                    case "decalTexture":
-                                    case "starMapTexture0":
-                                        mat.SetTexture("_DetailAlbedoMap", loadTexture(nf, texName));
-                                        break;
-                                    default:
-                                        //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
-                                        break;
+                                    switch (textureNameIds[i])
+                                    {
+                                        case "skyGradientTexture0":
+                                        case "diffuseTexture":
+                                        case "diffuseTextureXZ":
+                                            enqueSetTexture(mat, "_MainTex", nf, texName);
+                                            //mat.SetTexture("_MainTex", loadTexture(nf, texName));
+                                            break;
+                                        case "decalNormalTexture":
+                                            enqueSetTexture(mat, "_DetailNormalMap", nf, texName);
+                                            //mat.SetTexture("_DetailNormalMap", loadTexture(nf, texName));
+                                            break;
+                                        case "normalTexture":
+                                            enqueSetTexture(mat, "_BumpMap", nf, texName);
+                                            //mat.SetTexture("_BumpMap", loadTexture(nf, texName));
+                                            break;
+                                        case "glowTexture":
+                                            mat.EnableKeyword("_EMISSION");
+                                            if (mesh.materialNames.Contains("Lava_Flow_Decal"))
+                                                mat.SetColor("_EmissionColor", Color.red);
+                                            else
+                                                mat.SetColor("_EmissionColor", Color.white * 0.5f);
+                                            enqueSetTexture(mat, "_EmissionMap", nf, texName);
+                                            //mat.SetTexture("_EmissionMap", loadTexture(nf, texName));
+                                            break;
+                                        case "glossTexture":
+                                            enqueSetTexture(mat, "_MetallicGlossMap", nf, texName);
+                                            //mat.SetTexture("_MetallicGlossMap", loadTexture(nf, texName));
+                                            break;
+                                        case "decalTexture":
+                                        case "starMapTexture0":
+                                            enqueSetTexture(mat, "_DetailAlbedoMap", nf, texName);
+                                            //mat.SetTexture("_DetailAlbedoMap", loadTexture(nf, texName));
+                                            break;
+                                        default:
+                                            //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
+                                            break;
+                                    }
+                                }catch (ArgumentOutOfRangeException ex)
+                                {
+                                    Debug.LogWarning("Texture id[" + i + "] was out of range of the texture name ids: " + textureNameIds.ToList());
+                                    //mat.SetTexture("_MainTex", loadTexture(nf, texName));
+                                    enqueSetTexture(mat, "_MainTex", nf, texName);
+                                    
                                 }
                             }
                         }
@@ -596,6 +669,16 @@ public class NIFLoader
             }
         }
         return mat;
+    }
+
+    private static void enqueSetTexture(Material mat, string propertyName, NIFFile nf, string texName)
+    {
+        NIFTexturePool.inst.addQueuedTextureAction(() =>
+        {
+            mat.SetTexture(propertyName, loadTexture1(nf, texName));
+        });
+
+
     }
 
     private static void setMaterialProperty(Material mat, NIFObject obj)
@@ -669,7 +752,7 @@ public class NIFLoader
         return null;
     }
 
-    static private Texture loadTexture(NIFFile file, string name)
+    static private Texture loadTexture1(NIFFile file, string name)
     {
         Texture tex = getCachedTObject(name);
         if (tex != null)

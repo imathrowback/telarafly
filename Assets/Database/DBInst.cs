@@ -14,6 +14,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace Assets.Database
 {
@@ -100,6 +101,7 @@ namespace Assets.Database
         {
             try
             {
+                //Profiler.BeginSample("loadDatabase_");
                 lock (lockObj)
                 {
                     Debug.Log("get asset database inst");
@@ -155,6 +157,10 @@ namespace Assets.Database
                 Debug.LogError(ex);
                 progress.Invoke("Error while loading:" + ex);
                 throw ex;
+            }
+            finally
+            {
+                //Profiler.EndSample();
             }
         }
         private static DB readDB(byte[] telaraDBData, string outSQLDb, Action<String> progress)

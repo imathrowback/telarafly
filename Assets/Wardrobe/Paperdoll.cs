@@ -183,6 +183,21 @@ namespace Assets.Wardrobe
                 state = ClassState.UPDATE;
 
         }
+        public long getGearSlot(GearSlot slot)
+        {
+                return gearSlotKeys[slot];
+        }
+        public void copy(Paperdoll doll)
+        {
+            foreach (GearSlot g in Enum.GetValues(typeof(GearSlot)))
+            {
+                if (doll.gearSlotKeys.ContainsKey(g))
+                    setGearSlotKey(g, doll.getGearSlot(g));
+                else
+                    clearGearSlot(g);
+                       
+            }
+        }
 
         public void setGearSlotKey(GearSlot slot, long key)
         {

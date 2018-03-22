@@ -18,12 +18,13 @@ public class ThreadedJob
     {
         get
         {
-            bool tmp;
-            lock (m_Handle)
+            if (Monitor.TryEnter(m_Handle))
             {
-                tmp = m_IsDone;
+                bool tmp = m_IsDone;
+                Monitor.Exit(m_Handle);
+                return tmp;
             }
-            return tmp;
+            return false;
         }
         set
         {

@@ -10,6 +10,7 @@ using UnityEngine;
 using Assets.WorldStuff;
 using Assets.Database;
 using System.Threading;
+using UnityEngine.Profiling;
 
 namespace Assets
 {
@@ -64,6 +65,9 @@ namespace Assets
             terrainRunningList = new TreeDictionary<long, NifLoadJob>();
             objectPositions = new SCG.List<ObjectPosition>();
             MAX_RUNNING_THREADS = ProgramSettings.get("MAX_RUNNING_THREADS", 2);
+            this.loadingQueueSampler = CustomSampler.Create("LoadingQueuesampler");
+            this.objectRunningListSampler =  CustomSampler.Create("LoadingQueuesampler");
+            this.terrainRunningListSampler = CustomSampler.Create("LoadingQueuesampler");
         }
 
         public void startThread()
@@ -266,6 +270,7 @@ namespace Assets
         [CallFromUnityUpdate]
         void processLoadingQueue(DateTime fend)
         {
+            loadingQueueSampler.Begin();
             // Handle loading capsule queue
             TryWithLock(loadingCapsuleQueue, () =>
             {
@@ -273,6 +278,7 @@ namespace Assets
                     addLoading(loadingCapsuleQueue.Dequeue());
 
             });
+            loadingQueueSampler.End();
         }
         IQueue<NifLoadJob> loadingCapsuleQueue = new CircularQueue<NifLoadJob>();
         void startJob(NifLoadJob job, TreeDictionary<long, NifLoadJob> runningList, KdTreeNode<float, SCG.List<NifLoadJob>>[] candidates)
@@ -292,11 +298,11 @@ namespace Assets
 
         }
 
-        /** Try to lock the object and then perform the action. If the object cannot be locked within 5ms, then don't run the action
+        /** Try to lock the object and then perform the action. If the object cannot be locked within 2ms, then don't run the action
          */ 
         private void TryWithLock(object lockObj, Action a)
         {
-            if (Monitor.TryEnter(lockObj, 5))
+            if (Monitor.TryEnter(lockObj))
             {
                 try
                 {
@@ -308,6 +314,11 @@ namespace Assets
                 }
             }
         }
+
+        CustomSampler loadingQueueSampler;
+        CustomSampler objectRunningListSampler;
+        CustomSampler terrainRunningListSampler;
+
 
         [CallFromUnityUpdate]
         internal void processThreadsUnityUpdate(Action<TreeDictionary<long, NifLoadJob>, DateTime> processRunningList, Func<ObjectPosition, GameObject> process)
@@ -324,15 +335,19 @@ namespace Assets
                 return;
             TryWithLock(objectRunningList, () =>
             {
+                objectRunningListSampler.Begin();
                 processRunningList(objectRunningList, fend);
                 oListCountEstimate = objectRunningList.Count;
+                objectRunningListSampler.End();
             });
             if (DateTime.Now > fend)
                 return;
             TryWithLock(terrainRunningList, () =>
             {
+                terrainRunningListSampler.Begin();
                 processRunningList(terrainRunningList, fend);
                 tListCountEstimate = terrainRunningList.Count;
+                terrainRunningListSampler.End();
             });
 
             if (DateTime.Now > fend)
@@ -343,6 +358,7 @@ namespace Assets
                  {
                      ObjectPosition p = objectPositions[0];
                      objectPositions.RemoveAt(0);
+                     
                      GameObject go = process(p);
                  }
              });

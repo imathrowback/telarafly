@@ -26,8 +26,8 @@ public class ModelView : MonoBehaviour
     Paperdoll mainPaperdoll;
     GameObject nifmodel;
     private AnimatedNif animationNif;
-    Text progressText; 
-
+    Text progressText;
+    InputField filterField;
 
     Slider speedSlider;
     AssetDatabase adb;
@@ -46,6 +46,7 @@ public class ModelView : MonoBehaviour
         animationDropdown = GameObject.Find("AnimationDropdown").GetComponent<Dropdown>();
         speedSlider = GameObject.Find("SpeedSlider").GetComponent<Slider>();
         speedSlider.value = this.animSpeed;
+        filterField = GameObject.Find("FilterField").GetComponent<InputField>();
       
         adb = AssetDatabaseInst.DB;
 
@@ -97,51 +98,61 @@ public class ModelView : MonoBehaviour
 
     }
 
+    List<string> cachedNifEntries;
     private void updateComboBoxDataModel()
     {
-        IEnumerable<entry> entries = db.getEntriesForID(7305);
-
-        List<string> nIFModelEntries = new List<string>();
-        List<entry> lentries = new List<entry>(entries);
-
-        nIFModelEntries.Clear();
-        nifDictionary.Clear();
-
-        foreach (entry e in lentries)
+        if (cachedNifEntries == null)
         {
-            try
+            IEnumerable<entry> entries = db.getEntriesForID(7305);
+
+            List<string> nIFModelEntries = new List<string>();
+            List<entry> lentries = new List<entry>(entries);
+
+            nIFModelEntries.Clear();
+            nifDictionary.Clear();
+
+            foreach (entry e in lentries)
             {
-                Model model = AnimatedModelLoader.load7305(adb, e.key);
-                if (model != null)
+                try
                 {
-                    string nifFile = model.nifFile;
-                    if (!model.mount && mountsOnly)
-                        continue;
-                    if (model.animated)
+                    Model model = AnimatedModelLoader.load7305(adb, e.key);
+                    if (model != null)
                     {
-                        if (!nifDictionary.ContainsKey(nifFile))
+                        string nifFile = model.nifFile;
+                        if (!model.mount && mountsOnly)
+                            continue;
+                        if (model.animated)
                         {
-                            nIFModelEntries.Add(model.displayname);
-                            nifDictionary[nifFile] = model;
+                            if (!nifDictionary.ContainsKey(nifFile))
+                            {
+                                nIFModelEntries.Add(model.displayname);
+                                nifDictionary[nifFile] = model;
                                 //new AnimatedNif(adb, nifFile, model.kfmFile, model.kfbFile);
+                            }
                         }
-                    }
-                    else
-                    {
-                        // normal model
-                        if (!nifDictionary.ContainsKey(nifFile))
+                        else
                         {
-                            nifDictionary[nifFile] = model;
+                            // normal model
+                            if (!nifDictionary.ContainsKey(nifFile))
+                            {
+                                nifDictionary[nifFile] = model;
+                            }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    Debug.Log("Unable to parse entry " + e.id + ":" + e.key + ":" + ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                Debug.Log("Unable to parse entry " + e.id + ":" + e.key + ":" + ex.Message);
-            }
+            cachedNifEntries = nIFModelEntries;
         }
-        nIFModelDropdown.GetComponent<FavDropDown2>().SetOptions(nIFModelEntries.Select(x => new DOption(x, null, false)).ToList());
+        nIFModelDropdown.GetComponent<FavDropDown2>().SetOptions(cachedNifEntries.Where(x =>
+        {
+            if (filter != null && filter.Length > 0)
+                return x.Contains(filter);
+            return true;
+        }).Select(x => new DOption(x, null, false)).ToList());
     }
 
     public void toggleGround()
@@ -246,6 +257,16 @@ public class ModelView : MonoBehaviour
         this.animationNif.zeroFrame();
         
     }
+
+    string filter = null;
+    string filterToSet = null;
+    DateTime filterSetTime = DateTime.Now;
+
+    public void changeFilter()
+    {
+        this.filterSetTime = DateTime.Now.AddSeconds(1);
+        this.filterToSet = filterField.text.ToLower();
+    }
     public void changeAnim()
     {
         changeNif(nIFModelDropdown.getSelected().text);
@@ -312,6 +333,14 @@ public class ModelView : MonoBehaviour
     bool first = false;
     void FixedUpdate()
     {
+        if (filterToSet != null && DateTime.Now > filterSetTime)
+        {
+            filter = filterToSet;
+            filterToSet = null;
+            updateComboBoxDataModel();
+
+        }
+
         progressText.text = progress;
         if (DBInst.loaded && !first)
         {

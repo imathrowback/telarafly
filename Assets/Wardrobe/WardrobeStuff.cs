@@ -16,12 +16,16 @@ namespace Assets.Wardrobe
         OFF_HAND = 2,
         TWO_HAND = 3,
         RANGED = 4,
+        
         SHOULDER = 6,
         TORSO = 7,
         LEGS = 8,
         HANDS = 9,
         FEET = 11,
         HEAD = 20,
+        HEAD2 = 5,
+        HAIR=23,
+        FACIAL_HAIR=24,
         CAPE = 29,
 
     }
@@ -70,10 +74,6 @@ namespace Assets.Wardrobe
             if (!Enum.IsDefined(typeof(GearSlot), i))
             {
                 Debug.Log("Undefined gear slot:" + i);
-
-                if (i == 23)
-                // Assume gear slot 23 is slot 20
-                    i = 20;
             }
 
             return (GearSlot)i;
