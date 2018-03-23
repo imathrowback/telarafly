@@ -54,7 +54,7 @@ public class telera_spawner : MonoBehaviour
     {
         return worldLoader.tCount();
     }
-
+    
     // Use this for initialization
     void Start()
     {

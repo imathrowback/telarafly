@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System;
 
 public class ClothingItemRenderer : MonoBehaviour {
     DB db;
@@ -63,7 +64,31 @@ public class ClothingItemRenderer : MonoBehaviour {
     public void itemClicked()
     {
         if (item != null)
-        mainPaperdoll.setGearSlotKey(item.allowedSlots.First(), item.key);
+        {
+            WardrobePreviewPanelUpdater wppu = GameObject.Find("Wardrobe").GetComponent<WardrobePreviewPanelUpdater>();
+            Toggle toggle = GetComponentInChildren<Toggle>();
+
+            GearSlot slot = item.allowedSlots.First();
+            if (!mainPaperdoll.slotSet(slot))
+            {
+                mainPaperdoll.setGearSlotKey(slot, item.key);
+                wppu.toggle(this, true);
+            }
+            else
+            {
+                long oldKey = mainPaperdoll.getGearSlot(slot);
+                if (oldKey == item.key)
+                {
+                    mainPaperdoll.clearGearSlot(slot);
+                    wppu.toggle(this, false);
+                }
+                else
+                {
+                    mainPaperdoll.setGearSlotKey(slot, item.key);
+                    wppu.toggle(this, true);
+                }
+            }
+        }
     }
     public void refresh()
     {
@@ -71,24 +96,22 @@ public class ClothingItemRenderer : MonoBehaviour {
         this.item = null;
         setItem(t, mainPaperdoll);
     }
+  
     public void setItem(ClothingItem item, Paperdoll mainDoll)
     {
-        if (this.item == item)
-            return;
-        Debug.Log("set item on paper doll:" + item);
+        Debug.Log("set item [" + item + "] and copy others from mainDoll", this.gameObject);
         this.item = item;
         ourPreview.transform.Clear();
         if (previewPaperdoll == null)
             previewPaperdoll = ourPreview.AddComponent<Paperdoll>();
         ourPreview.name = "PaperDoll" + previewIndex;
-        Debug.Log("set item [" + item + "] on paperdoll:" + previewPaperdoll);
         //GameObject.Destroy(previewPaperdoll);
         previewPaperdoll.setGender(mainPaperdoll.getGenderString());
         previewPaperdoll.setRace(mainPaperdoll.getRaceString());
         // start isn't called until the next "update" so we need to start it manually
         string nifstr = Path.GetFileName(item.nifRef.getNif(1, 0));
         ourPreview.name = item.name;
-
+        Debug.Log("copy appearence from mainDoll", this.gameObject);
         previewPaperdoll.copy(mainDoll);
         previewPaperdoll.setGearSlotKey(item.allowedSlots.First(), item.key);
 
@@ -119,4 +142,6 @@ public class ClothingItemRenderer : MonoBehaviour {
             trans.gameObject.layer = layerNumber;
         }
     }
+
+   
 }

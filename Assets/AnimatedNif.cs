@@ -96,7 +96,12 @@ namespace Assets
                 return null;
             if (kfbfile == null)
             {
-                kfbfile = NIFLoader.getNIF(this.kfb);
+                if (this.adb.filenameExists(this.kfb))
+                {
+                    kfbfile = NIFLoader.getNIF(this.kfb);
+                }
+                else
+                    return null;
                 //Debug.Log("getting KFB: " + this.kfb);
             }
             /** Choose the right animation to load from the KFB file. Ideally we should use the KFM to know what index to use */
@@ -130,21 +135,21 @@ namespace Assets
 
         public void setActiveAnimation(string anim)
         {
-            Debug.Log("set anim to " + anim);
+            //Debug.Log("set anim to " + anim);
             foreach (KFAnimation kfa in getAnimations())
                 if (kfa.sequencename.Equals(anim))
                 {
                     setActiveAnimation(kfa.id);
                     return;
                 }
-            Debug.Log("Unable to find animation " + anim);
-            foreach (KFAnimation kfa in getAnimations())
-                Debug.Log("\t " + kfa.sequencename);
+            //Debug.Log("Unable to find animation " + anim);
+            //foreach (KFAnimation kfa in getAnimations())
+            //    Debug.Log("\t " + kfa.sequencename);
         }
 
         public void setActiveAnimation(int anim)
         {
-            Debug.Log("set anim to " + anim);
+            //Debug.Log("set anim to " + anim);
             nifanimation = loadKFB(anim);
             this.activeAnimation = anim;
             boneMap.Clear();

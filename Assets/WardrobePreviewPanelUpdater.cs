@@ -8,7 +8,7 @@ using UnityEngine.UI;
 public class WardrobePreviewPanelUpdater : MonoBehaviour {
 
     int max_panelCount = 9;
-    public int panelItems = 9999;
+    public int panelItems = 1;
     Text loadingText;
     public GameObject previewPanel;
     public GameObject previewsRoot;
@@ -94,6 +94,23 @@ public class WardrobePreviewPanelUpdater : MonoBehaviour {
             }
             lastVisible = getVisiblePanels();
             changed = true;
+        }
+    }
+
+    internal void toggle(ClothingItemRenderer clothingItemRenderer, bool v)
+    {
+        for (int i = 0; i < max_panelCount; i++)
+        {
+            GameObject go = this.panels[i];
+            ClothingItemRenderer renderer = go.GetComponent<ClothingItemRenderer>();
+            Toggle toggle = renderer.GetComponentInChildren<Toggle>();
+            if (clothingItemRenderer == renderer)
+            {
+                toggle.isOn = v;
+            }
+            else
+                toggle.isOn = false;
+
         }
     }
 }

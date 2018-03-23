@@ -27,6 +27,7 @@ public class Wardrobe : MonoBehaviour
     public Dropdown appearanceDropdown;
     public Dropdown genderDropdown;
     public Dropdown raceDropdown;
+    public Dropdown animationSetDropdown;
     ClothingItem[] clothingItems;
     string raceString;
     string genderString;
@@ -40,7 +41,7 @@ public class Wardrobe : MonoBehaviour
     {
         panelUpdater = this.GetComponent<WardrobePreviewPanelUpdater>();
         pageText = GameObject.Find("PageText").GetComponent<Text>();
-        filterField = GameObject.Find("FilterField").GetComponent<InputField>();
+        //filterField = GameObject.Find("FilterField").GetComponent<InputField>();
 
         raceString = "human";
         genderString = "male";
@@ -74,14 +75,14 @@ public class Wardrobe : MonoBehaviour
         previewIndex -= panelUpdater.getVisiblePanels();
         if (previewIndex < 0)
             previewIndex = 0;
-        updatePreview();
+        updatePreviews();
     }
     public void clickRight()
     {
         previewIndex += panelUpdater.getVisiblePanels();
         if (previewIndex > clothingItems.Count()- panelUpdater.getVisiblePanels())
             previewIndex = clothingItems.Count() - panelUpdater.getVisiblePanels();
-        updatePreview();
+        updatePreviews();
     }
     bool shouldShow(GearSlot slot, ClothingItem c)
     {
@@ -106,7 +107,7 @@ public class Wardrobe : MonoBehaviour
 
         previewIndex = 0;
         updatePageText();
-        updatePreview();
+        updatePreviews();
     }
 
     string filter = null;
@@ -130,18 +131,42 @@ public class Wardrobe : MonoBehaviour
         UnityEngine.SceneManagement.SceneManager.LoadScene("test-decomp");
 
     }
-    void updatePreview()
+    void updatePreviews()
     {
-       // Debug.Log("update preview");
+        Debug.Log("update previews", this.gameObject);
         updatePageText();
         ClothingItemRenderer[] renderers = panelUpdater.getPanelRenderers();
         for (int i = 0; i < renderers.Length; i++)
         {
             ClothingItem item = clothingItems[previewIndex + i];
-            
             renderers[i].setItem(item, this.paperDoll);
+            Toggle toggle = renderers[i].GetComponentInChildren<Toggle>();
+            toggle.isOn = false;
+            if (this.paperDoll.isSet(item.key))
+                toggle.isOn = true;
+
         }
         lastVisible = panelUpdater.getVisiblePanels();
+    }
+
+    public void updateAnimationSet()
+    {
+        string animSet = animationSetDropdown.options[animationSetDropdown.value].text;
+        if (animSet.Equals("unarmed"))
+            animSet = "";
+        paperDoll.setKFBPostFix(animSet);
+        
+        ClothingItemRenderer[] renderers = panelUpdater.getPanelRenderers();
+        foreach (ClothingItemRenderer r in renderers)
+        {
+            if (r.previewPaperdoll != null)
+            {
+                r.previewPaperdoll.setKFBPostFix(animSet);
+                r.refresh();
+            }
+        }
+        // reapply the costume
+        changeAppearance();
     }
 
     public void updateRaceGender()
@@ -189,6 +214,10 @@ public class Wardrobe : MonoBehaviour
             // finally everything is loaded and ready so lets load an appearence set
             try
             {
+                // fill animations
+                updateAnimDropbox();
+
+
                 // fill the "appearence" sets
                 List<DOption> options = new List<DOption>();
                 options.Add(new DOption("", null));
@@ -208,38 +237,64 @@ public class Wardrobe : MonoBehaviour
                 changeSlot();
 
 
-                updatePreview();
+                updatePreviews();
             }
             catch (Exception ex)
             {
-                
-                Debug.LogError("failed to load appearence set: " + ex);
+                Debug.LogException(ex, this.gameObject);
             }
         }
         if (db != null && lastVisible != this.panelUpdater.getVisiblePanels() || this.panelUpdater.changed)
         {
-            updatePreview();
+            updatePreviews();
             lastVisible = panelUpdater.getVisiblePanels();
         }
+    }
 
+    private void updateAnimDropbox()
+    {
+        animationSetDropdown.ClearOptions();
+        List<DOption> options = new List<DOption>();
+        options.Add(new DOption("unarmed", null));
+        HashSet<string> done = new HashSet<string>();
+        foreach (entry e in db.getEntriesForID(230))
+        {
+            CObject _250 = db.toObj(e.id, e.key);
+            if (_250.hasMember(7))
+            {
+                string animation = _250.getStringMember(7);
+                if (!done.Contains(animation) && !animation.Contains("crossbow") && !animation.Contains("shared"))
+                {
+                    DOption option = new DOption(animation, e);
+                    options.Add(option);
+                    done.Add(animation);
+                }
+            }
+        }
 
-
+        options.Sort((a, b) => string.Compare(a.text, b.text));
+        animationSetDropdown.AddOptions(options.Cast<Dropdown.OptionData>().ToList());
     }
 
     public void changeAppearance()
     {
+        Debug.Log("Change appearance triggered", this.gameObject);
         if (appearanceDropdown.options.Count == 0)
             return;
         int v = appearanceDropdown.value;
         DOption option = (DOption)appearanceDropdown.options[v];
         if (option.userObject == null)
         {
+            Debug.Log("Clearing appearing", this.gameObject);
             paperDoll.clearAppearence();
+            updatePreviews();
         }
         else
         {
             entry entry = (entry)option.userObject;
             paperDoll.setAppearenceSet(entry.key);
+            //paperDoll.FixedUpdate(); // force an update
+            updatePreviews();
         }
     }
    

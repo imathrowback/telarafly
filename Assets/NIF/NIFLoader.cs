@@ -446,7 +446,8 @@ public class NIFLoader
         else Debug.LogWarning("No material found!?");
 #if UNITY_EDITOR
         MeshOriginalMaterial mom = go.AddComponent<MeshOriginalMaterial>();
-        mom.materialName = mesh.materialNames[0];
+        if (mesh.materialNames.Count > 0)
+            mom.materialName = mesh.materialNames[0];
 #endif
 
         if (presetMaterial)
