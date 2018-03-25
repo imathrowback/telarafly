@@ -39,7 +39,7 @@ namespace cam
         void Update()
         {
             /** Don't do camera if an input field is active */
-            if (EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.GetComponent<InputField>() != null)
+            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.GetComponent<InputField>() != null)
             {
                 return;
             }
