@@ -208,7 +208,7 @@ namespace Assets.Wardrobe
                     if (gearSlotKeys[g] == key)
                         return true;
             }
-            return true;
+            return false;
         }
 
         public bool slotSet(GearSlot slot)
@@ -228,7 +228,6 @@ namespace Assets.Wardrobe
                     setGearSlotKey(g, doll.getGearSlot(g));
                 else
                     clearGearSlot(g);
-                       
             }
         }
 
@@ -331,9 +330,10 @@ namespace Assets.Wardrobe
 
         private GameObject loadNIFForSlot(GearSlot slot, GameObject skeleton, GameObject meshHolder, string nifFile, string geo)
         {
-            Debug.Log("load nif[" + nifFile + "] for slot " + slot, this.gameObject);
+            //Debug.Log("load nif[" + nifFile + "] for slot " + slot, this.gameObject);
             // First move all the meshes across to the skeleton
             GameObject meshes = new GameObject(slot.ToString());
+            //Debug.Log("create new gameobh:" + meshes.name);
             try
             {
                 NIFFile file = NIFLoader.getNIF(nifFile);
@@ -341,17 +341,29 @@ namespace Assets.Wardrobe
 
                 meshes.transform.parent = meshHolder.transform;
 
+                //Debug.Log("Move components from loaded nif to our new gameobj");
                 foreach (SkinnedMeshRenderer r in newNifRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                  //  Debug.Log("Move renderer " + r.gameObject.name);
                     r.transform.parent = meshes.transform;
+                }
+
+                /** I'm not quite sure how bows are supposed to work yet. The quiver, bow and prop all appear to be a single mesh, so they must be moved around using bones or something..
+                 * At the moment they don't even show propertly because the ROOT bone assigned while loading is not copied over and is destroyed causing the SKinnedMeshRender to behave poorly
+                 * More research required.
+                 */
 
                 // weapons are a bit different
                 if (!WardrobeStuff.isWeapon(slot))
+                {
                     // process the NiSkinningMeshModifier 
                     NIFLoader.linkBonesToMesh(file, skeleton);
+                }
                 else
                 {
-                    Debug.Log("Treating slot (" + slot + ") as weapon");
+                    //Debug.Log("Treating slot (" + slot + ") as weapon and attach it to AP_r_hand on skeleton");
                     Transform t = skeleton.transform.FindDeepChild("AP_r_hand");
+
                     meshes.transform.parent = t;
                     meshes.transform.localPosition = new Vector3(0, 0, 0);
                 }
@@ -364,7 +376,6 @@ namespace Assets.Wardrobe
                 if (nifFile.Contains("foot"))
                     enableDisableGeo("boots", skeleton, false);
 
-                //GameObject.DestroyObject(GameObject.Find(geo));
                 GameObject.DestroyObject(newNifRoot);
             }
             catch (Exception ex)
