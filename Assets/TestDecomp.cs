@@ -86,6 +86,23 @@ public class TestDecomp : MonoBehaviour
         return DBInst.lang_inst.getOrDefault(textID, defaultText);
     }
     bool first = false;
+    public InputField filter;
+    public void updateWorldDropdown()
+    {
+        List<DOption> options = new List<DOption>();
+        foreach (WorldSpawn spawn in worlds)
+        {
+            DOption option = new DOption(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos, spawn);
+            options.Add(option);
+        }
+        dropdown.options.Clear();
+        string filter = this.filter.text.ToLower();
+        dropdown.GetComponent<FavDropDown2>().SetOptions(options.Where(x => x.text.ToLower().Contains(filter)).ToList());
+        //dropdown.GetComponent<FavDropDown2>().readFavs();
+        //dropdown.value = startIndex;
+        dropdown.RefreshShownValue();
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -109,19 +126,8 @@ public class TestDecomp : MonoBehaviour
 
             worlds = worlds.OrderBy(w => !favs.Contains(w.spawnName)).ThenBy(w => w.worldName).ThenBy(w => w.spawnName).ToList();
 
-            // do favs first
+            updateWorldDropdown();           
            
-            List<DOption> options = new List<DOption>();
-            foreach (WorldSpawn spawn in worlds)
-            {
-                DOption option = new DOption(spawn.worldName + " - " + spawn.spawnName + " - " + spawn.pos, spawn);
-                options.Add(option);
-            }
-            dropdown.options.Clear();
-            dropdown.GetComponent<FavDropDown2>().SetOptions(options);
-            //dropdown.GetComponent<FavDropDown2>().readFavs();
-            //dropdown.value = startIndex;
-            dropdown.RefreshShownValue();
             dropdownbox.SetActive(true);
             loadbutton.SetActive(true);
             loadModelViewerbutton.SetActive(true);
