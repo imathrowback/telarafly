@@ -429,6 +429,7 @@ namespace Assets.NIF
 
         public void addMesh( NiMesh niMesh)
         {
+            Debug.Log("add mesh:" + niMesh.name);
             nifMeshes.Add(niMesh);
 
         }
@@ -686,13 +687,13 @@ namespace Assets.NIF
                 }
             }
 
-            //int[] tristest = meshData.tristest;
+            List<int> trisList = new List<int>();
             for (int i = 0; i < triangles.Count; i++)
             {
                 List<int> tris = triangles[i];
-                meshData.tristest = triangles[i].ToArray();
-                //tristest.AddRange(tris);
+                trisList.AddRange(tris);
             }
+            meshData.tristest = trisList.ToArray();
             return meshData;
 
         }
