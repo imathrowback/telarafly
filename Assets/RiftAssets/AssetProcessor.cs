@@ -22,8 +22,16 @@ namespace Assets.RiftAssets
                     continue;
                 else if (!manifest.getIs64() && file.Contains("assets64"))
                     continue;
-
-                assets.add(buildAssetFileDatabase(file, manifest));
+                try
+                {
+                    AssetFile af = buildAssetFileDatabase(file, manifest);
+                    if (af != null)
+                        assets.add(af);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogException(ex);
+                }
             }
             return assets;
         }
@@ -36,7 +44,11 @@ namespace Assets.RiftAssets
             using (BinaryReader dis = new BinaryReader(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
                 byte[] magic = dis.ReadBytes(4);
-                //System.out.println(new String(magic));
+                string magicStr = System.Text.Encoding.Default.GetString(magic);
+                if (!magicStr.Equals("TWAD"))
+                {
+                    throw new Exception("Invalid AssetFile:" + file + ": Invalid magic signature: " + magicStr);
+                }
                 int version = dis.ReadInt32();
                 int headersize = dis.ReadInt32();
                 int maxfiles = dis.ReadInt32();
