@@ -198,7 +198,7 @@ public class ModelView : MonoBehaviour
             List<String> anims = new List<String>();
             foreach (KFAnimation ani in animNif.getAnimations())
             {
-                Debug.Log("Found anim [" + ani.id + "]:" + ani.sequenceFilename + ":" + ani.sequencename );
+                //Debug.Log("Found anim [" + ani.id + "]:" + ani.sequenceFilename + ":" + ani.sequencename );
                 anims.Add(ani.sequencename);
             }
             anims.Sort();

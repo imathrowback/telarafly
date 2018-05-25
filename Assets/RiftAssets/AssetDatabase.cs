@@ -171,23 +171,13 @@ namespace Assets.RiftAssets
             }
             else
             {
+                
+                ManifestEntry finalEntry = null;
 
-                // otherwise, break the tie with a category test
-                if (requestCategory == RequestCategory.NONE)
-                {
-                    Debug.LogError("tie for " + filename + " with no category set");
-                    // we can't break a tie without a request category
-                    String str = "";
-                    foreach (ManifestEntry entry in entries)
-                    {
-                        str += "\t" + entry + " :" + manifest.getPAKName(entry.pakIndex) + "\n";
-                    }
-                        throw new Exception("Multiple ids match the filename [" + filename + "] but no request category was given, unable to determine which to return.\n" + str);
-                }
                 // work out which one we want based on the category
                 string requestStr = requestCategory.ToString().ToLower();
                 //Debug.Log("multiple ids found for " + filename + ", using request category " + requestStr);
-                ManifestEntry finalEntry = null;
+                    
                 foreach (ManifestEntry entry in entries)
                 {
                     //Debug.Log("[" + filename + "]: considering entry:" + entry + " :" + manifest.getPAKName(entry.pakIndex));
@@ -200,12 +190,31 @@ namespace Assets.RiftAssets
                     }
                 }
 
+
                 if (finalEntry == null)
                 {
                     // if we were still unable to break the tie
                     Debug.LogError("tiebreak for " + filename + " no id match");
 
-                    throw new Exception("Multiple ids match the filename [" + filename + "] but the request category[" + requestStr + "] did not match any, unable to determine which to return");
+                    // one final check on the language, if an english one exists, use that over any other non-english one
+                    IEnumerable< ManifestEntry> engUni = entries.Where(e => e.lang == 0 || e.lang == 1) ;
+                    // if the number of english entries is different to the number of entries, then we should choose an english one and assume it is that one
+                    if (engUni.Count() > 0 && engUni.Count() != entries.Count())
+                    {
+                        Debug.Log("tie broken with english language choice: " + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
+                        finalEntry = engUni.First();
+                    }
+                    else
+                    {
+                        // fail?
+                        String str = "";
+                        foreach (ManifestEntry entry in entries)
+                        {
+                            str += "\t" + entry + " :" + manifest.getPAKName(entry.pakIndex) + "\n";
+                        }
+                        string errStr = ("Multiple ids match the filename [" + filename + "] but no request category was given, unable to determine which to return.\n" + str);
+                        throw new Exception(errStr);
+                    }
                 }
                 id = finalEntry.idStr;
                 //Debug.Log("settled on entry:" + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
@@ -244,7 +253,12 @@ namespace Assets.RiftAssets
                 }
             }
 
-            return extract(getEntryForFileName(filename, requestCategory));
+            byte[] data = extract(getEntryForFileName(filename, requestCategory));
+            if (true)
+            {
+                //File.WriteAllBytes(@"L:\RIFT_VIEW\data\" + filename, data);
+            }
+            return data;
         }
 
         /** Attempt to extract the asset with the given filename */

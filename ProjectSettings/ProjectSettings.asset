@@ -126,7 +126,7 @@ PlayerSettings:
     16:10: 1
     16:9: 1
     Others: 1
-  bundleVersion: 0.0.17
+  bundleVersion: 0.0.18
   preloadedAssets:
   - {fileID: 11500000, guid: e53ffa531324e9d49bf89415905a063e, type: 3}
   metroInputSource: 0
@@ -650,6 +650,7 @@ PlayerSettings:
   XboxOneSplashScreen: {fileID: 0}
   XboxOneAllowedProductIds: []
   XboxOnePersistentLocalStorageSize: 0
+  XboxOneXTitleMemory: 8
   xboxOneScriptCompiler: 0
   vrEditorSettings:
     daydream:

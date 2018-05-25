@@ -146,9 +146,9 @@ public class NIFLoader
                 List<Matrix4x4> bindPoses = new List<Matrix4x4>();
 
                 NIFObject rootBoneNode = nf.getObject(skinMod.rootBoneLinkID);
-               // Debug.Log("looking for root bone:" + rootBoneNode.name + " in skeleton root");
+                //Debug.Log("looking for root bone:" + rootBoneNode.name + " in skeleton root");
                 Transform rootBone = skeletonRoot.transform.FindDeepChild(rootBoneNode.name);
-
+                
                 List<int> boneLinkIds = skinMod.boneLinkIDs;
                 for (int boneIdx = 0; boneIdx < boneLinkIds.Count; boneIdx++)
                 {
@@ -164,7 +164,6 @@ public class NIFLoader
                         bindPoses.Add(m);
                     }
                 }
-
                 
                 NiMesh mes = getMeshForMod(nf, skinMod);
                 Transform meshObject = skeletonRoot.transform.FindDeepChild(mes.name);

@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -18,14 +20,41 @@ public class MainScreenInit : MonoBehaviour {
                 Assets.ScreenshotData.hash = Assets.RiftAssets.Util.hashFileName(args[i + 1]);
                 Assets.ScreenshotData.valid = true;
             }
-            if (args[i] == "-screenshotHash")
+            else if (args[i] == "-screenshotHash")
             {
                 Assets.ScreenshotData.hash = args[i + 1];
                 Assets.ScreenshotData.valid = true;
             }
+            else if (args[i] == "-objexpdir")
+            {
+                ExportModelData.outputDirectory = args[i + 1];
+                if (!Directory.Exists(ExportModelData.outputDirectory))
+                    throw new Exception("Invalid output directory: " + ExportModelData.outputDirectory);
+                ExportModelData.valid = true;
+            }
+            else if (args[i] == "-objexpext")
+            {
+                ExportModelData.expectedTextureExtension = args[i + 1];
+            }
+            else if (args[i] == "-objexplangids")
+            {
+                string file = args[i + 1];
+                if (File.Exists(file))
+                {
+                    foreach(string s in File.ReadAllLines(file))
+                    {
+                        ExportModelData.langIDs.Add(int.Parse(s));
+                    }
+                }
+            }
         }
+        
 
-        if (Assets.ScreenshotData.valid )
+        if (ExportModelData.valid)
+        {
+            SceneManager.LoadScene("obj-export-all");
+        }
+        else if (Assets.ScreenshotData.valid )
         {
             SceneManager.LoadScene("screenshot");
         }

@@ -37,12 +37,17 @@ namespace Assets.Wardrobe
     // 10 - vanity/costume
     public enum GearType
     {
-        UNK = 0,
+        NONE = 0,
         CLOTH = 2,
         CHAIN = 3,
         PLATE = 4,
         LEATHER = 5,
-        VANITY = 10
+        SHIELD = 6,
+        OFFHAND = 7,
+        CASTER_SHIELD=8,
+        ACCESSORY = 9,
+        COSTUME = 10,
+
     }
     static public class WardrobeStuff
     {
@@ -111,8 +116,9 @@ namespace Assets.Wardrobe
         public long nifKey;
         public NIFReference nifRef { get; }
         public List<GearSlot> allowedSlots = new List<GearSlot>();
-        public GearType type = GearType.UNK;
-
+        public GearType type = GearType.NONE;
+        public string icon;
+        public bool hidden;
         
         override public string ToString()
         {
@@ -137,6 +143,10 @@ namespace Assets.Wardrobe
                     {
                         this.langKey = gearDef.getMember(1).getIntMember(0);
                     }
+                    if (gearDef.hasMember(4))
+                    {
+                        icon = db.toObj(6009, gearDef.getIntMember(4)).getStringMember(1);
+                    }
                     if (gearDef.hasMember(5))
                     {
                         CObject allowedSlotsArray = gearDef.getMember(5);
@@ -147,9 +157,13 @@ namespace Assets.Wardrobe
                         }
                     }
 
+
                     if (gearDef.hasMember(6))
                         type = WardrobeStuff.getGearType(gearDef.getIntMember(6));
-
+                    if (gearDef.hasMember(7))
+                    {
+                        hidden = gearDef.getBoolMember(7, false);
+                    }
                     nifKey = gearDef.getIntMember(2);
                     nifRef = new NIFReference(db, nifKey);
                 }
@@ -157,11 +171,18 @@ namespace Assets.Wardrobe
                 {
                     nifRef = new NIFReference(db, key);
                     nifKey = key;
+                    
+
                     if (gearDef.hasMember(2))
                     {
                         string nifPath = gearDef.getMember(2).convert() + "";
                         this.name = System.IO.Path.GetFileName(nifPath);
+                        if (nifPath.Contains(@"\player\") && nifPath.Contains(@"\wings\"))
+                        {
+                            allowedSlots.Add(GearSlot.CAPE);
+                        }
                     }
+
                     if (gearDef.hasMember(15))
                     {
                         CObject allowedSlotsArray = gearDef.getMember(15);
@@ -170,6 +191,10 @@ namespace Assets.Wardrobe
                             int slot = int.Parse(o.convert() + "");
                             allowedSlots.Add(WardrobeStuff.getSlot(slot));
                         }
+                    }
+                    else
+                    {
+                       
                     }
 
                 }

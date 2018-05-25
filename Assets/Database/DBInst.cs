@@ -250,7 +250,8 @@ namespace Assets.Database
                             huffreader = new HuffmanReader(getFreqData(origc, id));
                             dsHuffmanreaders[id] = huffreader;
                         }
-                        return getData(compressedData, huffreader);
+                        byte[] data = getData(compressedData, huffreader);
+                        return data;
                     }
                 }
             }

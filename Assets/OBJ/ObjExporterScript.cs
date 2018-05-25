@@ -20,7 +20,7 @@ namespace Assets.Export
         }
 
 
-        public static string MeshToString(MeshFilter mf, Transform t)
+        public static string MeshToString(MeshFilter mf,  Transform t)
         {
             Vector3 s = t.localScale;
             Vector3 p = t.localPosition;
@@ -51,18 +51,19 @@ namespace Assets.Export
             foreach (Vector3 nn in m.normals)
             {
                 Vector3 v = r * nn;
+                v = -v;
                 sb.Append(string.Format("vn {0} {1} {2}\n", -v.x, -v.y, v.z));
             }
             sb.Append("\n");
             foreach (Vector3 v in m.uv)
             {
-                sb.Append(string.Format("vt {0} {1}\n", v.x, v.y));
+                sb.Append(string.Format("vt {0} {1}\n", v.x, -v.y));
             }
             for (int material = 0; material < m.subMeshCount; material++)
             {
                 sb.Append("\n");
                 sb.Append("usemtl ").Append(mats[material].name).Append("\n");
-                sb.Append("usemap ").Append(mats[material].name).Append("\n");
+                //sb.Append("usemap ").Append(mats[material].name).Append("\n");
 
                 int[] triangles = m.GetTriangles(material);
                 for (int i = 0; i < triangles.Length; i += 3)

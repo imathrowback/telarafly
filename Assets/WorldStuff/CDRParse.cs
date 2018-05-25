@@ -370,9 +370,9 @@ namespace Assets.WorldStuff
                                                 CObject dbObj = getDBObj(db, 623, nif_hkx_ref);
                                                 if (dbObj != null)
                                                 {
-                                                    CObject dbAry = dbObj.get(0);
+                                                    CObject dbAry = dbObj.getMember(4);
                                                     CObject _7319 = findFirstType(dbAry, 7319);
-                                                    CObject _7318 = findFirstType(dbAry, 7318);
+                                                    //CObject _7318 = findFirstType(dbAry, 7318);
                                                     if (_7319 != null)
                                                     {
                                                         if (_7319.members.Count == 0)

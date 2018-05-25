@@ -87,6 +87,7 @@ public class BatchScreenShot : MonoBehaviour {
 
         try
         {
+            
             Debug.Log("Focus image");
             FocusCameraOnGameObject(cam, go, vecs[state]);
             takeImage = true;
@@ -97,17 +98,10 @@ public class BatchScreenShot : MonoBehaviour {
             Debug.LogError(ex);
             Application.Quit();
         }
-
-
-
-        //Application.CaptureScreenshot();
-
-
-
-     
     }
      public void OnPostRender()
      {
+        
         Debug.Log("post render: state = " + state + ": takeImage:" + takeImage);
         if (state < vecs.Length && takeImage)
         {

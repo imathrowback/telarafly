@@ -429,7 +429,7 @@ namespace Assets.NIF
 
         public void addMesh( NiMesh niMesh)
         {
-            Debug.Log("add mesh:" + niMesh.name);
+           // Debug.Log("add mesh:" + niMesh.name);
             nifMeshes.Add(niMesh);
 
         }
