@@ -62,7 +62,8 @@ namespace Assets.Export
             for (int material = 0; material < m.subMeshCount; material++)
             {
                 sb.Append("\n");
-                sb.Append("usemtl ").Append(mats[material].name).Append("\n");
+                string matname = mats[material].name + mats[material].GetInstanceID();
+                sb.Append("usemtl ").Append(matname).Append("\n");
                 //sb.Append("usemap ").Append(mats[material].name).Append("\n");
 
                 int[] triangles = m.GetTriangles(material);
