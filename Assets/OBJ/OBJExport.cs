@@ -97,7 +97,7 @@ namespace Assets.Export
                             if (mat == null)
                                 continue;
 
-                            string matName = mat.name;
+                            string matName = mat.name + mat.GetInstanceID();
                             Texture mainTex = null;
                             mainTex = mat.GetTexture("_MainTex");
 
