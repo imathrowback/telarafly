@@ -10,7 +10,7 @@ namespace Assets.Database
 {
     public delegate byte[] GetDataCallback(long id, long key);
 
-    [Serializable()]
+    //[Serializable()]
     public class DB
     {
         public string dbchecksum;
