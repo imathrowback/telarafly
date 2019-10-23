@@ -13,18 +13,19 @@ using Assets.DatParser;
 
 public class TestNifLoader : MonoBehaviour {
     GameObject test;
+    GameObject tail;
+    AnimatedNif animNif;
     public long rweaponKey = 1072509202;
     // Use this for initialization
     void Start () {
 
-
-        this.test = NIFLoader.loadNIF("elf_giant_unseelie_king.nif");
+        //this.test = NIFLoader.loadNIF("elf_giant_unseelie_king.nif");
         GameObject character = new GameObject();
 
-        /*
         Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
 
-        mainPaperdoll.setGender("male");
+
+        mainPaperdoll.setGender("female");
         mainPaperdoll.setRace("human");
         //mainPaperdoll.GetComponent<AnimatedNif>().animSpeed = 0.001f;
         mainPaperdoll.animSpeed = 0.005f;
@@ -32,12 +33,17 @@ public class TestNifLoader : MonoBehaviour {
         character.transform.localRotation = Quaternion.identity;
         mainPaperdoll.transform.localRotation = Quaternion.identity;
         //mainPaperdoll.setAppearenceSet(1044454339);
+        mainPaperdoll.setGearSlotKey(GearSlot.TORSO, 1169930480);
         //mainPaperdoll.setGearSlotKey(GearSlot.CAPE, 2131680782);
         //mainPaperdoll.setGearSlotKey(GearSlot.RANGED, 1072509202);
         //mainPaperdoll.setKFBPostFix("ranged_bow");
         //mainPaperdoll.clearGearSlot(GearSlot.HEAD);
-        */
-        
+
+        //mainPaperdoll.forceNifForSlot(GearSlot.CAPE, "human_female_tail_001.nif");
+        tail = new GameObject();
+        NIFLoader.loadNIF("human_female_tail_001.nif");
+
+
     }
 
     // Update is called once per frame

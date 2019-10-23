@@ -107,7 +107,6 @@ namespace Assets.Database
                     Debug.Log("get asset database inst");
                     AssetDatabase adb = AssetDatabaseInst.DB;
                     Debug.Log("get telara.db");
-                    Debug.Log("done get telara.db");
 
                     //string entryHash = Util.bytesToHexString(ae.hash);
 
@@ -134,6 +133,7 @@ namespace Assets.Database
 
                     };
                     DB db = readDB(adb.extractUsingFilename("telara.db"), compressedSQLDB, (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
+                    Debug.Log("done get telara.db");
 
                     progress.Invoke("[Phase 1 of 2] Reading language database");
                     langdb = new DBLang(adb, "english", (s) => { progress.Invoke("[Phase 1 of 2]" + s); });
@@ -171,39 +171,44 @@ namespace Assets.Database
 
             try
             {
-                byte[] key = System.Convert.FromBase64String("IoooW3zsQgm22XaVQ0YONAKehPyJqEyaoQ7sEqf1XDc=");
-
-                BinaryReader reader = new BinaryReader(new MemoryStream(telaraDBData));
-                Debug.Log("get page size");
-                reader.BaseStream.Seek(16, SeekOrigin.Begin);
-                UInt16 pageSize = (UInt16)IPAddress.NetworkToHostOrder(reader.readShort());
-                Debug.Log("go page size:" + pageSize);
-
-                reader.BaseStream.Seek(0, SeekOrigin.Begin);
-
-                MemoryStream decryptedStream = new MemoryStream(telaraDBData.Length);
-
-                int pageCount = telaraDBData.Length / pageSize;
-                for (int i = 1; i < pageCount + 1; i++)
+                if (telaraDBData[0] == 'S' && telaraDBData[1] == 'Q' && telaraDBData[2] == 'L')
+                    File.WriteAllBytes(outSQLDb, telaraDBData);
+                else
                 {
-                    byte[] iv = getIV(i);
-                    BufferedBlockCipher cipher = new BufferedBlockCipher(new OfbBlockCipher(new AesEngine(), 128));
-                    ICipherParameters cparams = new ParametersWithIV(new KeyParameter(key), iv);
-                    cipher.Init(false, cparams);
+                    byte[] key = System.Convert.FromBase64String("IoooW3zsQgm22XaVQ0YONAKehPyJqEyaoQ7sEqf1XDc=");
 
-                    byte[] bdata = reader.ReadBytes(pageSize);
-                    byte[] ddata = new byte[pageSize];
-                    cipher.ProcessBytes(bdata, 0, bdata.Length, ddata, 0);
-                    // bytes 16-23 on the first page are NOT encrypted, so we need to replace them once we decrypt the page
-                    if (i == 1)
-                        for (int x = 16; x <= 23; x++)
-                            ddata[x] = bdata[x];
-                    decryptedStream.Write(ddata, 0, ddata.Length);
-                    progress.Invoke("Decoding db " + i + "/" + pageCount);
+                    BinaryReader reader = new BinaryReader(new MemoryStream(telaraDBData));
+                    Debug.Log("get page size");
+                    reader.BaseStream.Seek(16, SeekOrigin.Begin);
+                    UInt16 pageSize = (UInt16)IPAddress.NetworkToHostOrder(reader.readShort());
+                    Debug.Log("go page size:" + pageSize);
+
+                    reader.BaseStream.Seek(0, SeekOrigin.Begin);
+
+                    MemoryStream decryptedStream = new MemoryStream(telaraDBData.Length);
+
+                    int pageCount = telaraDBData.Length / pageSize;
+                    for (int i = 1; i < pageCount + 1; i++)
+                    {
+                        byte[] iv = getIV(i);
+                        BufferedBlockCipher cipher = new BufferedBlockCipher(new OfbBlockCipher(new AesEngine(), 128));
+                        ICipherParameters cparams = new ParametersWithIV(new KeyParameter(key), iv);
+                        cipher.Init(false, cparams);
+
+                        byte[] bdata = reader.ReadBytes(pageSize);
+                        byte[] ddata = new byte[pageSize];
+                        cipher.ProcessBytes(bdata, 0, bdata.Length, ddata, 0);
+                        // bytes 16-23 on the first page are NOT encrypted, so we need to replace them once we decrypt the page
+                        if (i == 1)
+                            for (int x = 16; x <= 23; x++)
+                                ddata[x] = bdata[x];
+                        decryptedStream.Write(ddata, 0, ddata.Length);
+                        progress.Invoke("Decoding db " + i + "/" + pageCount);
+                    }
+                    decryptedStream.Seek(0, SeekOrigin.Begin);
+
+                    File.WriteAllBytes(outSQLDb, decryptedStream.ToArray());
                 }
-                decryptedStream.Seek(0, SeekOrigin.Begin);
-
-                File.WriteAllBytes(outSQLDb, decryptedStream.ToArray());
                 processSQL(db, outSQLDb,  progress);
                 Debug.Log("finished processing");
             }

@@ -59,6 +59,10 @@ namespace Assets
             Debug.Log("world loader thread is now shutdown");
 
         }
+        public void preloadObjects(SCG.List<ObjectPosition> initialObjs)
+        {
+            this.objectPositions.AddRange(initialObjs);
+        }
         public WorldLoadingThread()
         {
             objectRunningList = new TreeDictionary<long, NifLoadJob>();
@@ -319,6 +323,9 @@ namespace Assets
         CustomSampler objectRunningListSampler;
         CustomSampler terrainRunningListSampler;
 
+        TreeDictionary<string, MemmerObject> existingids = new TreeDictionary<string, MemmerObject>();
+        TreeDictionary<string, ObjectPosition> newids = new TreeDictionary<string, ObjectPosition>();
+        ArrayList<MemmerObject> values = new ArrayList<MemmerObject>();
 
         [CallFromUnityUpdate]
         internal void processThreadsUnityUpdate(Action<TreeDictionary<long, NifLoadJob>, DateTime> processRunningList, Func<ObjectPosition, GameObject> process)
@@ -354,12 +361,60 @@ namespace Assets
                 return;
             TryWithLock(objectPositions, () =>
              {
+                 newids.Clear();                 
+                 dimload.doIPCLoad((x) => { newids.Add(x.id, x); });
+                 if (!newids.IsEmpty)
+                 {
+                     values.Clear();
+                     values.AddAll(existingids.Values);
+                     foreach (MemmerObject mo in values)
+                     {
+                         if (!newids.Contains(mo.id))
+                         {
+                             GameObject.Destroy(mo);
+                             existingids.Remove(mo.id);
+                         }
+                     }
+
+                     foreach (string newid in newids.Keys)
+                     {
+                         ObjectPosition op = newids[newid];
+                         if (existingids.Contains(newid))
+                         {
+                             // update
+                             GameObject go = existingids[newid].gameObject;
+                             Transform t = go.transform;
+                             t.localScale = new Vector3(op.scale, op.scale, op.scale);
+                             t.localPosition = op.min;
+                             t.localRotation = op.qut;
+                         }
+                         else
+                         {
+                             // create new
+                             objectPositions.Add(op);
+                         }
+                     }
+
+                 }
+                 
+
+
+
+
+
+
                  while (objectPositions.Count() > 0 && fend > DateTime.Now)
                  {
                      ObjectPosition p = objectPositions[0];
                      objectPositions.RemoveAt(0);
                      
                      GameObject go = process(p);
+                     if (p.memmerObject)
+                     {
+                         MemmerObject mo = go.AddComponent<MemmerObject>();
+                         mo.id = p.id;
+                         existingids.Add(mo.id, mo);
+                     }
                  }
              });
         }

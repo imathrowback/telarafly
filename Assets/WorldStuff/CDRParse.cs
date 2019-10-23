@@ -197,23 +197,25 @@ namespace Assets.WorldStuff
             System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
 
             watch.Start();
+            Debug.Log("get data for world name " + worldName);
             if (!adb.getManifest().containsHash(Util.hashFileName(worldName)))
                 throw new Exception("Unable to find world name:" + worldName);
             byte[] data = adb.extractUsingFilename(worldName);
-            //Debug.Log("extract in " + watch.ElapsedMilliseconds + " ms");
+            Debug.Log("extract in " + watch.ElapsedMilliseconds + " ms");
 
             watch.Reset(); watch.Start();
+            Debug.Log("process stream data");
             CObject obj = Parser.processStreamObject(data);
-            //Debug.Log("processStreamObject in " + watch.ElapsedMilliseconds + " ms");
+            Debug.Log("processStreamObject in " + watch.ElapsedMilliseconds + " ms");
 
             watch.Reset(); watch.Start();
-            //Debug.Log("got world name:" + worldName);
+            Debug.Log("got world name:" + worldName);
             y = obj.getIntMember(3) * 256;
             if (obj.hasMember(2))
                 x = obj.getIntMember(2) * 256;
             else
                 x = y;
-            //Debug.Log("get min max in " + watch.ElapsedMilliseconds + " ms");
+            Debug.Log("get min max in " + watch.ElapsedMilliseconds + " ms");
             watch.Stop();
         }
 
@@ -266,7 +268,9 @@ namespace Assets.WorldStuff
                 UnityEngine.Debug.Log("Unknown code " + data[0] + ", expected:" + 0x6b);
                 return;
             }
+           // Debug.Log("processing:" + str);
             processCDR(new MemoryStream(data), str, addFunc, db);
+
 
         }
 
@@ -336,10 +340,19 @@ namespace Assets.WorldStuff
                                 {
                                     string oname = child.getStringMember(1);
                                     CObject ary = child.getMember(4);
-                                    
-                                    // child members in ary 602 and 603 contain references into the database under id 623
-                                    // they point to object 628 which contains references to the actual NIF/HKX files
-                                    long nif_hkx_ref = long.MaxValue;
+
+                                    foreach (CObject achild in ary.members)
+                                        if (achild.type != 602 && achild.type != 603 && achild.type != 601 && achild.type != 826)
+                                        {
+                                            Debug.Log("[" + cdrName + "]: Unknown hot_entity type:" + achild.type);
+                                        }
+
+
+
+
+                                            // child members in ary 602 and 603 contain references into the database under id 623
+                                            // they point to object 628 which contains references to the actual NIF/HKX files
+                                            long nif_hkx_ref = long.MaxValue;
                                     CObject _602 = findFirstType(ary, 602);
                                     if (_602 == null)
                                     {
@@ -371,6 +384,13 @@ namespace Assets.WorldStuff
                                                 if (dbObj != null)
                                                 {
                                                     CObject dbAry = dbObj.getMember(4);
+
+                                                    foreach (CObject achild in dbAry.members)
+                                                        if (achild.type != 7319 && achild.type != 7320 && achild.type != 7318 && achild.type != 7378)
+                                                        {
+                                                            Debug.Log("[" + cdrName + "][" + oname + "]: Unknown hot_entitytemplate subtype:" + achild.type);
+                                                        }
+
                                                     CObject _7319 = findFirstType(dbAry, 7319);
                                                     //CObject _7318 = findFirstType(dbAry, 7318);
                                                     if (_7319 != null)

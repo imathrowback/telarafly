@@ -108,6 +108,7 @@ public class TestDecomp : MonoBehaviour
     {
         if (doMapChange)
         {
+            Debug.Log("trigger scene1 load");
             SceneManager.LoadScene("scene1");
             return;
         }
@@ -152,10 +153,14 @@ public class TestDecomp : MonoBehaviour
     public void loadMap()
     {
         if (loaded)
+        {
+            Debug.Log("Already loaded");
             return;
+        }
 
         if (loadThread != null && loadThread.IsAlive)
         {
+            Debug.Log("abort");
             loadThread.Abort();
             abortThread = true;
             error = "Aborted";
@@ -170,6 +175,7 @@ public class TestDecomp : MonoBehaviour
             //ThirdPersonUIToggle.set
             if (threaded)
             {
+                Debug.Log("begin load thread start");
                 loadThread = new System.Threading.Thread(new System.Threading.ThreadStart(doLoadMap));
                 loadThread.Start();
             }
@@ -196,7 +202,11 @@ public class TestDecomp : MonoBehaviour
         string worldName = spawn.worldName;
         string worldCDR = worldName + "_map.cdr";
         Assets.GameWorld.worldName = worldName;
+        Debug.Log("get minmax for world " + worldName);
+
         Assets.WorldStuff.CDRParse.getMinMax(worldCDR, ref Assets.GameWorld.maxX, ref Assets.GameWorld.maxY);
+
+        Debug.Log("got " + Assets.GameWorld.maxX + " and " + Assets.GameWorld.maxY);
 
         Assets.GameWorld.initialSpawn = spawn;
         foreach (WorldSpawn s in worlds)

@@ -33,6 +33,7 @@ namespace Assets.Wardrobe
         string defaultAnimationSet = "unarmed";
         public float animSpeed = 0.01f;
         Dictionary<GearSlot, GameObject> gearSlotObjects = new Dictionary<GearSlot, GameObject>();
+        Dictionary<GearSlot, String> gearSlotNifOverride = new Dictionary<GearSlot, String>();
         Dictionary<GearSlot, long> gearSlotKeys = new Dictionary<GearSlot, long>();
         //long appearenceSet = long.MinValue;
 
@@ -281,6 +282,7 @@ namespace Assets.Wardrobe
             if (gearSlotObjects.ContainsKey(slot))
                 GameObject.Destroy(gearSlotObjects[slot]);
 
+            string niffile = null;
             //Debug.Log("try create update gear slot object if key for slot: " + gearSlotKeys.ContainsKey(slot), this.gameObject);
             if (gearSlotKeys.ContainsKey(slot))
             {
@@ -297,9 +299,21 @@ namespace Assets.Wardrobe
                     nif = new NIFReference(DBInst.inst, key).getNif(race, sex);
 
                 //Debug.Log("load nif[" + nif + "] for slot:" + slot, this.gameObject);
-                gearSlotObjects[slot] = loadNIFForSlot(slot, refModel, costumeParts, Path.GetFileName(nif), "");
+                niffile = Path.GetFileName(nif);
             }
+            if (this.gearSlotNifOverride.ContainsKey(slot))
+                niffile = this.gearSlotNifOverride[slot];
+            if (niffile != null)
+                gearSlotObjects[slot] = loadNIFForSlot(slot, refModel, costumeParts, niffile, "");
         }
+
+
+        public void forceNifForSlot(GearSlot slot, string nif)
+        {
+            this.gearSlotNifOverride[slot] = nif;
+        }
+
+        
 
 
         public void setAppearenceSet(long setKey)
@@ -419,6 +433,7 @@ namespace Assets.Wardrobe
         {
             if (state == ClassState.UPDATE)
             {
+
                 updateRaceGender();
                 checkFemaleModesty();
 

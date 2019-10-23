@@ -45,6 +45,7 @@ public class obj_export_all : MonoBehaviour {
         List<ClothingItem> items = db.getClothing().ToList();
         Debug.Log("found " + items.Count + " original items to process");
 
+        ExportModelData.langIDs.Add(1748235087);
         if (ExportModelData.langIDs.Count > 0)
         {
             Debug.Log("Found filter for " + ExportModelData.langIDs.Count + " items");

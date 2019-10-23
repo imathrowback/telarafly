@@ -143,7 +143,7 @@ namespace Assets.RiftAssets
             PATCH,
         }
 
-        private AssetEntry getEntryForFileName( string filename, RequestCategory requestCategory = RequestCategory.NONE)
+        private String getID(string filename, RequestCategory requestCategory = RequestCategory.NONE)
         {
             //Debug.Log("get entry for filename:" + filename + " with request category " + requestCategory);
             List<ManifestEntry> entries = manifest.getEntriesForFilenameHash(Util.hashFileName(filename));
@@ -171,13 +171,13 @@ namespace Assets.RiftAssets
             }
             else
             {
-                
+
                 ManifestEntry finalEntry = null;
 
                 // work out which one we want based on the category
                 string requestStr = requestCategory.ToString().ToLower();
                 //Debug.Log("multiple ids found for " + filename + ", using request category " + requestStr);
-                    
+
                 foreach (ManifestEntry entry in entries)
                 {
                     //Debug.Log("[" + filename + "]: considering entry:" + entry + " :" + manifest.getPAKName(entry.pakIndex));
@@ -194,10 +194,10 @@ namespace Assets.RiftAssets
                 if (finalEntry == null)
                 {
                     // if we were still unable to break the tie
-                    Debug.LogError("tiebreak for " + filename + " no id match");
+                    Debug.LogWarning("tiebreak for " + filename + " no id match");
 
                     // one final check on the language, if an english one exists, use that over any other non-english one
-                    IEnumerable< ManifestEntry> engUni = entries.Where(e => e.lang == 0 || e.lang == 1) ;
+                    IEnumerable<ManifestEntry> engUni = entries.Where(e => e.lang == 0 || e.lang == 1);
                     // if the number of english entries is different to the number of entries, then we should choose an english one and assume it is that one
                     if (engUni.Count() > 0 && engUni.Count() != entries.Count())
                     {
@@ -220,26 +220,40 @@ namespace Assets.RiftAssets
                 //Debug.Log("settled on entry:" + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
 
             }
+            return id;
+        }
+
+        private AssetEntry getEntryForFileName( string filename, RequestCategory requestCategory = RequestCategory.NONE)
+        {
+
+            string id = getID(filename, requestCategory);
             //Debug.Log("find asset file for id:" + id);
             AssetFile assetFile = findAssetFileForID(id);
             //Debug.Log("result:" + assetFile);
             if (assetFile == null)
+            {
                 throw new Exception(
                         "Filename found in manifest but unable to locate ID[" + id + "] in assets: '" + filename
-                                + "'");
+                                + "'[" + Util.hashFileName(filename) + "]");
+            }
             //Debug.Log("found with id:" + id);
             return assetFile.getEntry(id);
             
         }
+
+
 
         /** Attempt to extract the asset with the given filename */
         public byte[] extractUsingFilename( string filename, RequestCategory requestCategory = RequestCategory.NONE)
         {
             if (overrideDirectory != null)
             {
+                Debug.Log("override detected, try to find in override");
+
                 string bfilename = Path.GetFileName(filename);
+                string bhash = Util.hashFileName(bfilename);
                 string overriddenFilename1 = overrideDirectory + Path.DirectorySeparatorChar + bfilename;
-                string overriddenFilename2 = overrideDirectory + Path.DirectorySeparatorChar + Util.hashFileName(bfilename);
+                string overriddenFilename2 = overrideDirectory + Path.DirectorySeparatorChar + bhash;
 
                 if (File.Exists(overriddenFilename1))
                 {
@@ -251,8 +265,40 @@ namespace Assets.RiftAssets
                     Debug.Log("read override file: " + filename + " => " + overriddenFilename2);
                     return File.ReadAllBytes(overriddenFilename2);
                 }
+                else
+                {
+                    Debug.Log("override file not found, get id");
+                    string id = getID(filename, requestCategory);
+
+                    Debug.Log("search override directory for [" + bhash + "] or [" + bfilename + "] or [" + id + "]");
+                    foreach (String s in Directory.GetFiles(overrideDirectory))
+                    {
+                        
+                        if (s.StartsWith(bhash + "-"))
+                        {
+                            Debug.Log("read override file: " + s);
+                            return File.ReadAllBytes(s);
+                        }
+                        else
+                            if (Path.GetFileName(s).StartsWith(bfilename) && s.EndsWith("B"))
+                        {
+                            Debug.Log("read override file: " + s);
+                            return File.ReadAllBytes(s);
+                        }
+                        else if ((Path.GetFileName(s).Contains("-" + id + "-")))
+                        {
+                            Debug.Log("read override file: " + s);
+                            return File.ReadAllBytes(s);
+                        }
+
+                        
+                    }
+
+                }
+                Debug.Log("failed to detect override");
             }
 
+            Debug.Log("try extracting filename " + filename + " from existing assets");
             byte[] data = extract(getEntryForFileName(filename, requestCategory));
             if (true)
             {

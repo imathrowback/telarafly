@@ -387,6 +387,7 @@ public class telera_spawner : MonoBehaviour
             worldLoader.cam = mcamera.GetComponent<Camera>();
             worldLoader.cameraWorldCamPos = mcamera.transform.position;
             worldLoader.telaraWorldCamPos = getWorldCamPos();
+            worldLoader.preloadObjects(Assets.GameWorld.staticObjects);
             worldLoader.startThread();
         }
         worldLoader.cameraWorldCamPos = mcamera.transform.position;

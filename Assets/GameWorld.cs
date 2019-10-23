@@ -7,7 +7,7 @@ namespace Assets
 {
     public static class GameWorld
     {
-        //static List<ObjectPosition> objects = new List<ObjectPosition>(50000);
+        public static List<ObjectPosition> staticObjects = new List<ObjectPosition>();
         public static int minX = 0;
         public static int minY = 0;
         public static int maxX = 0;

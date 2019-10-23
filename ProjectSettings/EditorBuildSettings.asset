@@ -29,3 +29,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/obj-export-all.unity
     guid: d3e9267a268f0f74aa193a51ad82824a
+  - enabled: 1
+    path: Assets/pdip.unity
+    guid: 7de3808fc70435649adfd975bc02eae6

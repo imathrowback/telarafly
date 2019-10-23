@@ -8,6 +8,8 @@ namespace Assets
 {
     public class ObjectPosition
     {
+        public string id;
+        public bool memmerObject;
         public string nifFile;
         public Vector3 min;
         public Quaternion qut;

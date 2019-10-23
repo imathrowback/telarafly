@@ -16,9 +16,12 @@ public class BigMap : MonoBehaviour
     public delegate void OnSpawnClickDelegate(WorldSpawn spawn);
     public OnSpawnClickDelegate OnSpawnClick = delegate {};
     public RawImage image;
+    public GameObject cameraPos;
     public GameObject teleportRoot;
     public GameObject teleportTemplate;
     public GameObject toolTip;
+    GameObject mcamera;
+    private GameObject meshRoot;
     DB db;
     string world = "world";
     float pixelsPerMeter = 10;
@@ -26,6 +29,18 @@ public class BigMap : MonoBehaviour
     void Start()
     {
         DBInst.loadOrCallback((d) => db = d);
+        mcamera = GameObject.Find("Main Camera");
+        meshRoot = GameObject.Find("NIFRotationRoot");
+    }
+
+    private Vector3 getCamPos()
+    {
+        return meshRoot.transform.InverseTransformPoint(mcamera.transform.position);
+    }
+
+    private Vector3 getCamPosLook()
+    {
+        return meshRoot.transform.InverseTransformPoint(mcamera.transform.position + mcamera.transform.forward * 2);
     }
 
     // Update is called once per frame
@@ -34,11 +49,27 @@ public class BigMap : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.M))
         {
             GetComponent<RawImage>().enabled = !GetComponent<RawImage>().enabled;
+            cameraPos.GetComponent<RawImage>().enabled = !cameraPos.GetComponent<RawImage>().enabled;
             foreach (Transform t in teleportRoot.transform)
                 GameObject.Destroy(t.gameObject);
             if (GetComponent<RawImage>().enabled)
                 updateWorld();
         }
+
+        // always update this
+        RectTransform cPos = cameraPos.GetComponent<RectTransform>();
+        Vector3 camPos = getCamPos();
+        Vector3 camPosL = getCamPosLook();
+        Vector3 dir = (camPosL - camPos).normalized;
+
+        
+
+        //cPos.local = Quaternion.LookRotation(dir, Vector3.forward);
+
+        cPos.anchoredPosition = new Vector3((camPos.x / 256.0f) * pixelsPerMeter, ((camPos.z / 256.0f) * pixelsPerMeter), 0);
+        
+        
+
     }
 
     public void setWorld(string newWorld)
