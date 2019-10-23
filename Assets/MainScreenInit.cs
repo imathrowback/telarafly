@@ -36,6 +36,10 @@ public class MainScreenInit : MonoBehaviour {
             {
                 ExportModelData.expectedTextureExtension = args[i + 1];
             }
+            else if (args[i] == "-objexpmtlweb")
+            {
+                ExportModelData.mtlWebPathing = true;
+            }
             else if (args[i] == "-objexplangids")
             {
                 string file = args[i + 1];

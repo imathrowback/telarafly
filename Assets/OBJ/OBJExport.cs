@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Export
@@ -12,36 +10,33 @@ namespace Assets.Export
     {
         public void export(GameObject root, string outputDir, string fileName, List<string> additionalComments)
         {
-            String tDir = outputDir + "\\" + ExportModelData.outputDirectoryTextures;
-            if (!Directory.Exists(tDir))
+            var textureDirectory = Path.Combine(outputDir, ExportModelData.outputDirectoryTextures);
+
+            if (!Directory.Exists(textureDirectory))
             {
-                Debug.Log("Texture directory '" + tDir + "' does not exist, creating");
-                Directory.CreateDirectory(tDir);
+                Debug.Log("Texture directory '" + textureDirectory + "' does not exist, creating");
+                Directory.CreateDirectory(textureDirectory);
             }
 
             DB db = DBInst.inst;
-            DoExport(root, true,  outputDir, fileName, additionalComments);
-
-            
-
-
-
+            DoExport(root, true, outputDir, fileName, additionalComments);
         }
 
-        static void DoExport(GameObject obj, bool makeSubmeshes,  string outputDir, string fileName, List<string> additionalComments)
+        static void DoExport(GameObject obj, bool makeSubmeshes, string outputDir, string fileName, List<string> additionalComments)
         {
-
             string meshName = obj.name;
-            string mtllib =  outputDir + "\\" + fileName + ".mtl";
+            string mtllib = Path.Combine(outputDir, fileName + ".mtl");
+            string outputObject = Path.Combine(outputDir, fileName + ".obj");
 
             ObjExporterScript.Start();
-            string objout = outputDir + "\\" + fileName + ".obj";
-            if (File.Exists(objout))
+
+            if (File.Exists(outputObject))
             {
-                Debug.Log("skipping, already exists: " + objout);
+                Debug.Log("skipping, already exists: " + outputObject);
                 return;
             }
-            using (StreamWriter sw = new StreamWriter(objout))
+
+            using (StreamWriter sw = new StreamWriter(outputObject))
             {
                 using (StreamWriter mtllibs = new StreamWriter(mtllib))
                 {
@@ -60,7 +55,7 @@ namespace Assets.Export
 
                     if (!makeSubmeshes)
                         sw.Write("g " + t.name + "\n");
-                    processTransform(t, makeSubmeshes,  outputDir, mtllibs, sw);
+                    processTransform(t, makeSubmeshes, outputDir, mtllibs, sw);
 
 
                     t.position = originalPosition;
@@ -71,7 +66,7 @@ namespace Assets.Export
             }
         }
 
-        static void processTransform(Transform t, bool makeSubmeshes,  string outputDir, StreamWriter  mtllib, StreamWriter sw)
+        static void processTransform(Transform t, bool makeSubmeshes, string outputDir, StreamWriter mtllib, StreamWriter sw)
         {
             HashSet<String> matsSet = new HashSet<string>();
             sw.Write("#" + t.name
@@ -85,6 +80,7 @@ namespace Assets.Export
             if (mf)
             {
                 sw.Write(ObjExporterScript.MeshToString(mf, t));
+
                 // write materials
                 Mesh m = mf.sharedMesh;
                 if (m != null)
@@ -93,34 +89,44 @@ namespace Assets.Export
                     if (ren != null)
                     {
                         Material[] mats = ren.sharedMaterials;
+
                         for (int material = 0; material < m.subMeshCount; material++)
                         {
                             Material mat = mats[material];
-                            if (mat != null)
+
+                            if (mat == null)
+                                continue;
+
+                            string matName = mat.name + mat.GetInstanceID();
+                            Texture mainTex = null;
+                            mainTex = mat.GetTexture("_MainTex");
+
+                            // If the texture is valid, and not yet in the set
+                            //  then extract the texture information and update the mtl file
+                            if (mainTex != null && !matsSet.Contains(matName))
                             {
-                                string matName = mat.name + mat.GetInstanceID();
-                                Texture mainTex = null;
-                                mainTex = mat.GetTexture("_MainTex");
-                                if (mainTex != null)
+                                // Get the raw texture byte
+                                byte[] textureData = AssetDatabaseInst.DB.extractUsingFilename(mainTex.name);
+
+                                // Set the appropriate file name of the texture
+                                var fileName = Path.ChangeExtension(mainTex.name, ExportModelData.expectedTextureExtension);
+
+                                // Set the path where the texture file will be written
+                                var textureOutputPath = Path.Combine(Path.Combine(outputDir, ExportModelData.outputDirectoryTextures), fileName);
+
+                                if (!File.Exists(textureOutputPath))
                                 {
-                                    if (!matsSet.Contains(matName))
-                                    {
-                                        Texture2D t2d = (Texture2D)mainTex;
-                                        byte[] tdata =Assets.AssetDatabaseInst.DB.extractUsingFilename(mainTex.name);
-
-                                        string tname = outputDir + "\\" + ExportModelData.outputDirectoryTextures + "\\" + mainTex.name;
-                                        
-                                        if (!File.Exists(tname))
-                                            File.WriteAllBytes(tname, tdata);
-
-                                        mtllib.WriteLine("newmtl " + matName);
-                                        mtllib.WriteLine("map_Kd " + ("\\" + ExportModelData.outputDirectoryTextures + "\\" + mainTex.name).Replace("dds", ExportModelData.expectedTextureExtension));
-                                        //Texture tex = mat.mainTexture;
-
-                                    }
+                                    File.WriteAllBytes(textureOutputPath, textureData);
                                 }
-                                matsSet.Add(matName);
+
+                                // Set the path of the texture file for the MTL file
+                                var textureMtlPath = GetMtlTexturePath(ExportModelData.mtlWebPathing, ExportModelData.outputDirectoryTextures, fileName);
+
+                                mtllib.WriteLine("newmtl " + matName);
+                                mtllib.WriteLine("map_Kd " + textureMtlPath);
                             }
+
+                            matsSet.Add(matName);
                         }
                     }
                 }
@@ -128,9 +134,15 @@ namespace Assets.Export
 
             for (int i = 0; i < t.childCount; i++)
             {
-                processTransform(t.GetChild(i), makeSubmeshes,  outputDir, mtllib ,sw);
+                processTransform(t.GetChild(i), makeSubmeshes, outputDir, mtllib, sw);
             }
-            
+        }
+
+        static string GetMtlTexturePath(bool exportingToWeb, string textureDirectory, string filename)
+        {
+            return exportingToWeb ?
+                string.Format("{0}/{1}", textureDirectory, filename) :
+                Path.Combine(Path.Combine(Path.DirectorySeparatorChar.ToString(), textureDirectory), filename);
         }
     }
 }
