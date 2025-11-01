@@ -23,6 +23,7 @@ public class telera_spawner : MonoBehaviour
     Rigidbody tpucRB;
     public BigMap bigMap;
     public GameObject mcamera;
+    public Camera mainCamera;
     //camera_movement camMove;
     System.IO.StreamReader fileStream;
     public GameObject telaraObjectPrefab;
@@ -160,7 +161,18 @@ public class telera_spawner : MonoBehaviour
         }
     }
 
+    
+    public GameObject VRBase;
 
+    public void doVR()
+    {
+        this.mcamera.SetActive(false);
+        VRBase.SetActive(true);
+        this.mainCamera = VRBase.GetComponentInChildren<Camera>();
+        this.mcamera = VRBase;
+    }
+    
+    
     public void setCameraLoc(WorldSpawn spawn, bool useChar = false)
     {
         if (charC != null && useChar)
@@ -384,7 +396,8 @@ public class telera_spawner : MonoBehaviour
         if (worldLoader == null)
         {
             worldLoader = new WorldLoadingThread();
-            worldLoader.cam = mcamera.GetComponent<Camera>();
+            worldLoader.cam = this.mainCamera;
+            
             worldLoader.cameraWorldCamPos = mcamera.transform.position;
             worldLoader.telaraWorldCamPos = getWorldCamPos();
             worldLoader.preloadObjects(Assets.GameWorld.staticObjects);
@@ -404,7 +417,7 @@ public class telera_spawner : MonoBehaviour
     {
         foreach (NifLoadJob job in runningList.Values.ToArray())
         {
-            if (DateTime.Now > fend)
+            if (DateTime.UtcNow > fend)
                 break;
             if (job.Update())
             {

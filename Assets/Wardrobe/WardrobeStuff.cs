@@ -66,9 +66,12 @@ namespace Assets.Wardrobe
             raceMap["elf"] = 2;
             raceMap["dwarf"] = 3;
             raceMap["bahmi"] = 2005;
+            // This is in the database, but the most files don't seem to exist
+            // raceMap["sylph"] = 2006; 
+
             // whilst these are seperate races, they re-use existing models
-            //raceMap["eth"] = 2007;
-            //raceMap["highelf"] = 2008;
+            //raceMap["eth"] = 2007;        // uses human model
+            //raceMap["highelf"] = 2008;    // uses elf model
             genderMap["male"] = 0;
             genderMap["female"] = 2;
 
@@ -231,24 +234,31 @@ namespace Assets.Wardrobe
             CObject nifObj = db.toObj( 7305, key);
 
             baseName = nifObj.getMember(2).convert().ToString();
-            if (nifObj.hasMember(5))
+            try
             {
-                Dictionary<int, CObject> dict = nifObj.getMember(5).asDict();
-
-                foreach (int race in dict.Keys)
+                if (nifObj.hasMember(5))
                 {
-                    CObject nifRaceObj = dict[race];
-                    nifs[race] = new Dictionary<int, string>();
+                    Dictionary<int, CObject> dict = nifObj.getMember(5).asDict();
 
-                    string malenif = nifRaceObj.getMember(0).convert().ToString();
-                    if (nifRaceObj.hasMember(2))
+                    foreach (int race in dict.Keys)
                     {
-                        string femalenif = nifRaceObj.getMember(2).convert().ToString();
-                        nifs[race][2] = femalenif;
-                    }
+                        CObject nifRaceObj = dict[race];
+                        nifs[race] = new Dictionary<int, string>();
 
-                    nifs[race][0] = malenif;
+                        string malenif = nifRaceObj.getMember(0).convert().ToString();
+                        if (nifRaceObj.hasMember(2))
+                        {
+                            string femalenif = nifRaceObj.getMember(2).convert().ToString();
+                            nifs[race][2] = femalenif;
+                        }
+
+                        nifs[race][0] = malenif;
+                    }
                 }
+            }
+            catch { }
+            {
+
             }
         }
     }

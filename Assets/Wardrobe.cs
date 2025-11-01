@@ -11,6 +11,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using Assets.Wardrobe;
+using Assets.Export;
 //using deep
 public class Wardrobe : MonoBehaviour
 {
@@ -112,11 +113,11 @@ public class Wardrobe : MonoBehaviour
 
     string filter = null;
     string filterToSet = null;
-    DateTime filterSetTime = DateTime.Now;
+    DateTime filterSetTime = DateTime.UtcNow;
     public void updateFilter()
     {
         
-        this.filterSetTime = DateTime.Now.AddSeconds(1);
+        this.filterSetTime = DateTime.UtcNow.AddSeconds(1);
         this.filterToSet = filterField.text.ToLower();
     }
 
@@ -197,7 +198,7 @@ public class Wardrobe : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (filterToSet != null && DateTime.Now > filterSetTime)
+        if (filterToSet != null && DateTime.UtcNow > filterSetTime)
         {
             filter = filterToSet;
             filterToSet = null;
@@ -296,6 +297,17 @@ public class Wardrobe : MonoBehaviour
             //paperDoll.FixedUpdate(); // force an update
             updatePreviews();
         }
+    }
+
+    public void Export()
+    {
+        ExporterV2 v = new ExporterV2();
+        v.export(GameObject.Find("MainPaperdoll").GetComponent<Paperdoll>().gameObject, "export", "wardrobe");
+        //OBJExport exporter = new OBJExport();
+        // Export the current model and textures to the current directory
+        //Directory.CreateDirectory("export");
+        //ExportModelData.expectedTextureExtension = "dds";
+        //exporter.export(GameObject.Find("MainPaperdoll").GetComponent<Paperdoll>().gameObject);
     }
    
 }

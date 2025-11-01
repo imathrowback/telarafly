@@ -106,7 +106,7 @@ public class FavDropDown : MonoBehaviour {
             dropdown.RefreshShownValue();
         }catch (Exception ex)
         {
-            Debug.LogWarning("Unable to properly process items, are you sure they are DOption types in the drop down?");
+            Debug.LogWarning("Unable to properly process items, are you sure they are DOption types in the drop down?" + ex);
         }
     }
 

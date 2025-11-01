@@ -127,10 +127,12 @@ namespace Assets.Wardrobe
             // so if the model is female, give it some clothes for "modesty" because some people/cultures may be offended
             if (genderString.Equals("female"))
             {
-                if (!gearSlotKeys.ContainsKey(GearSlot.TORSO))
-                    setGearSlotKey(GearSlot.TORSO, 1127855431);
-                if (!gearSlotKeys.ContainsKey(GearSlot.LEGS))
-                    setGearSlotKey(GearSlot.LEGS, 1300181064);
+                    if (!gearSlotKeys.ContainsKey(GearSlot.TORSO))
+                        //setGearSlotKey(GearSlot.TORSO, 1127855431);
+                        setGearSlotKey(GearSlot.TORSO, 1739016320);
+                    if (!gearSlotKeys.ContainsKey(GearSlot.LEGS))
+                        setGearSlotKey(GearSlot.LEGS, 1242324498);
+                    //setGearSlotKey(GearSlot.LEGS, 1300181064);
             }
         }
         private void updateRaceGender()
@@ -347,6 +349,7 @@ namespace Assets.Wardrobe
             //Debug.Log("load nif[" + nifFile + "] for slot " + slot, this.gameObject);
             // First move all the meshes across to the skeleton
             GameObject meshes = new GameObject(slot.ToString());
+            meshes.AddComponent<OriginalNIFReference>().fname = nifFile;
             //Debug.Log("create new gameobh:" + meshes.name);
             try
             {

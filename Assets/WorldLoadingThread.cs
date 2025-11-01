@@ -21,6 +21,8 @@ namespace Assets
     }
     class WorldLoadingThread
     {
+        SCG.Dictionary<Hash128,GameObject> uniqueObjects = new SCG.Dictionary<Hash128, GameObject>();
+
         KdTree.KdTree<float, SCG.List<NifLoadJob>> postree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
         KdTree.KdTree<float, SCG.List<NifLoadJob>> terraintree = new KdTree<float, SCG.List<NifLoadJob>>(2, new KdTree.Math.FloatMath(), AddDuplicateBehavior.Error);
         SCG.List<ObjectPosition> objectPositions;
@@ -45,10 +47,10 @@ namespace Assets
             shutdown = true;
             Debug.Log("SHUTDOWN world loader thread");
 
-            DateTime end = DateTime.Now.AddMilliseconds(10000);
+            DateTime end = DateTime.UtcNow.AddMilliseconds(10000);
             do
             {
-                if (DateTime.Now > end)
+                if (DateTime.UtcNow > end)
                 {
                     worldThread.Abort();
                     break;
@@ -65,6 +67,7 @@ namespace Assets
         }
         public WorldLoadingThread()
         {
+            uniqueObjects.Clear();
             objectRunningList = new TreeDictionary<long, NifLoadJob>();
             terrainRunningList = new TreeDictionary<long, NifLoadJob>();
             objectPositions = new SCG.List<ObjectPosition>();
@@ -278,7 +281,7 @@ namespace Assets
             // Handle loading capsule queue
             TryWithLock(loadingCapsuleQueue, () =>
             {
-                while (!loadingCapsuleQueue.IsEmpty && fend > DateTime.Now)
+                while (!loadingCapsuleQueue.IsEmpty && fend > DateTime.UtcNow)
                     addLoading(loadingCapsuleQueue.Dequeue());
 
             });
@@ -332,13 +335,13 @@ namespace Assets
         {
             /** Create an end time, if we pass that end time we should abort immediately */
             // 33ms = 30fps
-            DateTime fend = DateTime.Now.AddMilliseconds(15);
+            DateTime fend = DateTime.UtcNow.AddMilliseconds(15);
 
             TryWithLock(camPlaneLock, () => camPlanes = GeometryUtility.CalculateFrustumPlanes(cam));
-            if (DateTime.Now > fend)
+            if (DateTime.UtcNow > fend)
                 return;
             processLoadingQueue(fend);
-            if (DateTime.Now > fend)
+            if (DateTime.UtcNow > fend)
                 return;
             TryWithLock(objectRunningList, () =>
             {
@@ -347,7 +350,7 @@ namespace Assets
                 oListCountEstimate = objectRunningList.Count;
                 objectRunningListSampler.End();
             });
-            if (DateTime.Now > fend)
+            if (DateTime.UtcNow > fend)
                 return;
             TryWithLock(terrainRunningList, () =>
             {
@@ -357,8 +360,9 @@ namespace Assets
                 terrainRunningListSampler.End();
             });
 
-            if (DateTime.Now > fend)
+            if (DateTime.UtcNow > fend)
                 return;
+            
             TryWithLock(objectPositions, () =>
              {
                  newids.Clear();                 
@@ -396,24 +400,30 @@ namespace Assets
                      }
 
                  }
-                 
 
 
-
-
-
-
-                 while (objectPositions.Count() > 0 && fend > DateTime.Now)
+                 while (objectPositions.Count() > 0 && fend > DateTime.UtcNow)
                  {
                      ObjectPosition p = objectPositions[0];
                      objectPositions.RemoveAt(0);
-                     
-                     GameObject go = process(p);
-                     if (p.memmerObject)
+                     Hash128 hash = p.Hash();
+                     if (uniqueObjects.ContainsKey(hash))
                      {
-                         MemmerObject mo = go.AddComponent<MemmerObject>();
-                         mo.id = p.id;
-                         existingids.Add(mo.id, mo);
+                         GameObject go = uniqueObjects[hash];
+                         Debug.Log("DUP FOUND FOR object position [" + p.min + "] with NIF[" + p.nifFile + "] with hash: " + hash.ToString(), go);
+
+                     }
+                     else
+                     {
+                         // Debug.Log("Loading object position [" + p.min + "] with NIF[" + p.nifFile + "] with hash: " + hash.ToString());
+                         GameObject go = process(p);
+                         uniqueObjects.Add(hash, go);
+                         if (p.memmerObject)
+                         {
+                             MemmerObject mo = go.AddComponent<MemmerObject>();
+                             mo.id = p.id;
+                             existingids.Add(mo.id, mo);
+                         }
                      }
                  }
              });

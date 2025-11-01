@@ -19,9 +19,12 @@ public class TestNifLoader : MonoBehaviour {
     // Use this for initialization
     void Start () {
 
-        //this.test = NIFLoader.loadNIF("elf_giant_unseelie_king.nif");
-        GameObject character = new GameObject();
+        NIFLoader.loadNIF("pd_tower_meadow_terrain_1024_256.nif");
 
+        //this.test = NIFLoader.loadNIF("elf_giant_unseelie_king.nif");
+        //GameObject character = new GameObject();
+
+        /*
         Paperdoll mainPaperdoll = character.AddComponent<Paperdoll>();
 
 
@@ -38,10 +41,11 @@ public class TestNifLoader : MonoBehaviour {
         //mainPaperdoll.setGearSlotKey(GearSlot.RANGED, 1072509202);
         //mainPaperdoll.setKFBPostFix("ranged_bow");
         //mainPaperdoll.clearGearSlot(GearSlot.HEAD);
+        */
 
         //mainPaperdoll.forceNifForSlot(GearSlot.CAPE, "human_female_tail_001.nif");
-        tail = new GameObject();
-        NIFLoader.loadNIF("human_female_tail_001.nif");
+        //tail = new GameObject();
+        //NIFLoader.loadNIF("crucia.nif");
 
 
     }

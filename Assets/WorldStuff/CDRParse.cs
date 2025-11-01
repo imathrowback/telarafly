@@ -229,7 +229,7 @@ namespace Assets.WorldStuff
             try
             {
                 // also add the terrain nif!
-                String type = "_split";
+                String type = "";
                 String terrainNif = String.Format("{0}_terrain_{1}_{2}{3}.nif", worldName, x, y, type);
                 if (adb.filenameExists(terrainNif))
                 {
@@ -249,12 +249,12 @@ namespace Assets.WorldStuff
             }
             catch (ThreadAbortException ex)
             {
-                UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message);
+                UnityEngine.Debug.LogWarning("Unable to process CDR:" + s + " due to error:" + ex.Message);
                 return;
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.Log("Unable to process CDR:" + s + " due to error:" + ex.Message + ":\n" + ex);
+                UnityEngine.Debug.LogWarning("Unable to process CDR:" + s + " due to error:" + ex.Message + ":\n" + ex);
             }
         }
 
@@ -263,6 +263,12 @@ namespace Assets.WorldStuff
             if (!adb.filenameExists(str))
                 return;
             byte[] data = adb.extractUsingFilename(str);
+            if (data.Length == 0)
+            {
+                UnityEngine.Debug.LogWarning("CDR file is empty:" + str);
+                return;
+            }
+
             if (data[0] != 0x6B)
             {
                 UnityEngine.Debug.Log("Unknown code " + data[0] + ", expected:" + 0x6b);
@@ -292,6 +298,8 @@ namespace Assets.WorldStuff
                     if (world != null)
                         if (!worldName.Equals(world))
                             continue;
+                    // Log details about the spawn
+                    Debug.Log("Found spawn: [" + worldName + "], [" + spawnName + "][" + e.id + "][" + e.key + "]");
                     try
                     {
                         Vector3 pos = obj.getVector3Member(2);
@@ -304,10 +312,14 @@ namespace Assets.WorldStuff
                             ws.imagePath = imagePath;
                             worlds.Add(ws);
                         }
+                        else
+                        {
+                            Debug.Log("Can't find CDR for world:[" + worldName + "], [" + spawnName + "][" + e.id + "][" + e.key + "]");
+                        }
                     }
                     catch (Exception ex)
                     {
-                        Debug.Log("Unable to get position for spawn [" + e.id + "][" + e.key + "]" + ex);
+                        Debug.Log("Unable to get position for spawn [" + worldName + "], [" + spawnName + "][" + e.id + "][" + e.key + "]" + ex);
                     }
                 }
             }

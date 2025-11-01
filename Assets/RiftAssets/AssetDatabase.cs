@@ -1,125 +1,147 @@
-﻿using System;
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
+using UnityEditor;
 using UnityEngine;
+
 
 namespace Assets.RiftAssets
 {
-   public class AssetDatabase
+    public abstract class AssetDatabase
     {
-        
-        private List<AssetFile> assets = new List<AssetFile>();
-        Manifest manifest;
-        bool is64;
+       
 
-        public AssetDatabase( Manifest manifest)
+        Manifest _manifest;
+
+        public abstract bool isRemote();
+        
+
+        public AssetDatabase(Manifest manifest)
         {
-            is64 = manifest.getIs64();
-            this.manifest = manifest;
+            this._manifest = manifest;
         }
 
         public Manifest getManifest()
         {
-            return manifest;
+            return _manifest;
         }
 
-        /*
-        public List<AssetFile> getAssetFiles()
+        public Manifest manifest()
         {
-            return assets;
-        }
-        */
-
-        public void add( AssetFile assetFile)
-        {
-            assets.Add(assetFile);
+            return _manifest;
         }
 
-        private List<AssetEntry> getEntries()
+
+        public bool is64()
         {
-            List<AssetEntry> entries = new List<AssetEntry>();
-            foreach (AssetFile file in assets)
-            {
-                entries.AddRange(file.getEntries());
-            }
-            return entries;
+            return _manifest.getIs64();
         }
 
-        private AssetFile findAssetFileForID(byte[] id)
+
+        public abstract byte[] extractUsingFilename(string filename, RequestCategory requestCategory = RequestCategory.NONE);
+
+        public bool filenameExists(string filename)
         {
-            return findAssetFileForID(Util.bytesToHexString(id));
-        }
-
-        Dictionary<string, List<AssetFile>> assetFiles;
-        System.Object locko = new System.Object();
-        internal string overrideDirectory;
-
-        private AssetFile findAssetFileForID( string id)
-        {
-            if (assetFiles == null)
-            {
-                lock (locko)
-                {
-                    if (assetFiles == null)
-                    {
-                        assetFiles = new Dictionary<string, List<AssetFile>>();
-                        foreach (AssetFile file in assets)
-                        {
-                            foreach (AssetEntry ae in file.getEntries())
-                            {
-                                List<AssetFile> list;
-                                if (!assetFiles.TryGetValue(ae.strID, out list))
-                                {
-                                    list = new List<AssetFile>();
-                                    assetFiles.Add(ae.strID, list);
-                                }
-                                list.Add(file);
-                            }
-                        }
-                    }
-                }
-            }
-            if (id == null)
-                return null;
-            List<AssetFile> holders;
-            if (!assetFiles.TryGetValue(id, out holders))
-                return null;
-
-                //new List<AssetFile>();
-            //foreach (AssetFile file in assets)
-            //    if (file.contains(id))
-            //        holders.Add(file);
-            if (holders.Count == 0)
-                return null;
-
-            if (holders.Count > 1)
-            {
-                try
-                {
-                    // we have a 32 and 64 bit one pick the right one
-                    AssetFile f_32 = (from f in holders where !f.is64 select f).First();
-                    AssetFile f_64 = (from f in holders where f.is64 select f).First();
-                    if (is64)
-                        return f_64;
-                    return f_32;
-                }
-                catch (Exception ex)
-                {
-                    //Debug.LogWarning(ex);
-                    //string holdersStr = String.Join(",", holders.Select(x => x.file).ToArray());
-                    //Debug.LogWarning("More than one asset file [" + holdersStr + "] contains id [" + id + "]");
-                }
-            }
-
-            return holders[0];
+            return _manifest.containsHash(Util.hashFileName(filename));
         }
        
-        public bool filenameExists( string filename)
+        protected String getID(string filename, RequestCategory requestCategory = RequestCategory.NONE)
         {
-            return manifest.containsHash(Util.hashFileName(filename));
+            //Debug.Log("get entry for filename:" + filename + " with request category " + requestCategory);
+            List<ManifestEntry> entries = manifest().getEntriesForFilenameHash(Util.hashFileName(filename));
+
+            if (entries.Count() == 0)
+            {
+                // lets see if the filename is actually a hash (this shouldn't happen, but whatevers)
+                entries = manifest().getEntriesForFilenameHash(filename);
+                if (entries.Count() == 0)
+                    throw new Exception("Filename hash not found in manifest: '" + filename + "'");
+                //Debug.LogWarning("Using filename[" + filename + "] as hash");
+            }
+
+            //Debug.Log("found " + entries.Count() + " entries in manifest that match, strip out duplicate patch paks");
+            // strip out duplicate patch paks
+            entries.RemoveAll(e => {
+                return manifest().getPAKName(e.pakIndex).Contains("patch") && entries.Any(x => x != e && x.idStr.Equals(e.idStr));
+            });
+
+            //Debug.Log("found " + entries.Count() + " entries in manifest that match");
+            string id = "";
+            if (entries.Count() == 1)
+            {
+                // if there was only one result, then use it
+                ManifestEntry firstEntry = entries.First(); 
+                id = firstEntry.idStr;
+                /*Debug.Log("Got idStr:" + id);
+                if (!Util.hashFileName(filename).Equals(entries.First().filenameHashStr, StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogError("[A]: Filename hash does not match entry hash for " + filename + ". Got: " + entries.First().filenameHashStr + ", expected: " + Util.hashFileName(filename));
+                }
+                ManifestEntry entry = manifest().getEntry(id);
+                if (!Util.hashFileName(filename).Equals(entry.filenameHashStr, StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogError("[B]: Filename hash does not match entry hash for " + filename + ". Got: " + entry.filenameHashStr + ", expected: " + Util.hashFileName(filename));
+                    Debug.Log("firstEntry" + firstEntry);
+                    Debug.Log("SecondEntry" + entry);
+                }*/
+            }
+            else
+            { 
+
+                ManifestEntry finalEntry = null;
+
+                // work out which one we want based on the category
+                string requestStr = requestCategory.ToString().ToLower();
+                Debug.Log("multiple ids found for " + filename + ", using request category " + requestStr);
+
+                foreach (ManifestEntry entry in entries)
+                {
+                    Debug.Log("[" + filename + "]: considering entry:" + entry + " :" + manifest().getPAKName(entry.pakIndex));
+                    ManifestPAKFileEntry pak = manifest().getPAK(entry.pakIndex);
+                    string pakName = pak.name;
+                    if (pakName.Contains(requestStr))
+                    {
+                        finalEntry = entry;
+                        break;
+                    }
+                }
+
+
+                if (finalEntry == null)
+                {
+                    // if we were still unable to break the tie
+                    Debug.LogWarning("tiebreak for " + filename + " no id match");
+
+                    // one final check on the language, if an english one exists, use that over any other non-english one
+                    IEnumerable<ManifestEntry> engUni = entries.Where(e => e.lang == 0 || e.lang == 1);
+                    // if the number of english entries is different to the number of entries, then we should choose an english one and assume it is that one
+                    if (engUni.Count() > 0 && engUni.Count() != entries.Count())
+                    {
+                        Debug.Log("tie broken with english language choice: " + finalEntry + " :" + manifest().getPAKName(finalEntry.pakIndex));
+                        finalEntry = engUni.First();
+                    }
+                    else
+                    {
+                        // fail?
+                        String str = "";
+                        foreach (ManifestEntry entry in entries)
+                        {
+                            str += "\t" + entry + " :" + manifest().getPAKName(entry.pakIndex) + "\n";
+                        }
+                        string errStr = ("Multiple ids match the filename [" + filename + "] but no request category was given, unable to determine which to return, picking one!!\n" + str);
+                        Debug.LogWarning(errStr);
+                        finalEntry = engUni.First();
+                        //throw new Exception(errStr);
+                    }
+                }
+                id = finalEntry.idStr;
+                Debug.Log("settled on entry:" + finalEntry + " :" + manifest().getPAKName(finalEntry.pakIndex));
+
+            }
+            return id;
         }
+
 
         public enum RequestCategory
         {
@@ -142,231 +164,6 @@ namespace Assets.RiftAssets
             ENGLISH,
             PATCH,
         }
-
-        private String getID(string filename, RequestCategory requestCategory = RequestCategory.NONE)
-        {
-            //Debug.Log("get entry for filename:" + filename + " with request category " + requestCategory);
-            List<ManifestEntry> entries = manifest.getEntriesForFilenameHash(Util.hashFileName(filename));
-
-            if (entries.Count() == 0)
-            {
-                // lets see if the filename is actually a hash (this shouldn't happen, but whatevers)
-                entries = manifest.getEntriesForFilenameHash(filename);
-                if (entries.Count() == 0)
-                    throw new Exception("Filename hash not found in manifest: '" + filename + "'");
-                Debug.LogWarning("Using filename[" + filename + "] as hash");
-            }
-
-            // strip out duplicate patch paks
-            entries.RemoveAll(e => {
-                return manifest.getPAKName(e.pakIndex).Contains("patch") && entries.Any(x => x != e && x.idStr.Equals(e.idStr));
-            });
-
-            // Debug.Log("found " + entries.Count() + " entries in manifest that match");
-            string id = "";
-            if (entries.Count() == 1)
-            {
-                // if there was only one result, then use it
-                id = entries.First().idStr;
-            }
-            else
-            {
-
-                ManifestEntry finalEntry = null;
-
-                // work out which one we want based on the category
-                string requestStr = requestCategory.ToString().ToLower();
-                //Debug.Log("multiple ids found for " + filename + ", using request category " + requestStr);
-
-                foreach (ManifestEntry entry in entries)
-                {
-                    //Debug.Log("[" + filename + "]: considering entry:" + entry + " :" + manifest.getPAKName(entry.pakIndex));
-                    ManifestPAKFileEntry pak = manifest.getPAK(entry.pakIndex);
-                    string pakName = pak.name;
-                    if (pakName.Contains(requestStr))
-                    {
-                        finalEntry = entry;
-                        break;
-                    }
-                }
-
-
-                if (finalEntry == null)
-                {
-                    // if we were still unable to break the tie
-                    Debug.LogWarning("tiebreak for " + filename + " no id match");
-
-                    // one final check on the language, if an english one exists, use that over any other non-english one
-                    IEnumerable<ManifestEntry> engUni = entries.Where(e => e.lang == 0 || e.lang == 1);
-                    // if the number of english entries is different to the number of entries, then we should choose an english one and assume it is that one
-                    if (engUni.Count() > 0 && engUni.Count() != entries.Count())
-                    {
-                        Debug.Log("tie broken with english language choice: " + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
-                        finalEntry = engUni.First();
-                    }
-                    else
-                    {
-                        // fail?
-                        String str = "";
-                        foreach (ManifestEntry entry in entries)
-                        {
-                            str += "\t" + entry + " :" + manifest.getPAKName(entry.pakIndex) + "\n";
-                        }
-                        string errStr = ("Multiple ids match the filename [" + filename + "] but no request category was given, unable to determine which to return.\n" + str);
-                        throw new Exception(errStr);
-                    }
-                }
-                id = finalEntry.idStr;
-                //Debug.Log("settled on entry:" + finalEntry + " :" + manifest.getPAKName(finalEntry.pakIndex));
-
-            }
-            return id;
-        }
-
-        private AssetEntry getEntryForFileName( string filename, RequestCategory requestCategory = RequestCategory.NONE)
-        {
-
-            string id = getID(filename, requestCategory);
-            //Debug.Log("find asset file for id:" + id);
-            AssetFile assetFile = findAssetFileForID(id);
-            //Debug.Log("result:" + assetFile);
-            if (assetFile == null)
-            {
-                throw new Exception(
-                        "Filename found in manifest but unable to locate ID[" + id + "] in assets: '" + filename
-                                + "'[" + Util.hashFileName(filename) + "]");
-            }
-            //Debug.Log("found with id:" + id);
-            return assetFile.getEntry(id);
-            
-        }
-
-
-
-        /** Attempt to extract the asset with the given filename */
-        public byte[] extractUsingFilename( string filename, RequestCategory requestCategory = RequestCategory.NONE)
-        {
-            if (overrideDirectory != null)
-            {
-                Debug.Log("override detected, try to find in override");
-
-                string bfilename = Path.GetFileName(filename);
-                string bhash = Util.hashFileName(bfilename);
-                string overriddenFilename1 = overrideDirectory + Path.DirectorySeparatorChar + bfilename;
-                string overriddenFilename2 = overrideDirectory + Path.DirectorySeparatorChar + bhash;
-
-                if (File.Exists(overriddenFilename1))
-                {
-                    Debug.Log("read override file:" + filename + " => " + overriddenFilename1);
-                    return File.ReadAllBytes(overriddenFilename1);
-                }
-                else if (File.Exists(overriddenFilename2))
-                {
-                    Debug.Log("read override file: " + filename + " => " + overriddenFilename2);
-                    return File.ReadAllBytes(overriddenFilename2);
-                }
-                else
-                {
-                    Debug.Log("override file not found, get id");
-                    string id = getID(filename, requestCategory);
-
-                    Debug.Log("search override directory for [" + bhash + "] or [" + bfilename + "] or [" + id + "]");
-                    foreach (String s in Directory.GetFiles(overrideDirectory))
-                    {
-                        
-                        if (s.StartsWith(bhash + "-"))
-                        {
-                            Debug.Log("read override file: " + s);
-                            return File.ReadAllBytes(s);
-                        }
-                        else
-                            if (Path.GetFileName(s).StartsWith(bfilename) && s.EndsWith("B"))
-                        {
-                            Debug.Log("read override file: " + s);
-                            return File.ReadAllBytes(s);
-                        }
-                        else if ((Path.GetFileName(s).Contains("-" + id + "-")))
-                        {
-                            Debug.Log("read override file: " + s);
-                            return File.ReadAllBytes(s);
-                        }
-
-                        
-                    }
-
-                }
-                Debug.Log("failed to detect override");
-            }
-
-            Debug.Log("try extracting filename " + filename + " from existing assets");
-            byte[] data = extract(getEntryForFileName(filename, requestCategory));
-            if (true)
-            {
-                //File.WriteAllBytes(@"L:\RIFT_VIEW\data\" + filename, data);
-            }
-            return data;
-        }
-
-        /** Attempt to extract the asset with the given filename */
-        /*
-        public void extractToFilename( String filename,  String outputfilename)
-        {
-            try 
-		{
-                using (FileStream fos = new FileStream(outputfilename, FileMode.Truncate))
-                {
-                    using (BufferedStream bi = new BufferedStream(fos))
-                    {
-                        byte[] data = extract(getEntryForFileName(filename));
-                        bi.Write(data, 0, data.Length);
-                    }
-                }
-            } catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        }
-        */
-
-        private byte[] extract( AssetEntry ae)
-        {
-            return ae.file.extract(ae);
-        }
-
-        private byte[] extractPart( AssetEntry ae,  int size)
-        {
-            AssetFile af = ae.file;
-            if (af != ae.file)
-                throw new Exception("Incorrect af found for asset[" + ae + "]");
-            return af.extractPart(ae, size, null, false);
-        }
-
-        internal string getHash(string v)
-        {
-            AssetEntry ae = getEntryForFileName(v);
-            return BitConverter.ToString(ae.hash);
-        }
-
-        private void extract( AssetEntry ae,  Stream fos)
-        {
-            byte[] data = extract(ae);
-            fos.Write(data, 0, data.Length);
-            fos.Flush();
-        }
-
-        private AssetEntry getEntryForID( byte[] id)
-        {
-            AssetFile file = findAssetFileForID(id);
-            if (file != null)
-                return file.getEntry(id);
-            return null;
-        }
-
-        private AssetFile getAssetFile( AssetEntry ae)
-        {
-            return ae.file;
-        }
-
-       
     }
+
 }

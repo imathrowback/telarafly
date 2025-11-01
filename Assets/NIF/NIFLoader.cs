@@ -11,6 +11,7 @@ using System.Linq;
 using Assets;
 using DDSLoader;
 using System.Text;
+using System.Runtime.CompilerServices;
 
 public class NIFLoader
 {
@@ -40,6 +41,11 @@ public class NIFLoader
                     if (doLoad)
                     {
                         byte[] data = AssetDatabaseInst.DB.extractUsingFilename(tex.texFilename, Assets.RiftAssets.AssetDatabase.RequestCategory.TEXTURE);
+
+                        //File.AppendAllLines(@"l:\riftimages\nifs.txt", new string[] { tex.texFilename } );
+
+
+
                         TextureData texData;
                         DDSLoader.DatabaseLoaderTexture_DDS.LoadDDS(data, out texData);
                         lock (NIFLoader.texDataCache)
@@ -124,6 +130,8 @@ public class NIFLoader
             root = prefab;
         else
             root = new GameObject();
+        root.AddComponent<OriginalNIFReference>().fname = fname;
+
         root.name = Path.GetFileNameWithoutExtension(fname);
         root.transform.localPosition = Vector3.zero;
 
@@ -210,6 +218,7 @@ public class NIFLoader
     static GameObject processNodeAndLinkToParent(NIFFile nf, NiNode niNode, GameObject parent, bool skinMesh)
     {
         GameObject goM = new GameObject();
+        goM.AddComponent<NiNodeGO>().niNode = niNode;
         goM.name = niNode.name;
 
         foreach (NiMesh mesh in nf.getMeshes())
@@ -251,6 +260,17 @@ public class NIFLoader
 
         }
         goM.transform.localScale = new Vector3(niNode.scale, niNode.scale, niNode.scale);
+
+        // AP_vfx is a bone, that should have a specific VFX attached to it.
+        // The VFX to use is found in the database, but I don't know how the VFX formation works, so we'll just assume it's a light
+
+        if (goM.name.Contains("AP_vfx"))
+        {
+            Light light = goM.AddComponent<Light>();
+            light.shadows = LightShadows.Hard;
+            light.intensity = 1.5f;
+            light.range = 15;
+        }
         //goM.transform.localRotation 
         return goM;
 
@@ -299,8 +319,10 @@ public class NIFLoader
     static GameObject processMesh(NIFFile nf, NiMesh mesh, NIFFile.MeshData meshData, bool skinMesh)
     {
 
-        //Debug.Log("process mesh:" + mesh.name);
+        Debug.Log("process mesh:" + mesh.name);
+        
         GameObject go = new GameObject();
+        go.AddComponent<NiMeshGO>().mesh = mesh;
         go.name = mesh.name;
         if (mesh.name.Length == 0)
             go.name = "mesh";
@@ -327,6 +349,8 @@ public class NIFLoader
         {
             MeshCollider mc = go.AddComponent<MeshCollider>();
             mc.sharedMesh = newMesh;
+            go.AddComponent<TeleportAreaX>();
+
         }
         newMesh.subMeshCount = mesh.numSubMeshes;
         if (mesh.meshPrimType != 0) // Triangles
@@ -335,7 +359,7 @@ public class NIFLoader
         }
         else
         {
-            bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
+            bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1")) || (nf.getStringTable().Contains("terrainLayerIndices"));
 
             newMesh.SetVertices(meshData.verts);
             if (meshData.inNormals.Count > 0)
@@ -359,7 +383,7 @@ public class NIFLoader
         if (standardShader == null)
             standardShader = Shader.Find("Standard");
 
-        bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1"));
+        bool IS_TERRAIN = (nf.getStringTable().Contains("terrainL1")) || (nf.getStringTable().Contains("terrainLayerIndices"));
         bool animated = false;
         bool presetMaterial = false;
         string materialName = null;
@@ -374,13 +398,16 @@ public class NIFLoader
             strB.Append(mesh.materialNames[0]);
             mat2 = Resources.Load<Material>(strB.ToString());
             if (mat2 != null)
+            {
                 mat = Material.Instantiate<Material>(mat2);
+                //Debug.Log("Found a material [" + strB + "] that matches the NIF one:" + mesh.materialNames[0] + ":" + mat2.name);
+            }
         }
-        else
-            Debug.LogWarning("No mesh materials found in mesh :" + mesh.name);
 
         if (mat == null)
         {
+
+            Debug.LogWarning("No matching materials found for mesh :" + mesh.name + ", we will create our own");
 
             // do materials/textures
 
@@ -425,11 +452,15 @@ public class NIFLoader
                     }
                 }
             }
+
+            // If material name is still null, create a new material as "standardMaterial" and use that.
             if (materialName == null)
             {
                 if (standardMaterial == null)
                     standardMaterial = new Material(standardShader);
                 mat = Material.Instantiate(standardMaterial);
+                mat.SetFloat("_Glossiness", 0.05f);
+                mat.SetInt("_SpecularHighlights", 0);
                 materialName = standardMaterial.name;
             }
             else
@@ -479,12 +510,8 @@ public class NIFLoader
 
         mat.enableInstancing = true;
         mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
-
-
-
         
-
-
+        // Handle animation
         if (animated)
         {
             NiFloatsExtraData extra = getFloatsExtraData(nf, mesh, "tex0ScrollRate");
@@ -498,6 +525,7 @@ public class NIFLoader
             }
         }
 
+        // Handle extra data within the NIF like texture scales
         foreach (int eid in mesh.extraDataIDs)
         {
             NIFObject obj = nf.getObject(eid);
@@ -544,6 +572,7 @@ public class NIFLoader
 
         string[] textureNameIds = getTextureIds(nf, mesh);
 
+        // Is this material a "custom" material that "implements" some of the material properties directly from the expected NIF material
         if (presetMaterial)
         {
             foreach (int extraId in mesh.extraDataIDs)
@@ -553,13 +582,16 @@ public class NIFLoader
             }
         }
 
+        // Apply one-minus alpha test
         if (mat.HasProperty("alphaTestRef"))
             mat.SetFloat("alphaTestRef", 1.0f - mat.GetFloat("alphaTestRef"));
 
         List<int> propIDs = mesh.nodePropertyIDs;
+        //Debug.Log("Ready to start processing " + propIDs.Count + " property ids");
         foreach (int propID in propIDs)
         {
             NIFObject obj = nf.getObject(propID);
+            //Debug.Log("propID[" + propID + "] is type: " + obj.GetType().Name);
 
             if (obj is NiTexturingProperty)
             {
@@ -595,7 +627,7 @@ public class NIFLoader
                                     strB.Append(textureNameIds[i]);
                                 }
                                 
-                                // Debug.Log("attempt to set texture property :" + propertyName + " with texure:" + texName);
+                                //Debug.Log("attempt to set texture property :" + propertyName + " with texure:" + texName);
 
                                 enqueSetTexture(mat, strB.ToString(), nf, texName);
                                 //mat.SetTexture(propertyName, loadTexture(nf, texName));
@@ -607,7 +639,7 @@ public class NIFLoader
                                 strB.Append(i);
                                 string param = strB.ToString();
                                     //"_terrain" + i;
-                                //Debug.Log("set " + param + " to " + texName + " mat:" + mat.name);
+                                Debug.Log("TERRAIN: set " + param + " to " + texName + " mat:" + mat.name);
                                 enqueSetTexture(mat, param, nf, texName);
                                 //mat.SetTexture(param, loadTexture(nf, texName));
                             }
@@ -629,6 +661,7 @@ public class NIFLoader
                                             //mat.SetTexture("_DetailNormalMap", loadTexture(nf, texName));
                                             break;
                                         case "normalTexture":
+                                        case "normalTextureXZ":
                                             enqueSetTexture(mat, "_BumpMap", nf, texName);
                                             //mat.SetTexture("_BumpMap", loadTexture(nf, texName));
                                             break;
@@ -651,12 +684,12 @@ public class NIFLoader
                                             //mat.SetTexture("_DetailAlbedoMap", loadTexture(nf, texName));
                                             break;
                                         default:
-                                            //Debug.LogWarning("No shader material property for " + textureNameIds[i]);
+                                            Debug.LogWarning("No shader material property for " + textureNameIds[i]);
                                             break;
                                     }
                                 }catch (ArgumentOutOfRangeException ex)
                                 {
-                                    Debug.LogWarning("Texture id[" + i + "] was out of range of the texture name ids: " + textureNameIds.ToList());
+                                    //Debug.LogWarning("Texture id[" + i + "] was out of range of the texture name ids: " + textureNameIds.ToList());
                                     //mat.SetTexture("_MainTex", loadTexture(nf, texName));
                                     enqueSetTexture(mat, "_MainTex", nf, texName);
                                     
@@ -675,6 +708,7 @@ public class NIFLoader
     {
         NIFTexturePool.inst.addQueuedTextureAction(() =>
         {
+            Debug.Log("Setting texture[" + propertyName + "] to " + texName + " for material: " + mat.name);    
             mat.SetTexture(propertyName, loadTexture1(nf, texName));
         });
 
@@ -686,7 +720,7 @@ public class NIFLoader
         string name = obj.extraDataString;
         if (!mat.HasProperty(name))
         {
-           // Debug.Log("no property " + name + " in material " + mat.name + " using obj:" + obj.GetType());
+            Debug.Log("no property " + name + " in material " + mat.name + " using obj:" + obj.GetType());
             return;
         }
         //Debug.Log("try set property " + name + " in material " + mat.name + " using obj:" + obj.GetType());

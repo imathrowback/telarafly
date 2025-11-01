@@ -35,3 +35,13 @@ sysinfo.txt
 
 dat.xmlz
 cds.xmlz
+/Assets/Snappy-Profiler-Viewer.meta
+/Assets/Snappy-Profiler-Viewer/.gitignore
+/Assets/Snappy-Profiler-Viewer/Editor.meta
+/Assets/Snappy-Profiler-Viewer/Editor/SnappyProfilerViewer.cs
+/Assets/Snappy-Profiler-Viewer/Editor/SnappyProfilerViewer.cs.meta
+/Assets/Snappy-Profiler-Viewer/LICENSE
+/Assets/Snappy-Profiler-Viewer/LICENSE.meta
+/Assets/Snappy-Profiler-Viewer/README.md
+/Assets/Snappy-Profiler-Viewer/README.md.meta
+textures

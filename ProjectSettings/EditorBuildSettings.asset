@@ -32,3 +32,14 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/pdip.unity
     guid: 7de3808fc70435649adfd975bc02eae6
+  m_configObjects:
+    Unity.XR.OpenVR.Settings: {fileID: 11400000, guid: 8bb5d944f6f249b47abc0ff543b0c088,
+      type: 2}
+    Unity.XR.WindowsMR.Settings: {fileID: 11400000, guid: 5579ac89bf41fcf428d6237463309bd6,
+      type: 2}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 73be86ed9dae2d742a850839c83bd88e,
+      type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: fccaaf655d3291141ada6e1e609a5f2b,
+      type: 2}
+    xr.sdk.mock-hmd.settings: {fileID: 11400000, guid: b4ccd5ad7bef1be4d95e0dd6f0a96380,
+      type: 2}

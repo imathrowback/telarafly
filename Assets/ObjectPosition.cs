@@ -19,6 +19,23 @@ namespace Assets
         public int index { get; internal set; }
         public string cdrfile { get; internal set; }
         public bool visible { get; internal set; }
+        //Hash128 hash;
+
+        public Hash128 Hash()
+        {
+            //if (hash == null)
+            //{
+                var hash = new Hash128();
+                //hash.Append();
+                hash.Append(nifFile);
+                hash.Append(scale);
+                hash.Append(new float[] { min.x, min.y, min.z });
+                hash.Append(new float[] { max.x, max.y, max.z });
+                hash.Append(new float[] { qut.x, qut.y, qut.z, qut.w });
+            //}
+            return hash;
+
+        }
 
         public ObjectPosition(string nifFile, Vector3 min, Quaternion qut, Vector3 max, float scale)
         {

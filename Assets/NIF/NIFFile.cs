@@ -166,6 +166,7 @@ namespace Assets.NIF
                     objects = new Dictionary<int, NIFObject>();
                     for (int i = 0; i < numObjects; i++)
                         objects.Add(i, new NIFObject());
+                        //objects.Add(i, new GameObject().AddComponent<NIFObject>());
                     //Debug.Log("start loadTypeNames pos:" + dis.BaseStream.Position);
                     loadTypeNames(dis);
                     //Debug.Log("start loadObjectSizes pos:" + dis.BaseStream.Position);
@@ -203,25 +204,30 @@ namespace Assets.NIF
                     
                     using (BinaryReader ds = new BinaryReader(new MemoryStream(data, false)))
                     {
+                        //GameObject go = new GameObject();
+                        //go.name = typeName;
                         if (typeName.StartsWith("NiDataStream"))
                         {
+                            //go.transform.parent = obj.transform;
+                            
                             NiDataStream newObj = new NiDataStream();
                             newObj.parse(this, obj, ds);
                             objects[i] = newObj;
                         }
                         else
                         {
+                            //go.transform.parent = obj.transform;
                             NIFObject newObj;
 
                             //if (typeName.Contains("Eval"))
                             //Debug.Log("[" + i + "]: type[" + typeName + "] @ " + pos);
                             if (typeCacheC.ContainsKey(typeName))
                             {
-                                newObj = (NIFObject)typeCacheC[typeName].Invoke();
+                                newObj = (NIFObject)typeCacheC[typeName].Invoke(this);
                             }
                             else
                             {
-                                // Debug.LogWarning("[PERFORMANCE WARNING] using activator for " + typeName);
+                                Debug.LogWarning("[PERFORMANCE WARNING] using activator for " + typeName);
                                 Type t = Type.GetType(cName);
                                 if (t == null)
                                 {
@@ -249,7 +255,7 @@ namespace Assets.NIF
                 } catch (Exception ex)
                 {
                     Debug.Log(typeName + ":" + ex);
-                    //Debug.Log("Unhandled nif type:" + typeName + " due to exception:" + ex.Message + " :data size:" + obj.nifSize);
+                    Debug.Log("Unhandled nif type:" + typeName + " due to exception:" + ex.Message + " :data size:" + obj.nifSize);
                     notImplementedMap[typeName] = true;
                     continue;
                 }
@@ -277,39 +283,41 @@ namespace Assets.NIF
                             objects[childID].parentIndex = obj.index;
                             //Debug.Log("parent[" + node.name + "], set child " + objects[childID].name);
                             obj.addChild(objects[childID]);
+
+                            //objects[childID].transform.parent = obj.transform;
                         }
                     }
                 }
             }
         }
 
+
         static Dictionary<string, bool> notImplementedMap = new Dictionary<string, bool>();
-        static Dictionary<String, Func<object>> typeCacheC = initTypeCache();
+        static Dictionary<String, Func<object, object>> typeCacheC = initTypeCache();
 
-        static Dictionary<String, Func<object>> initTypeCache()
+        static Dictionary<String, Func<object, object>> initTypeCache()
         {
-            Dictionary<String, Func<object>> typeCacheCC = new Dictionary<String, Func<object>>();
-            typeCacheCC["NiTerrainNode"] = () => new NiTerrainNode();
-            typeCacheCC["NiMesh"] = () => new NiMesh();
-            typeCacheCC["NiTexture"] = () => new NiTexture();
-            typeCacheCC["NiBinaryExtraData"] = () => new NiBinaryExtraData();
-            typeCacheCC["NiFloatExtraData"] = () => new NiFloatExtraData();
-            typeCacheCC["NiFloatsExtraData"] = () => new NiFloatsExtraData();
-            typeCacheCC["NiIntegerExtraData"] = () => new NiIntegerExtraData();
-            typeCacheCC["NiColorExtraData"] = () => new NiColorExtraData();
-            typeCacheCC["NiNode"] = () => new NiNode();
-            typeCacheCC["NiBSplineCompTransformEvaluator"] = () => new NiBSplineCompTransformEvaluator();
-            typeCacheCC["NiSourceTexture"] = () => new NiSourceTexture();
-            typeCacheCC["NiStringExtraData"] = () => new NiStringExtraData();
-            typeCacheCC["NiTexturingProperty"] = () => new NiTexturingProperty();
+            Dictionary<String, Func<object, object>> typeCacheCC = new Dictionary<String, Func<object, object>>();
+            typeCacheCC["NiTerrainNode"] = (a) =>new NiTerrainNode();
+            typeCacheCC["NiMesh"] = (a) => new NiMesh();
+            typeCacheCC["NiTexture"] = (a) => new NiTexture();
+            typeCacheCC["NiBinaryExtraData"] = (a) => new NiBinaryExtraData();
+            typeCacheCC["NiFloatExtraData"] = (a) => new NiFloatExtraData();
+            typeCacheCC["NiFloatsExtraData"] = (a) => new NiFloatsExtraData();
+            typeCacheCC["NiIntegerExtraData"] = (a) => new NiIntegerExtraData();
+            typeCacheCC["NiColorExtraData"] = (a) => new NiColorExtraData();
+            typeCacheCC["NiNode"] = (a) => new NiNode();
+            typeCacheCC["NiBSplineCompTransformEvaluator"] = (a) => new NiBSplineCompTransformEvaluator();
+            typeCacheCC["NiSourceTexture"] = (a) => new NiSourceTexture();
+            typeCacheCC["NiStringExtraData"] = (a) => new NiStringExtraData();
+            typeCacheCC["NiTexturingProperty"] = (a) => new NiTexturingProperty();
 
-            typeCacheCC["NiMaterialProperty"] = () => new NiMaterialProperty();
-            typeCacheCC["NiBooleanExtraData"] = () => new NiBooleanExtraData();
-            typeCacheCC["NiSequenceData"] = () => new NiSequenceData();
-            typeCacheCC["NiBSplineData"] = () => new NiBSplineData();
-            typeCacheCC["NiBSplineBasisData"] = () => new NiBSplineBasisData();
-
-            typeCacheCC["NiSkinningMeshModifier"] = () => new NiSkinningMeshModifier();
+            typeCacheCC["NiMaterialProperty"] = (a) => new NiMaterialProperty();
+            typeCacheCC["NiBooleanExtraData"] = (a) => new NiBooleanExtraData();
+            typeCacheCC["NiSequenceData"] = (a) => new NiSequenceData();
+            typeCacheCC["NiBSplineData"] = (a) => new NiBSplineData();
+            typeCacheCC["NiBSplineBasisData"] = (a) => new NiBSplineBasisData();
+            typeCacheCC["NiSkinningMeshModifier"] = (a) => new NiSkinningMeshModifier();
 
             return typeCacheCC;
         }

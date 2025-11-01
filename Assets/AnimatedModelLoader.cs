@@ -79,6 +79,9 @@ namespace Assets
             CObject obj = Parser.processStreamObject(new MemoryStream(e.decompressedData));
             if (obj.members.Count >= 1)
             {
+                string dual = getStringMember(obj, 33);
+                bool isDual = dual.Contains("_dual");
+                //Debug.Log("dual " + dual);
                 string nif = getStringMember(obj, 2);
                 string kfm = getStringMember(obj, 1);
                 string postfix = getStringMember(obj, 33);
@@ -95,7 +98,7 @@ namespace Assets
                         string displayName = nifFile;
                         // special handling for mounts as we want them grouped together
                         model = new Model();
-                        if (postfix.Length > 0 && postfix.Contains("mount"))
+                        if (postfix.Length > 0 && postfix.Contains("mount") || isDual)
                         {
                             displayName = postfix.Replace("_", "") + ":" + nifFile;
                             model.mount = true;

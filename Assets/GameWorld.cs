@@ -16,6 +16,9 @@ namespace Assets
         static List<WorldSpawn> spawns = new List<WorldSpawn>();
         public static WorldSpawn initialSpawn { get; set; }
         public static bool useColliders { get; internal set; }
+        static GameWorld() {
+            useColliders = true;
+            }
 
         public static List<WorldSpawn> getSpawns() { return spawns;  }
       

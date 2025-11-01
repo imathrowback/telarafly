@@ -67,7 +67,7 @@ namespace Assets.NIF
         {
             TryWithLock(texQueue, () =>
             {
-                DateTime end = DateTime.Now.AddMilliseconds(1);
+                DateTime end = DateTime.UtcNow.AddMilliseconds(1);
                 while (texQueue.Count() > 0)
                 {
                     TexInfo ti = texQueue.Dequeue();
@@ -75,14 +75,14 @@ namespace Assets.NIF
                     t.LoadRawTextureData(ti.data);
                     t.Compress(true);
                     t.Apply(true, true);
-                    if (DateTime.Now > end)
+                    if (DateTime.UtcNow > end)
                         break;
                 }
                 while (queuedActions.Count() > 0)
                 {
                     Action a = queuedActions.Dequeue();
                     a.Invoke();
-                    if (DateTime.Now > end)
+                    if (DateTime.UtcNow > end)
                         break;
                 }
             });

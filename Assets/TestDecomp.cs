@@ -20,6 +20,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
 using System.Reflection;
 using Assets.WorldStuff;
+using UnityEngine.XR.Management;
 
 public class TestDecomp : MonoBehaviour
 {
@@ -32,6 +33,7 @@ public class TestDecomp : MonoBehaviour
     GameObject loadbutton;
     GameObject loadModelViewerbutton;
     GameObject thirdPersonToggle;
+    GameObject vrToggle;
     public GameObject loadWardrobebutton;
     System.Threading.Thread loadThread;
     Text tex;
@@ -40,6 +42,8 @@ public class TestDecomp : MonoBehaviour
     Color color;
     AssetDatabase adb;
     ImaDropdown dropdown;
+
+    public Text LOCALDATAINUSE;
 
     // Use this for initialization
     void Start()
@@ -53,8 +57,13 @@ public class TestDecomp : MonoBehaviour
         dropdownbox.SetActive(false);
         loadbutton = GameObject.Find("LoadWorldButton");
         loadModelViewerbutton = GameObject.Find("LoadModelButton");
-        thirdPersonToggle = GetComponentInChildren<Toggle>().gameObject;
+        thirdPersonToggle = GameObject.Find("3DToggle");
+        this.vrToggle = GameObject.Find("VRToggle");
         thirdPersonToggle.SetActive(false);
+        vrToggle.SetActive(false);
+
+        //thirdPersonToggle = GetComponentInChildren<Toggle>().gameObject;
+        //thirdPersonToggle.SetActive(false);
         loadbutton.SetActive(false);
         loadModelViewerbutton.SetActive(false);
         color = Color.grey;
@@ -62,6 +71,10 @@ public class TestDecomp : MonoBehaviour
         DBInst.loadOrCallback((d) => db = d);
         error = "Loading asset database";
         adb = AssetDatabaseInst.DB;
+
+        if (adb.isRemote())
+            LOCALDATAINUSE.text = "***Remote assets in use***";
+
     }
 
     bool doMapChange = false;
@@ -69,11 +82,22 @@ public class TestDecomp : MonoBehaviour
     public void doModelViewer()
     {
         SceneManager.LoadScene("model_viewer");
+        checkVR();
+    }
+
+    void checkVR()
+    {
+        VRInitializer spawner = GameObject.FindObjectOfType<VRInitializer>();
+        if (doVR)
+            spawner.doVR();
+
     }
 
     public void loadWardrobe()
     {
         SceneManager.LoadScene("wardrobe");
+        checkVR();
+
     }
 
     private string getLocalized(CObject obj, string defaultText)
@@ -102,7 +126,11 @@ public class TestDecomp : MonoBehaviour
         //dropdown.value = startIndex;
         dropdown.RefreshShownValue();
     }
-
+    public void doVRUpdated()
+    {
+        doVR = GameObject.Find("VRToggle").GetComponent<Toggle>().isOn;
+    }
+    public bool doVR = false;
     // Update is called once per frame
     void Update()
     {
@@ -110,6 +138,7 @@ public class TestDecomp : MonoBehaviour
         {
             Debug.Log("trigger scene1 load");
             SceneManager.LoadScene("scene1");
+            checkVR();
             return;
         }
         if (db != null && !first)
@@ -133,7 +162,11 @@ public class TestDecomp : MonoBehaviour
             loadbutton.SetActive(true);
             loadModelViewerbutton.SetActive(true);
             loadWardrobebutton.SetActive(true);
-            thirdPersonToggle.SetActive(true);
+            this.thirdPersonToggle.SetActive(true);
+            this.vrToggle.SetActive(true);
+            //foreach (var x in GetComponentsInChildren<Toggle>())
+            //    x.gameObject.SetActive(true);
+            //            thirdPersonToggle.SetActive(true);
             tex.enabled = false;
 
         }
@@ -171,7 +204,9 @@ public class TestDecomp : MonoBehaviour
             loadbutton.SetActive(false);
             loadModelViewerbutton.SetActive(false);
             loadWardrobebutton.SetActive(false);
-            thirdPersonToggle.SetActive(false);
+            foreach (var x in GetComponentsInChildren<Toggle>())
+                x.gameObject.SetActive(false);
+            //thirdPersonToggle.SetActive(false);
             //ThirdPersonUIToggle.set
             if (threaded)
             {

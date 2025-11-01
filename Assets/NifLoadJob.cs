@@ -78,7 +78,7 @@ public class NifLoadJob : ThreadedJob
         try
         {
             niffile = NIFLoader.getNIF(filename, parent.cat);
-
+            Debug.Log("NifLoadJob: " + filename + " loaded, count: " + count + ", uid: " + uid + ": NIFFILE:" + niffile);
             // extra check for terrain
             if (filename.Contains("_terrain_"))
             {
@@ -89,7 +89,7 @@ public class NifLoadJob : ThreadedJob
                 }
                 catch (Exception ex)
                 {
-                    Debug.Log("there was an exception while trying to load lod split:" + lodname + ": " + ex);
+                    Debug.LogWarning("there was an exception while trying to load lod split:" + lodname + ": " + ex);
                 }
             }
 
@@ -97,7 +97,7 @@ public class NifLoadJob : ThreadedJob
         }
         catch (Exception ex)
         {
-            //Debug.Log("there was an exception while doing the thread:" + filename + ": " + ex);
+            Debug.LogError("there was an exception while doing the thread:" + filename + ": " + ex);
         }
     }
     protected override void OnFinished()
@@ -109,11 +109,14 @@ public class NifLoadJob : ThreadedJob
             {
                 TerrainObj tobj = parent.gameObject.GetComponent<TerrainObj>();
                 if (tobj == null)
+                {
                     parent.gameObject.AddComponent<TerrainObj>();
+                }
                 else
                     tobj.enabled = true;
             }
             count--;
+            Debug.Log("NifLoadJob: " + filename + " loaded, count: " + count + ", uid: " + uid + ": NIFFILE:" + niffile);
             // This is executed by the Unity main thread when the job is finished
             if (niffile != null)
             {
@@ -141,7 +144,7 @@ public class NifLoadJob : ThreadedJob
                     lodObj.name = "LOD-" + filename;
                     lodgo.transform.SetParent(lodObj.transform);
                     lodObj.transform.SetParent(go.transform);
-                    
+
 
                 }
 
@@ -151,7 +154,9 @@ public class NifLoadJob : ThreadedJob
                 }
             }
             else
+            {
                 go = getCachedObject(filename);
+            }
 
             if (go != null)
             {
@@ -168,11 +173,26 @@ public class NifLoadJob : ThreadedJob
                 if (parent.gameObject.GetComponent<LODGroup>() != null)
                     parent.gameObject.GetComponent<LODGroup>().RecalculateBounds();
             }
+
+            //if (go.GetComponentInChildren<MemmerObject>() != null)
+            //{
+                // Remove any teleport area objects
+                //foreach(Te
+            //}
+
+            /*
+            if (go.transform.FindDeepChild("character_root_node_JNT"))
+            {
+                // this is a character should set it to idle
+            }
+            */
+            //if (go.)
+
         }
         catch (Exception ex)
         {
             Debug.LogWarning("Unable to load nif:" + niffile + " " + filename);
-            Debug.Log(ex);
+            Debug.LogWarning(ex);
             if (null != go)
                 GameObject.Destroy(go);
         }

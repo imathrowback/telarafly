@@ -135,16 +135,16 @@ namespace Assets
 
         public void setActiveAnimation(string anim)
         {
-            //Debug.Log("set anim to " + anim);
+            Debug.Log("set anim to " + anim);
             foreach (KFAnimation kfa in getAnimations())
                 if (kfa.sequencename.Equals(anim))
                 {
                     setActiveAnimation(kfa.id);
                     return;
                 }
-            //Debug.Log("Unable to find animation " + anim);
-            //foreach (KFAnimation kfa in getAnimations())
-            //    Debug.Log("\t " + kfa.sequencename);
+            Debug.Log("Unable to find animation " + anim);
+            foreach (KFAnimation kfa in getAnimations())
+                Debug.Log("\t " + kfa.sequencename);
         }
 
         public void setActiveAnimation(int anim)

@@ -260,18 +260,18 @@ public class ModelView : MonoBehaviour
 
     string filter = null;
     string filterToSet = null;
-    DateTime filterSetTime = DateTime.Now;
+    DateTime filterSetTime = DateTime.UtcNow;
 
     public void changeFilter()
     {
-        this.filterSetTime = DateTime.Now.AddSeconds(1);
+        this.filterSetTime = DateTime.UtcNow.AddSeconds(1);
         this.filterToSet = filterField.text.ToLower();
     }
     public void changeAnim()
     {
+        string anim = this.animationDropdown.options[this.animationDropdown.value].text;
         changeNif(nIFModelDropdown.getSelected().text);
 
-        string anim = this.animationDropdown.options[this.animationDropdown.value].text;
         animationNif.setActiveAnimation(anim);
 
 
@@ -333,7 +333,7 @@ public class ModelView : MonoBehaviour
     bool first = false;
     void FixedUpdate()
     {
-        if (filterToSet != null && DateTime.Now > filterSetTime)
+        if (filterToSet != null && DateTime.UtcNow > filterSetTime)
         {
             filter = filterToSet;
             filterToSet = null;
@@ -341,7 +341,8 @@ public class ModelView : MonoBehaviour
 
         }
 
-        progressText.text = progress;
+        if (progressText != null)
+            progressText.text = progress;
         if (DBInst.loaded && !first)
         {
           

@@ -50,13 +50,15 @@ namespace Assets.Export
             sb.Append("\n");
             foreach (Vector3 nn in m.normals)
             {
-                Vector3 v = r * nn;
-                v = -v;
-                sb.Append(string.Format("vn {0} {1} {2}\n", -v.x, -v.y, v.z));
+                //Vector3 v = r * nn;
+                //v = v;
+                Vector3 v = nn;
+                sb.Append(string.Format("vn {0} {1} {2}\n", v.x, v.y, v.z));
             }
             sb.Append("\n");
             foreach (Vector3 v in m.uv)
             {
+                //sb.Append(string.Format("vt {0} {1}\n", v.x, -v.y));
                 sb.Append(string.Format("vt {0} {1}\n", v.x, -v.y));
             }
             for (int material = 0; material < m.subMeshCount; material++)
@@ -70,7 +72,9 @@ namespace Assets.Export
                 for (int i = 0; i < triangles.Length; i += 3)
                 {
                     sb.Append(string.Format("f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}\n",
-                        triangles[i] + 1 + StartIndex, triangles[i + 1] + 1 + StartIndex, triangles[i + 2] + 1 + StartIndex));
+                        triangles[i + 2] + 1 + StartIndex, 
+                        triangles[i + 1] + 1 + StartIndex, 
+                        triangles[i + 0] + 1 + StartIndex));
                 }
             }
 

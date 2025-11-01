@@ -92,7 +92,7 @@ namespace Assets.RiftAssets
                     //Debug.Log("[" + strID + "] cache hit");
                     addStat("hit", 1);
                 }
-                entry.expires = DateTime.Now.AddSeconds(EXPIRE_SECONDS);
+                entry.expires = DateTime.UtcNow.AddSeconds(EXPIRE_SECONDS);
                 startTimer();
             }
             return entry.getData();
@@ -122,7 +122,7 @@ namespace Assets.RiftAssets
             {
                 foreach (Entry entry in entries.Values.ToArray())
                 {
-                    if (DateTime.Now > entry.expires)
+                    if (DateTime.UtcNow > entry.expires)
                     {
                         entries.Remove(entry.id);
                         addStat("purged", 1);

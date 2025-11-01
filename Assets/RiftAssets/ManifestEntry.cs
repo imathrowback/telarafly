@@ -35,7 +35,7 @@ namespace Assets.RiftAssets
 		    dis.readFully(filenameHash);
 		    ArrayUtils.reverse(filenameHash);
 
-		    // store the ID and filename hash into a map for easy lookup
+		    // store the ID and filename hash into a string  for easy lookup
 		    idStr = Util.bytesToHexString(id);
 		    filenameHashStr = Util.bytesToHexString(filenameHash);
 
